@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Momotus Core | Camisetas Personalizadas Nicaragua</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-zinc-950 text-white">
+
+  <!-- NAVBAR -->
+  <div id="navbar-placeholder"></div>
+
+  <!-- CARRUSEL HERO -->
+  <section class="relative h-screen overflow-hidden">
+    <div id="carousel" class="relative h-full">
+      <div class="carousel-slide absolute inset-0 bg-cover bg-center transition-opacity duration-1000" style="background-image: url('img/heroes/hero-1.jpg')">
+        <div class="absolute inset-0 bg-gradient-to-r from-black/70 to-transparent"></div>
+        <div class="absolute bottom-20 left-6 md:left-16 max-w-lg">
+          <h2 class="text-5xl md:text-7xl font-black leading-none mb-4">VIBES MANAGUA</h2>
+          <p class="text-xl md:text-2xl text-zinc-200 mb-8">Diseños únicos que representan nuestra cultura</p>
+          <a href="tienda.html" class="inline-block bg-yellow-400 text-black font-bold px-10 py-5 rounded-3xl text-lg hover:bg-yellow-300 btn-hover">Explorar Tienda</a>
+        </div>
+      </div>
+      <div class="carousel-slide absolute inset-0 bg-cover bg-center transition-opacity duration-1000 opacity-0" style="background-image: url('img/heroes/hero-2.jpg')">
+        <div class="absolute inset-0 bg-gradient-to-r from-black/70 to-transparent"></div>
+        <div class="absolute bottom-20 left-6 md:left-16 max-w-lg">
+          <h2 class="text-5xl md:text-7xl font-black leading-none mb-4">CREA TU ESTILO</h2>
+          <p class="text-xl md:text-2xl text-zinc-200 mb-8">Sube tu diseño y recibe calidad premium</p>
+          <a href="disena.html" class="inline-block bg-yellow-400 text-black font-bold px-10 py-5 rounded-3xl text-lg hover:bg-yellow-300 btn-hover">Diseñar Ahora</a>
+        </div>
+      </div>
+      <div class="carousel-slide absolute inset-0 bg-cover bg-center transition-opacity duration-1000 opacity-0" style="background-image: url('img/heroes/hero-3.jpg')">
+        <div class="absolute inset-0 bg-gradient-to-r from-black/70 to-transparent"></div>
+        <div class="absolute bottom-20 left-6 md:left-16 max-w-lg">
+          <h2 class="text-5xl md:text-7xl font-black leading-none mb-4">EDICIONES LIMITADAS</h2>
+          <p class="text-xl md:text-2xl text-zinc-200 mb-8">Solo en Momotus Core</p>
+          <a href="tienda.html" class="inline-block bg-yellow-400 text-black font-bold px-10 py-5 rounded-3xl text-lg hover:bg-yellow-300 btn-hover">Ver Colección</a>
+        </div>
+      </div>
+    </div>
+
+    <button onclick="prevSlide()" class="absolute left-6 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black text-white p-5 rounded-full z-20"><i class="fa-solid fa-chevron-left text-3xl"></i></button>
+    <button onclick="nextSlide()" class="absolute right-6 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black text-white p-5 rounded-full z-20"><i class="fa-solid fa-chevron-right text-3xl"></i></button>
+    <div class="absolute bottom-10 left-1/2 -translate-x-1/2 flex gap-3 z-20" id="carousel-indicators"></div>
+  </section>
+
+  <!-- MODAL CARRITO -->
+  <div id="cart-modal-placeholder"></div>
+
+  <!-- FOOTER -->
+  <footer class="footer py-12">
+    <div class="max-w-7xl mx-auto px-6">
+      <div class="grid md:grid-cols-4 gap-8">
+        <div>
+          <div class="flex items-center gap-3 mb-4">
+            <i class="fa-solid fa-shirt text-4xl text-yellow-400"></i>
+            <h1 class="text-3xl font-bold">Momotus Core</h1>
+          </div>
+          <p class="text-zinc-400">Camisetas personalizadas con alma nica.</p>
+        </div>
+        <div>
+          <h4 class="font-bold mb-4">Enlaces</h4>
+          <a href="index.html" class="block text-zinc-400 hover:text-white mb-2">Inicio</a>
+          <a href="tienda.html" class="block text-zinc-400 hover:text-white mb-2">Tienda</a>
+          <a href="disena.html" class="block text-zinc-400 hover:text-white mb-2">Diseña la Tuya</a>
+          <a href="comunidad.html" class="block text-zinc-400 hover:text-white">Comunidad</a>
+        </div>
+        <div>
+          <h4 class="font-bold mb-4">Contacto</h4>
+          <a href="https://wa.me/50512345678" class="flex items-center gap-2 text-green-400 hover:text-green-300"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>
+        </div>
+        <div>
+          <h4 class="font-bold mb-4">Síguenos</h4>
+          <p class="text-zinc-400">Managua, Nicaragua © 2026</p>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="js/script.js"></script>
+</body>
+</html>

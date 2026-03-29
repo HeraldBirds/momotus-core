@@ -1,0 +1,22 @@
+/* css/style.css - Momotus Core - VERSIÓN PULIDA 2026 */
+
+@layer base {
+  body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+}
+
+.carousel-slide { background-size: cover; background-position: center; }
+
+.product-card { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+.product-card:hover { transform: translateY(-12px); box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.35); }
+
+.mobile-menu { animation: menuSlide 0.3s ease forwards; }
+@keyframes menuSlide { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+
+.footer { background: #111827; }
+
+.btn-hover { transition: all 0.3s ease; }
+.btn-hover:hover { transform: scale(1.05); }
+
+.color-btn { box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.3); }
+.color-btn.active { border-color: #facc15 !important; box-shadow: 0 0 0 4px rgba(250, 204, 21, 0.3); }
+.color-btn:hover { transform: scale(1.08); }
