@@ -10,13 +10,31 @@
   <style>
     .mockup-wrapper { background: #111827; border-radius: 40px; padding: 40px; box-shadow: 0 40px 80px -20px rgb(0 0 0 / 0.8); }
     .shirt-mockup { width: 100%; max-width: 520px; border-radius: 30px; box-shadow: 0 30px 60px -15px rgb(0 0 0 / 0.7); transition: all 0.5s ease; }
-    #design-preview, #design-preview-back { position: absolute; cursor: move; border: 4px dashed #facc15; background: rgba(250, 204, 21, 0.12); border-radius: 24px; overflow: hidden; box-shadow: 0 20px 30px rgba(0,0,0,0.5); z-index: 20; }
+
+    #design-preview, #design-preview-back {
+      position: absolute;
+      cursor: move;
+      border: 4px dashed #facc15;
+      background: rgba(250, 204, 21, 0.12);
+      border-radius: 24px;
+      overflow: hidden;
+      z-index: 20;
+      transition: all 0.4s ease;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+    }
+
+    #design-preview.design-loaded,
+    #design-preview-back.design-loaded {
+      border: none !important;
+      background: transparent !important;
+      box-shadow: none !important;
+    }
+
     .tab-active { border-bottom: 4px solid #facc15; color: #facc15; }
   </style>
 </head>
 <body class="bg-zinc-950 text-white">
 
-  <!-- NAVBAR (inyectado por JS) -->
   <div id="navbar-placeholder"></div>
 
   <section class="py-20 bg-zinc-950">
@@ -35,15 +53,11 @@
             </div>
             <div id="mockup-frente" class="relative">
               <img id="shirt-mockup" src="img/mockups/mockup-regular-negro-frente.png" class="shirt-mockup w-full" alt="Mockup Frente">
-              <div id="design-preview" class="absolute top-[26%] left-1/2 -translate-x-1/2 w-[265px] h-[265px] border-4 border-dashed border-yellow-400 rounded-3xl overflow-hidden bg-white/5 flex items-center justify-center">
-                <span class="text-yellow-400 text-center text-base font-medium pointer-events-none">Arrastra tu diseño aquí</span>
-              </div>
+              <div id="design-preview" class="absolute top-[26%] left-1/2 -translate-x-1/2 flex items-center justify-center"></div>
             </div>
             <div id="mockup-espalda" class="relative hidden">
               <img id="shirt-mockup-back" src="img/mockups/mockup-regular-negro-espalda.png" class="shirt-mockup w-full" alt="Mockup Espalda">
-              <div id="design-preview-back" class="absolute top-[26%] left-1/2 -translate-x-1/2 w-[265px] h-[265px] border-4 border-dashed border-yellow-400 rounded-3xl overflow-hidden bg-white/5 flex items-center justify-center">
-                <span class="text-yellow-400 text-center text-base font-medium pointer-events-none">Arrastra tu diseño aquí</span>
-              </div>
+              <div id="design-preview-back" class="absolute top-[26%] left-1/2 -translate-x-1/2 flex items-center justify-center"></div>
             </div>
           </div>
         </div>
@@ -51,6 +65,7 @@
         <!-- Panel de personalización -->
         <div class="space-y-12">
           <h3 class="text-4xl font-bold">Personaliza tu camiseta</h3>
+          
           <div>
             <p class="font-medium mb-4">Tipo de corte</p>
             <div class="flex gap-3 flex-wrap">
@@ -59,32 +74,28 @@
               <button onclick="selectShirtType(2)" id="type-2" class="shirt-type-btn px-8 py-4 rounded-3xl font-medium border border-zinc-600 hover:border-yellow-400">Oversized</button>
             </div>
           </div>
+
           <div>
             <p class="font-medium mb-4">Color de camiseta</p>
-            <div class="flex flex-wrap gap-3">
-              <button onclick="selectColor(this)" class="color-btn w-14 h-14 rounded-2xl shadow-inner border-2 border-transparent active:scale-95 transition-all bg-black active"></button>
-              <button onclick="selectColor(this)" class="color-btn w-14 h-14 rounded-2xl shadow-inner border-2 border-zinc-400 active:scale-95 transition-all bg-white"></button>
-              <button onclick="selectColor(this)" class="color-btn w-14 h-14 rounded-2xl shadow-inner border-2 border-transparent active:scale-95 transition-all bg-red-500"></button>
-              <button onclick="selectColor(this)" class="color-btn w-14 h-14 rounded-2xl shadow-inner border-2 border-transparent active:scale-95 transition-all bg-blue-500"></button>
-              <button onclick="selectColor(this)" class="color-btn w-14 h-14 rounded-2xl shadow-inner border-2 border-transparent active:scale-95 transition-all bg-emerald-500"></button>
-              <button onclick="selectColor(this)" class="color-btn w-14 h-14 rounded-2xl shadow-inner border-2 border-transparent active:scale-95 transition-all bg-violet-500"></button>
-              <button onclick="selectColor(this)" class="color-btn w-14 h-14 rounded-2xl shadow-inner border-2 border-transparent active:scale-95 transition-all bg-amber-500"></button>
-              <button onclick="selectColor(this)" class="color-btn w-14 h-14 rounded-2xl shadow-inner border-2 border-transparent active:scale-95 transition-all bg-pink-500"></button>
-            </div>
+            <div class="flex flex-wrap gap-3" id="color-buttons"></div>
           </div>
+
           <div>
             <input type="file" id="design-upload" accept="image/*" class="hidden" onchange="handleDesignUpload(event)">
-            <button onclick="document.getElementById('design-upload').click()" class="w-full bg-yellow-400 hover:bg-yellow-300 text-black font-bold py-7 rounded-3xl flex items-center justify-center gap-4 text-xl transition">
+            <button onclick="document.getElementById('design-upload').click()" 
+                    class="w-full bg-yellow-400 hover:bg-yellow-300 text-black font-bold py-7 rounded-3xl flex items-center justify-center gap-4 text-xl transition">
               <i class="fa-solid fa-upload"></i> SUBIR MI DISEÑO
             </button>
-            <button onclick="mostrarModalEliminarFondo()" class="mt-4 w-full border-2 border-yellow-400 hover:bg-yellow-400 hover:text-black text-yellow-400 font-bold py-5 rounded-3xl flex items-center justify-center gap-3 text-lg transition">
+            <button onclick="mostrarModalEliminarFondo()" 
+                    class="mt-4 w-full border-2 border-yellow-400 hover:bg-yellow-400 hover:text-black text-yellow-400 font-bold py-5 rounded-3xl flex items-center justify-center gap-3 text-lg transition">
               <i class="fa-solid fa-magic text-2xl"></i> 🪄 ELIMINAR FONDO AUTOMÁTICO
             </button>
           </div>
+
           <div class="flex gap-4">
-            <button onclick="applyDesign()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 py-6 rounded-3xl font-bold text-lg">Aplicar Diseño</button>
-            <button onclick="resetDesign()" class="flex-1 bg-zinc-700 hover:bg-zinc-600 py-6 rounded-3xl font-bold text-lg">Resetear</button>
+            <button onclick="resetDesign()" class="flex-1 bg-zinc-700 hover:bg-zinc-600 py-6 rounded-3xl font-bold text-lg">Resetear diseño</button>
           </div>
+
           <div class="pt-8 border-t border-zinc-700">
             <p class="font-medium mb-4">Solicitar cotización</p>
             <div class="grid grid-cols-2 gap-4">
@@ -101,7 +112,7 @@
   <div id="modal-eliminar-fondo" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[10000]">
     <div class="bg-zinc-900 rounded-3xl max-w-md w-full mx-4 p-8 text-center">
       <h3 class="text-2xl font-bold mb-4">🪄 Eliminar fondo automáticamente</h3>
-      <p class="text-zinc-400 mb-6">1. Abre la herramienta gratuita remove.bg<br>2. Sube tu imagen<br>3. Descarga la versión sin fondo (PNG transparente)<br>4. Vuelve aquí y súbela con el botón "Subir mi diseño"</p>
+      <p class="text-zinc-400 mb-6">1. Abre la herramienta gratuita remove.bg<br>2. Sube tu imagen<br>3. Descarga la versión sin fondo (PNG transparente)<br>4. Vuelve aquí y súbela</p>
       <button onclick="abrirRemoveBg()" class="w-full bg-yellow-400 text-black font-bold py-6 rounded-3xl text-xl mb-6 flex items-center justify-center gap-3 hover:bg-yellow-300 transition">
         <i class="fa-solid fa-magic"></i> ABRIR REMOVE.BG
       </button>
@@ -109,31 +120,8 @@
     </div>
   </div>
 
-  <!-- MODAL CARRITO (inyectado por JS) -->
   <div id="cart-modal-placeholder"></div>
 
   <script src="js/script.js"></script>
-
-  <script>
-    let currentMockupTab = 0;
-    function switchMockup(tab) {
-      currentMockupTab = tab;
-      document.getElementById('tab-frente').classList.toggle('tab-active', tab === 0);
-      document.getElementById('tab-espalda').classList.toggle('tab-active', tab === 1);
-      document.getElementById('mockup-frente').classList.toggle('hidden', tab === 1);
-      document.getElementById('mockup-espalda').classList.toggle('hidden', tab === 0);
-    }
-    function mostrarModalEliminarFondo() {
-      document.getElementById('modal-eliminar-fondo').classList.remove('hidden');
-    }
-    function cerrarModalEliminarFondo() {
-      document.getElementById('modal-eliminar-fondo').classList.add('hidden');
-    }
-    function abrirRemoveBg() {
-      cerrarModalEliminarFondo();
-      window.open('https://remove.bg', '_blank');
-      showToast("🪄 remove.bg abierto. Descarga la imagen sin fondo y súbela aquí.");
-    }
-  </script>
 </body>
 </html>

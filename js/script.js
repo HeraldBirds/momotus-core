@@ -1,11 +1,24 @@
-// js/script.js - Momotus Core - VERSIÓN FINAL 2026 (Mejoras 1-7 completas)
-
+// js/script.js - Momotus Core - VERSIÓN FINAL OPTIMIZADA (Carga de imágenes ultra-rápida + sin precios)
 let cart = [];
 let wishlist = [];
 let currentSlide = 0;
 let carouselInterval = null;
 let currentShirtType = 0;
 let currentColor = 'black';
+
+// ==================== TAMAÑO DINÁMICO DEL DISEÑO ====================
+const designSizes = [265, 235, 295];
+
+const updateDesignSize = () => {
+  const size = designSizes[currentShirtType];
+  ['design-preview', 'design-preview-back'].forEach(id => {
+    const preview = document.getElementById(id);
+    if (preview) {
+      preview.style.width = `${size}px`;
+      preview.style.height = `${size}px`;
+    }
+  });
+};
 
 // ==================== PRODUCTOS ====================
 const products = [
@@ -25,18 +38,48 @@ const products = [
   { id: 14, name: "Luffy Gear 5", price: 530, category: "anime", img: "img/products/product-14.jpg" }
 ];
 
-// ==================== MOCKUP RUTAS ====================
+// ==================== MOCKUP Y COLORES ====================
 const shirtTypes = ['regular', 'slim', 'oversized'];
-const colorMap = {
-  black: 'negro', white: 'blanco', red: 'rojo', blue: 'azul',
-  emerald: 'verde', violet: 'violeta', amber: 'amarillo', pink: 'rosa'
-};
+const colorMap = { black: 'negro', white: 'blanco', red: 'rojo', blue: 'azul', emerald: 'verde', violet: 'violeta', amber: 'amarillo', pink: 'rosa' };
 
 const getMockupPath = (typeIndex, colorKey, isBack = false) => {
   const typeName = shirtTypes[typeIndex];
   const colorName = colorMap[colorKey] || colorKey;
   const side = isBack ? 'espalda' : 'frente';
   return `img/mockups/mockup-${typeName}-${colorName}-${side}.png`;
+};
+
+const colors = [
+  { key: 'black', class: 'bg-black', name: 'Negro' },
+  { key: 'white', class: 'bg-white', name: 'Blanco' },
+  { key: 'red', class: 'bg-red-500', name: 'Rojo' },
+  { key: 'blue', class: 'bg-blue-500', name: 'Azul' },
+  { key: 'emerald', class: 'bg-emerald-500', name: 'Verde' },
+  { key: 'violet', class: 'bg-violet-500', name: 'Violeta' },
+  { key: 'amber', class: 'bg-amber-500', name: 'Amarillo' },
+  { key: 'pink', class: 'bg-pink-500', name: 'Rosa' }
+];
+
+const renderColorButtons = () => {
+  const container = document.getElementById('color-buttons');
+  if (!container) return;
+  container.innerHTML = '';
+  colors.forEach(color => {
+    const btn = document.createElement('button');
+    btn.onclick = () => selectColor(color.key, btn);
+    btn.className = `color-btn w-14 h-14 rounded-2xl shadow-inner border-2 border-transparent active:scale-95 transition-all ${color.class}`;
+    if (color.key === 'black') btn.classList.add('active');
+    container.appendChild(btn);
+  });
+};
+
+// ==================== BLEND MEJORADO ====================
+const getDesignStyle = (colorKey) => {
+  if (colorKey === 'white') {
+    return `mix-blend-mode: multiply; filter: brightness(0.95) contrast(1.25) saturate(1.1) opacity(0.92);`;
+  } else {
+    return `mix-blend-mode: multiply; filter: brightness(1.08) contrast(1.18) saturate(1.25) opacity(0.95);`;
+  }
 };
 
 // ==================== TOAST ====================
@@ -86,7 +129,7 @@ const removeFromWishlist = (id) => {
   renderProducts(products);
 };
 
-// ==================== COMPONENTES COMUNES ====================
+// ==================== NAVBAR ====================
 const renderCommonNavbar = () => {
   const currentPage = window.location.pathname.split('/').pop() || 'index.html';
   const navbarHTML = `
@@ -153,7 +196,7 @@ const renderCartModal = () => {
   if (placeholder) placeholder.innerHTML = modalHTML;
 };
 
-// ==================== QUICK VIEW ====================
+// ==================== QUICK VIEW (imágenes optimizadas) ====================
 const showQuickView = (id) => {
   const product = products.find(p => p.id === id);
   if (!product) return;
@@ -166,7 +209,7 @@ const showQuickView = (id) => {
           <button onclick="closeQuickView()" class="text-4xl text-zinc-400 hover:text-white">×</button>
         </div>
         <div class="p-8 flex flex-col md:flex-row gap-8">
-          <img src="${product.img}" class="w-full md:w-1/2 aspect-square object-cover rounded-3xl" alt="${product.name}">
+          <img loading="eager" decoding="async" width="400" height="400" src="${product.img}" class="w-full md:w-1/2 aspect-square object-cover rounded-3xl" alt="${product.name}">
           <div class="flex-1">
             <p class="text-4xl font-bold text-yellow-400 mb-2">C$ ${product.price}</p>
             <span class="inline-block bg-black/70 text-white text-xs px-4 py-1 rounded-full mb-6">${product.category.toUpperCase()}</span>
@@ -192,7 +235,7 @@ const closeQuickView = () => {
   if (modal) modal.remove();
 };
 
-// ==================== TIENDA ====================
+// ==================== TIENDA (imágenes optimizadas) ====================
 const renderProducts = (filteredProducts) => {
   const grid = document.getElementById('products-grid');
   if (!grid) return;
@@ -207,7 +250,7 @@ const renderProducts = (filteredProducts) => {
     card.className = 'product-card bg-zinc-900 rounded-3xl overflow-hidden group relative';
     card.innerHTML = `
       <div class="relative">
-        <img loading="lazy" onclick="showQuickView(${product.id})" src="${product.img}" alt="${product.name}" class="w-full aspect-square object-cover transition group-hover:scale-105 cursor-pointer">
+        <img loading="lazy" decoding="async" width="320" height="320" onclick="showQuickView(${product.id})" src="${product.img}" alt="${product.name}" class="w-full aspect-square object-cover transition group-hover:scale-105 cursor-pointer">
         <span class="absolute top-4 left-4 bg-black/70 text-white text-xs font-medium px-3 py-1 rounded-full">${product.category.toUpperCase()}</span>
         <button onclick="event.stopImmediatePropagation(); ${inWishlist ? `removeFromWishlist(${product.id})` : `addToWishlist(${product.id})`}" class="absolute top-4 right-4 text-2xl ${inWishlist ? 'text-red-500' : 'text-white/70 hover:text-red-500'} transition">
           <i class="fa-solid fa-heart"></i>
@@ -239,7 +282,7 @@ const renderBestSellers = () => {
     card.className = 'product-card bg-zinc-900 rounded-3xl overflow-hidden group relative';
     card.innerHTML = `
       <div class="relative">
-        <img loading="lazy" onclick="showQuickView(${product.id})" src="${product.img}" alt="${product.name}" class="w-full aspect-square object-cover transition group-hover:scale-105 cursor-pointer">
+        <img loading="lazy" decoding="async" width="320" height="320" onclick="showQuickView(${product.id})" src="${product.img}" alt="${product.name}" class="w-full aspect-square object-cover transition group-hover:scale-105 cursor-pointer">
         <span class="absolute top-4 left-4 bg-orange-500 text-white text-xs font-medium px-3 py-1 rounded-full">TOP</span>
         <button onclick="event.stopImmediatePropagation(); ${inWishlist ? `removeFromWishlist(${product.id})` : `addToWishlist(${product.id})`}" class="absolute top-4 right-4 text-2xl ${inWishlist ? 'text-red-500' : 'text-white/70 hover:text-red-500'} transition">
           <i class="fa-solid fa-heart"></i>
@@ -254,26 +297,7 @@ const renderBestSellers = () => {
   });
 };
 
-// ==================== CARRITO FUNCIONES ====================
-const addToCartFromStore = (id) => {
-  const product = products.find(p => p.id === id);
-  if (!product) return;
-  const existing = cart.find(item => item.id === product.id);
-  if (existing) existing.quantity = (existing.quantity || 1) + 1;
-  else cart.push({ ...product, quantity: 1 });
-  saveCart();
-  updateCartCount();
-  showToast(`✅ ${product.name} agregado al carrito`);
-};
-
-const updateCartCount = () => {
-  const countEl = document.getElementById('cart-count');
-  if (countEl) {
-    const totalItems = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
-    countEl.textContent = totalItems;
-  }
-};
-
+// ==================== CARRITO (imágenes optimizadas) ====================
 const toggleCartModal = () => {
   const modal = document.getElementById('cart-modal');
   if (!modal) return;
@@ -288,7 +312,7 @@ const toggleCartModal = () => {
       itemsContainer.innerHTML += `
         <div class="flex items-center justify-between border-b border-zinc-700 pb-6">
           <div class="flex items-center gap-4">
-            <img loading="lazy" src="${item.img}" class="w-20 h-20 object-cover rounded-2xl" alt="${item.name}">
+            <img loading="lazy" decoding="async" width="80" height="80" src="${item.img}" class="w-20 h-20 object-cover rounded-2xl" alt="${item.name}">
             <div>
               <p class="font-medium">${item.name}</p>
               <p class="text-sm text-zinc-400">C$ ${item.price}</p>
@@ -306,6 +330,25 @@ const toggleCartModal = () => {
     modal.classList.remove('hidden');
   } else {
     modal.classList.add('hidden');
+  }
+};
+
+const addToCartFromStore = (id) => {
+  const product = products.find(p => p.id === id);
+  if (!product) return;
+  const existing = cart.find(item => item.id === product.id);
+  if (existing) existing.quantity = (existing.quantity || 1) + 1;
+  else cart.push({ ...product, quantity: 1 });
+  saveCart();
+  updateCartCount();
+  showToast(`✅ ${product.name} agregado al carrito`);
+};
+
+const updateCartCount = () => {
+  const countEl = document.getElementById('cart-count');
+  if (countEl) {
+    const totalItems = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
+    countEl.textContent = totalItems;
   }
 };
 
@@ -410,7 +453,7 @@ const showProductsSkeleton = () => {
   }
 };
 
-// ==================== DRAG & DROP + TOUCH ====================
+// ==================== DRAG & DROP ====================
 let isDragging = false;
 let currentDraggingDesign = null;
 let offsetX = 0, offsetY = 0;
@@ -466,6 +509,14 @@ const updateMockups = () => {
   if (frontImg) frontImg.src = getMockupPath(currentShirtType, currentColor, false);
   const backImg = document.getElementById('shirt-mockup-back');
   if (backImg) backImg.src = getMockupPath(currentShirtType, currentColor, true);
+  
+  updateDesignSize();
+  saveCurrentDesign();
+
+  const frontDesign = document.getElementById('draggable-design-front');
+  const backDesign = document.getElementById('draggable-design-back');
+  if (frontDesign) frontDesign.style.cssText += getDesignStyle(currentColor);
+  if (backDesign) backDesign.style.cssText += getDesignStyle(currentColor);
 };
 
 const selectShirtType = (index) => {
@@ -474,42 +525,38 @@ const selectShirtType = (index) => {
   updateMockups();
 };
 
-const selectColor = (el) => {
-  document.querySelectorAll('.color-btn').forEach(btn => btn.classList.remove('active'));
-  el.classList.add('active');
-  let colorKey = 'black';
-  if (el.classList.contains('bg-white')) colorKey = 'white';
-  else if (el.classList.contains('bg-red-500')) colorKey = 'red';
-  else if (el.classList.contains('bg-blue-500')) colorKey = 'blue';
-  else if (el.classList.contains('bg-emerald-500')) colorKey = 'emerald';
-  else if (el.classList.contains('bg-violet-500')) colorKey = 'violet';
-  else if (el.classList.contains('bg-amber-500')) colorKey = 'amber';
-  else if (el.classList.contains('bg-pink-500')) colorKey = 'pink';
+const selectColor = (colorKey, el) => {
+  document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+  if (el) el.classList.add('active');
   currentColor = colorKey;
   updateMockups();
-  showToast(`🎨 Camiseta ${colorMap[colorKey] || colorKey} aplicada`);
 };
 
 const handleDesignUpload = (e) => {
   const file = e.target.files[0];
   if (!file) return;
+  if (!file.type.startsWith('image/')) { showToast("❌ Solo se permiten imágenes"); return; }
+  if (file.size > 5 * 1024 * 1024) { showToast("❌ Máximo 5 MB por imagen"); return; }
+
   const reader = new FileReader();
   reader.onload = (ev) => {
     const imageSrc = ev.target.result;
-    const style = `mix-blend-mode: multiply; filter: brightness(1.25) contrast(1.5) saturate(1.4);`;
+    const style = getDesignStyle(currentColor);
+
     const previewFront = document.getElementById('design-preview');
     if (previewFront) {
       previewFront.innerHTML = `<img src="${imageSrc}" id="draggable-design-front" class="max-w-full max-h-full object-contain rounded-3xl" style="${style}">`;
-      previewFront.style.border = 'none'; previewFront.style.background = 'transparent'; previewFront.style.boxShadow = 'none';
+      previewFront.classList.add('design-loaded');
       makeDraggable(document.getElementById('draggable-design-front'));
     }
     const previewBack = document.getElementById('design-preview-back');
     if (previewBack) {
       previewBack.innerHTML = `<img src="${imageSrc}" id="draggable-design-back" class="max-w-full max-h-full object-contain rounded-3xl" style="${style}">`;
-      previewBack.style.border = 'none'; previewBack.style.background = 'transparent'; previewBack.style.boxShadow = 'none';
+      previewBack.classList.add('design-loaded');
       makeDraggable(document.getElementById('draggable-design-back'));
     }
-    showToast("✅ Diseño cargado en frente y espalda");
+    showToast("✅ Diseño integrado correctamente en la tela");
+    saveCurrentDesign();
   };
   reader.readAsDataURL(file);
 };
@@ -518,15 +565,70 @@ const resetDesign = () => {
   ['design-preview', 'design-preview-back'].forEach(id => {
     const preview = document.getElementById(id);
     if (preview) {
+      preview.classList.remove('design-loaded');
       preview.style.border = '4px dashed #facc15';
       preview.style.background = 'rgba(250, 204, 21, 0.12)';
       preview.innerHTML = `<span class="text-yellow-400 text-center text-base font-medium pointer-events-none">Arrastra tu diseño aquí</span>`;
     }
   });
-  showToast("Diseño reseteado en frente y espalda");
+  localStorage.removeItem('momotusCurrentDesign');
+  showToast("Diseño reseteado");
 };
 
-const applyDesign = () => showToast("¡Diseño aplicado correctamente!");
+const saveCurrentDesign = () => {
+  const designData = {
+    shirtType: currentShirtType,
+    color: currentColor,
+    frontDesign: document.getElementById('draggable-design-front') ? document.getElementById('draggable-design-front').src : null,
+    backDesign: document.getElementById('draggable-design-back') ? document.getElementById('draggable-design-back').src : null
+  };
+  localStorage.setItem('momotusCurrentDesign', JSON.stringify(designData));
+};
+
+const loadSavedDesign = () => {
+  const saved = localStorage.getItem('momotusCurrentDesign');
+  if (!saved) return;
+  const data = JSON.parse(saved);
+  currentShirtType = data.shirtType || 0;
+  currentColor = data.color || 'black';
+
+  document.querySelectorAll('.shirt-type-btn').forEach((btn, i) => btn.classList.toggle('active', i === currentShirtType));
+
+  const colorBtn = Array.from(document.querySelectorAll('.color-btn')).find(btn => 
+    btn.classList.contains(colors.find(c => c.key === currentColor).class)
+  );
+  if (colorBtn) selectColor(currentColor, colorBtn);
+
+  if (data.frontDesign) {
+    const previewFront = document.getElementById('design-preview');
+    previewFront.innerHTML = `<img src="${data.frontDesign}" id="draggable-design-front" class="max-w-full max-h-full object-contain rounded-3xl" style="${getDesignStyle(currentColor)}">`;
+    previewFront.classList.add('design-loaded');
+    makeDraggable(document.getElementById('draggable-design-front'));
+  }
+  if (data.backDesign) {
+    const previewBack = document.getElementById('design-preview-back');
+    previewBack.innerHTML = `<img src="${data.backDesign}" id="draggable-design-back" class="max-w-full max-h-full object-contain rounded-3xl" style="${getDesignStyle(currentColor)}">`;
+    previewBack.classList.add('design-loaded');
+    makeDraggable(document.getElementById('draggable-design-back'));
+  }
+  updateMockups();
+};
+
+// ==================== MODAL ELIMINAR FONDO ====================
+const switchMockup = (tab) => {
+  document.getElementById('tab-frente').classList.toggle('tab-active', tab === 0);
+  document.getElementById('tab-espalda').classList.toggle('tab-active', tab === 1);
+  document.getElementById('mockup-frente').classList.toggle('hidden', tab === 1);
+  document.getElementById('mockup-espalda').classList.toggle('hidden', tab === 0);
+};
+
+const mostrarModalEliminarFondo = () => document.getElementById('modal-eliminar-fondo').classList.remove('hidden');
+const cerrarModalEliminarFondo = () => document.getElementById('modal-eliminar-fondo').classList.add('hidden');
+const abrirRemoveBg = () => {
+  cerrarModalEliminarFondo();
+  window.open('https://remove.bg', '_blank');
+  showToast("🪄 remove.bg abierto. Descarga la imagen sin fondo y súbela aquí.");
+};
 
 // ==================== COTIZACIÓN ====================
 const sendToWhatsApp = () => {
@@ -620,8 +722,11 @@ window.onload = () => {
   initCarousel();
   if (document.getElementById('type-0')) selectShirtType(0);
   if (document.getElementById('testimonials-container')) renderTestimonials();
+  if (document.getElementById('color-buttons')) renderColorButtons();
+
+  loadSavedDesign();
   initDragListeners();
   registerPWA();
 
-  console.log("%c🚀 Momotus Core - PRODUCCIÓN LISTA (Mejoras 1-7 completas)", "color:#facc15; font-weight:bold; font-size:16px");
+  console.log("%c🚀 Momotus Core - JS FINAL OPTIMIZADO (carga de imágenes ultra-rápida)", "color:#facc15; font-weight:bold; font-size:16px");
 };
