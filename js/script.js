@@ -1,4 +1,4 @@
-// js/script.js - Momotus Core - VERSIÓN FINAL OPTIMIZADA (Carga de imágenes ultra-rápida + sin precios)
+// js/script.js - Momotus Core - VERSIÓN FINAL COMPLETA (Paso 4 aplicado)
 let cart = [];
 let wishlist = [];
 let currentSlide = 0;
@@ -196,7 +196,7 @@ const renderCartModal = () => {
   if (placeholder) placeholder.innerHTML = modalHTML;
 };
 
-// ==================== QUICK VIEW (imágenes optimizadas) ====================
+// ==================== QUICK VIEW ====================
 const showQuickView = (id) => {
   const product = products.find(p => p.id === id);
   if (!product) return;
@@ -235,7 +235,7 @@ const closeQuickView = () => {
   if (modal) modal.remove();
 };
 
-// ==================== TIENDA (imágenes optimizadas) ====================
+// ==================== TIENDA ====================
 const renderProducts = (filteredProducts) => {
   const grid = document.getElementById('products-grid');
   if (!grid) return;
@@ -297,7 +297,26 @@ const renderBestSellers = () => {
   });
 };
 
-// ==================== CARRITO (imágenes optimizadas) ====================
+// ==================== CARRITO FUNCIONES ====================
+const addToCartFromStore = (id) => {
+  const product = products.find(p => p.id === id);
+  if (!product) return;
+  const existing = cart.find(item => item.id === product.id);
+  if (existing) existing.quantity = (existing.quantity || 1) + 1;
+  else cart.push({ ...product, quantity: 1 });
+  saveCart();
+  updateCartCount();
+  showToast(`✅ ${product.name} agregado al carrito`);
+};
+
+const updateCartCount = () => {
+  const countEl = document.getElementById('cart-count');
+  if (countEl) {
+    const totalItems = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
+    countEl.textContent = totalItems;
+  }
+};
+
 const toggleCartModal = () => {
   const modal = document.getElementById('cart-modal');
   if (!modal) return;
@@ -330,25 +349,6 @@ const toggleCartModal = () => {
     modal.classList.remove('hidden');
   } else {
     modal.classList.add('hidden');
-  }
-};
-
-const addToCartFromStore = (id) => {
-  const product = products.find(p => p.id === id);
-  if (!product) return;
-  const existing = cart.find(item => item.id === product.id);
-  if (existing) existing.quantity = (existing.quantity || 1) + 1;
-  else cart.push({ ...product, quantity: 1 });
-  saveCart();
-  updateCartCount();
-  showToast(`✅ ${product.name} agregado al carrito`);
-};
-
-const updateCartCount = () => {
-  const countEl = document.getElementById('cart-count');
-  if (countEl) {
-    const totalItems = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
-    countEl.textContent = totalItems;
   }
 };
 
@@ -453,7 +453,7 @@ const showProductsSkeleton = () => {
   }
 };
 
-// ==================== DRAG & DROP ====================
+// ==================== DRAG & DROP MEJORADO (Paso 4) ====================
 let isDragging = false;
 let currentDraggingDesign = null;
 let offsetX = 0, offsetY = 0;
@@ -464,7 +464,7 @@ const makeDraggable = (el) => {
   el.style.cursor = 'move';
   el.style.zIndex = '30';
   el.addEventListener('mousedown', startDrag);
-  el.addEventListener('touchstart', startDrag, { passive: true });
+  el.addEventListener('touchstart', startDrag, { passive: false });
 };
 
 const startDrag = (e) => {
@@ -476,6 +476,7 @@ const startDrag = (e) => {
   offsetX = clientX - rect.left;
   offsetY = clientY - rect.top;
   currentDraggingDesign.style.transition = 'none';
+  e.preventDefault();
 };
 
 const initDragListeners = () => {
@@ -491,6 +492,7 @@ const initDragListeners = () => {
     newY = Math.max(0, Math.min(newY, previewRect.height - currentDraggingDesign.offsetHeight));
     currentDraggingDesign.style.left = `${newX}px`;
     currentDraggingDesign.style.top = `${newY}px`;
+    e.preventDefault();
   };
   const endHandler = () => {
     if (currentDraggingDesign) currentDraggingDesign.style.transition = 'all 0.2s ease';
@@ -498,9 +500,27 @@ const initDragListeners = () => {
     currentDraggingDesign = null;
   };
   document.addEventListener('mousemove', moveHandler);
-  document.addEventListener('touchmove', moveHandler, { passive: true });
+  document.addEventListener('touchmove', moveHandler, { passive: false });
   document.addEventListener('mouseup', endHandler);
   document.addEventListener('touchend', endHandler);
+};
+
+// ==================== CENTAR DISEÑO (Paso 4) ====================
+const centerDesign = (side) => {
+  const previewId = side === 0 ? 'design-preview' : 'design-preview-back';
+  const preview = document.getElementById(previewId);
+  const design = preview.querySelector('img');
+  if (!design) return showToast("❌ No hay diseño para centrar");
+
+  const previewRect = preview.getBoundingClientRect();
+  const designRect = design.getBoundingClientRect();
+
+  const centerX = (previewRect.width - designRect.width) / 2;
+  const centerY = (previewRect.height - designRect.height) / 2;
+
+  design.style.left = `${centerX}px`;
+  design.style.top = `${centerY}px`;
+  showToast("🎯 Diseño centrado correctamente");
 };
 
 // ==================== DISEÑA ====================
@@ -728,5 +748,5 @@ window.onload = () => {
   initDragListeners();
   registerPWA();
 
-  console.log("%c🚀 Momotus Core - JS FINAL OPTIMIZADO (carga de imágenes ultra-rápida)", "color:#facc15; font-weight:bold; font-size:16px");
+  console.log("%c🚀 Momotus Core - JS COMPLETO Y ACTUALIZADO (Paso 4)", "color:#facc15; font-weight:bold; font-size:16px");
 };
