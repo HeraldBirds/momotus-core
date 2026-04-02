@@ -4,9 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Momotus Core | Camisetas Personalizadas Nicaragua</title>
+  <meta name="description" content="Camisetas premium con diseños únicos de Nicaragua. Nicas, Anime, Arte Urbano y más. Envío rápido en todo el país.">
+  
+  <!-- Preload crítico (hero + mockup principal) -->
+  <link rel="preload" href="img/heroes/hero-1.jpg" as="image" type="image/jpeg">
+  <link rel="preload" href="img/products/product-2.jpg" as="image" type="image/jpeg">
+
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
   <link rel="stylesheet" href="css/style.css">
+
   <style>
     .mockup-3d-container {
       perspective: 1600px;
@@ -14,16 +21,16 @@
     }
     .mockup-3d {
       width: 100%;
-      max-width: 420px;           /* ← Tamaño mediano */
-      aspect-ratio: 1 / 1;        /* ← Evita que se colapse */
-      min-height: 420px;
+      max-width: 520px;
+      aspect-ratio: 1 / 1;
+      min-height: 520px;
       transition: transform 0.8s cubic-bezier(0.25, 0.1, 0.25, 1);
       animation: gentleRotate 35s linear infinite;
       box-shadow: 
         0 60px 100px -30px rgb(0 0 0 / 0.7),
         0 0 0 18px rgba(250, 204, 21, 0.18);
       border-radius: 40px;
-      background: #1f2937;        /* ← Fondo temporal por si las imágenes fallan */
+      background: #1f2937;
       position: relative;
       overflow: hidden;
     }
@@ -36,23 +43,6 @@
       transform: scale(1.08) rotateY(18deg) rotateX(8deg);
     }
     .rotate-y-180 { transform: rotateY(180deg); }
-
-    /* Imágenes más robustas */
-    #front, #back {
-      width: 100% !important;
-      height: 100% !important;
-      object-fit: contain;
-      position: absolute;
-      top: 0;
-      left: 0;
-    }
-
-    .benefit-card {
-      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .benefit-card:hover .icon-wrapper {
-      transform: scale(1.12) rotate(12deg);
-    }
   </style>
 </head>
 <body class="bg-zinc-950 text-white">
@@ -78,7 +68,7 @@
     <div class="absolute bottom-10 left-1/2 -translate-x-1/2 flex gap-3 z-20" id="carousel-indicators"></div>
   </section>
 
-  <!-- MOCKUP 3D - VERSIÓN CORREGIDA Y MEDIANA -->
+  <!-- MOCKUP 3D -->
   <section class="py-20 bg-zinc-900 border-t border-b border-zinc-800 overflow-hidden">
     <div class="max-w-7xl mx-auto px-6">
       <div class="text-center mb-12">
@@ -95,13 +85,13 @@
       <div class="flex justify-center mb-12">
         <div class="mockup-3d-container">
           <div id="mockup-3d" class="mockup-3d mx-auto relative">
-            <!-- Imagen principal (Nica Power) -->
             <img id="front" src="img/products/product-2.jpg" 
-                 alt="Nica Power Frente">
-            <!-- Imagen espalda -->
+                 width="520" height="520"
+                 alt="Nica Power Frente" loading="eager" decoding="async">
             <img id="back" src="img/mockups/mockup-regular-negro-espalda.png" 
+                 width="520" height="520"
                  class="opacity-0 rotate-y-180"
-                 alt="Nica Power Espalda">
+                 alt="Nica Power Espalda" loading="lazy" decoding="async">
           </div>
         </div>
       </div>
@@ -191,7 +181,7 @@
         </div>
         <div>
           <h4 class="font-bold mb-4">Contacto</h4>
-          <a href="https://wa.me/50512345678" class="flex items-center gap-2 text-green-400 hover:text-green-300"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>
+          <a href="https://wa.me/50555010044" class="flex items-center gap-2 text-green-400 hover:text-green-300"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>
         </div>
         <div>
           <h4 class="font-bold mb-4">Síguenos</h4>

@@ -1,4 +1,5 @@
-// js/script.js - Momotus Core - VERSIÓN FINAL COMPLETA Y ACTUALIZADA (2 Abril 2026)
+// js/script.js - Momotus Core - VERSIÓN FINAL COMPLETA Y OPTIMIZADA (2 Abril 2026)
+// Todas las imágenes actualizadas a .webp para máxima velocidad en Netlify
 // WhatsApp: 50555010044 | Email: momotuscore@gmail.com
 
 let cart = [];
@@ -22,7 +23,7 @@ const getMockupPath = (typeIndex, colorKey, isBack = false) => {
   const typeName = shirtTypes[typeIndex];
   const colorName = colorMap[colorKey] || colorKey;
   const side = isBack ? 'espalda' : 'frente';
-  return `img/mockups/mockup-${typeName}-${colorName}-${side}.png`;
+  return `img/mockups/mockup-${typeName}-${colorName}-${side}.webp`;   // ← .webp
 };
 
 const colors = [
@@ -62,22 +63,22 @@ const updateDesignSize = () => {
   });
 };
 
-// ==================== PRODUCTOS ====================
+// ==================== PRODUCTOS (TODOS EN .webp) ====================
 const products = [
-  { id: 1, name: "Naruto Hokage Edition", price: 520, category: "anime", img: "img/products/product-1.jpg", sizes: ["S","M","L","XL","XXL"], stock: {S:12, M:8, L:15, XL:3, XXL:7} },
-  { id: 2, name: "Nica Power", price: 420, category: "nica", img: "img/products/product-2.jpg", sizes: ["S","M","L","XL"], stock: {S:5, M:20, L:10, XL:0, XXL:4} },
-  { id: 3, name: "Volcán Momotombo", price: 480, category: "nica", img: "img/products/product-3.jpg", sizes: ["M","L","XL","XXL"], stock: {S:8, M:12, L:6, XL:9, XXL:2} },
-  { id: 4, name: "Anime Warrior", price: 520, category: "anime", img: "img/products/product-4.jpg", sizes: ["S","M","L","XL"], stock: {S:18, M:7, L:14, XL:5, XXL:11} },
-  { id: 5, name: "Sakura Dreams", price: 490, category: "anime", img: "img/products/product-5.jpg", sizes: ["S","M","L","XL","XXL"], stock: {S:4, M:22, L:9, XL:13, XXL:6} },
-  { id: 6, name: "Urban Graffiti", price: 460, category: "urbano", img: "img/products/product-6.jpg", sizes: ["M","L","XL"], stock: {S:11, M:3, L:17, XL:8, XXL:0} },
-  { id: 7, name: "Street Kings", price: 430, category: "urbano", img: "img/products/product-7.jpg", sizes: ["S","M","L","XL","XXL"], stock: {S:15, M:19, L:2, XL:10, XXL:5} },
-  { id: 8, name: "Abstract Waves", price: 410, category: "abstracta", img: "img/products/product-8.jpg", sizes: ["S","M","L"], stock: {S:9, M:14, L:7, XL:12, XXL:8} },
-  { id: 9, name: "Golden Flow", price: 500, category: "abstracta", img: "img/products/product-9.jpg", sizes: ["M","L","XL","XXL"], stock: {S:6, M:11, L:20, XL:4, XXL:13} },
-  { id: 10, name: "Limited Edition 001", price: 650, category: "unica", img: "img/products/product-10.jpg", sizes: ["L","XL","XXL"], stock: {S:2, M:8, L:15, XL:1, XXL:9} },
-  { id: 11, name: "Nicaragua Forever", price: 470, category: "nica", img: "img/products/product-11.jpg", sizes: ["S","M","L","XL"], stock: {S:17, M:5, L:12, XL:14, XXL:3} },
-  { id: 12, name: "Cyber Nica", price: 550, category: "unica", img: "img/products/product-12.jpg", sizes: ["S","M","L","XL","XXL"], stock: {S:10, M:16, L:8, XL:6, XXL:4} },
-  { id: 13, name: "Goku Ultra Instinct", price: 550, category: "anime", img: "img/products/product-13.jpg", sizes: ["M","L","XL"], stock: {S:13, M:9, L:18, XL:7, XXL:11} },
-  { id: 14, name: "Luffy Gear 5", price: 530, category: "anime", img: "img/products/product-14.jpg", sizes: ["S","M","L","XL","XXL"], stock: {S:7, M:21, L:4, XL:15, XXL:2} }
+  { id: 1, name: "Naruto Hokage Edition", price: 520, category: "anime", img: "img/products/product-1.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:12, M:8, L:15, XL:3, XXL:7} },
+  { id: 2, name: "Nica Power", price: 420, category: "nica", img: "img/products/product-2.webp", sizes: ["S","M","L","XL"], stock: {S:5, M:20, L:10, XL:0, XXL:4} },
+  { id: 3, name: "Volcán Momotombo", price: 480, category: "nica", img: "img/products/product-3.webp", sizes: ["M","L","XL","XXL"], stock: {S:8, M:12, L:6, XL:9, XXL:2} },
+  { id: 4, name: "Anime Warrior", price: 520, category: "anime", img: "img/products/product-4.webp", sizes: ["S","M","L","XL"], stock: {S:18, M:7, L:14, XL:5, XXL:11} },
+  { id: 5, name: "Sakura Dreams", price: 490, category: "anime", img: "img/products/product-5.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:4, M:22, L:9, XL:13, XXL:6} },
+  { id: 6, name: "Urban Graffiti", price: 460, category: "urbano", img: "img/products/product-6.webp", sizes: ["M","L","XL"], stock: {S:11, M:3, L:17, XL:8, XXL:0} },
+  { id: 7, name: "Street Kings", price: 430, category: "urbano", img: "img/products/product-7.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:15, M:19, L:2, XL:10, XXL:5} },
+  { id: 8, name: "Abstract Waves", price: 410, category: "abstracta", img: "img/products/product-8.webp", sizes: ["S","M","L"], stock: {S:9, M:14, L:7, XL:12, XXL:8} },
+  { id: 9, name: "Golden Flow", price: 500, category: "abstracta", img: "img/products/product-9.webp", sizes: ["M","L","XL","XXL"], stock: {S:6, M:11, L:20, XL:4, XXL:13} },
+  { id: 10, name: "Limited Edition 001", price: 650, category: "unica", img: "img/products/product-10.webp", sizes: ["L","XL","XXL"], stock: {S:2, M:8, L:15, XL:1, XXL:9} },
+  { id: 11, name: "Nicaragua Forever", price: 470, category: "nica", img: "img/products/product-11.webp", sizes: ["S","M","L","XL"], stock: {S:17, M:5, L:12, XL:14, XXL:3} },
+  { id: 12, name: "Cyber Nica", price: 550, category: "unica", img: "img/products/product-12.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:10, M:16, L:8, XL:6, XXL:4} },
+  { id: 13, name: "Goku Ultra Instinct", price: 550, category: "anime", img: "img/products/product-13.webp", sizes: ["M","L","XL"], stock: {S:13, M:9, L:18, XL:7, XXL:11} },
+  { id: 14, name: "Luffy Gear 5", price: 530, category: "anime", img: "img/products/product-14.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:7, M:21, L:4, XL:15, XXL:2} }
 ];
 
 const getStockColor = (stock) => stock > 8 ? 'text-green-400' : stock > 3 ? 'text-yellow-400' : 'text-red-400';
@@ -173,6 +174,7 @@ const toggleMobileMenu = () => {
   if (menu) menu.classList.toggle('hidden');
 };
 
+// ==================== CARRITO MODAL ====================
 const renderCartModal = () => {
   const modalHTML = `
     <div id="cart-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[9999]">
@@ -194,6 +196,72 @@ const renderCartModal = () => {
   `;
   const placeholder = document.getElementById('cart-modal-placeholder');
   if (placeholder) placeholder.innerHTML = modalHTML;
+};
+
+const toggleCartModal = () => {
+  const modal = document.getElementById('cart-modal');
+  if (!modal) return;
+  const container = document.getElementById('cart-items');
+  const totalEl = document.getElementById('cart-total');
+  container.innerHTML = '';
+
+  if (cart.length === 0) {
+    container.innerHTML = `<p class="text-center text-zinc-400 py-12">Tu carrito está vacío</p>`;
+    totalEl.textContent = 'C$ 0';
+    modal.classList.remove('hidden');
+    return;
+  }
+
+  let total = 0;
+  cart.forEach((item, index) => {
+    const itemTotal = item.price * (item.quantity || 1);
+    total += itemTotal;
+    const div = document.createElement('div');
+    div.className = 'flex gap-4';
+    div.innerHTML = `
+      <img src="${item.img}" width="80" height="80" class="w-20 h-20 object-cover rounded-2xl" alt="${item.name}">
+      <div class="flex-1">
+        <p class="font-bold">${item.name}</p>
+        <p class="text-zinc-400 text-sm">Talla: ${item.size} × ${item.quantity || 1}</p>
+        <p class="text-yellow-400 font-semibold">C$ ${itemTotal}</p>
+      </div>
+      <button onclick="removeFromCart(${index});" class="text-red-400 hover:text-red-500 text-xl">×</button>
+    `;
+    container.appendChild(div);
+  });
+
+  totalEl.textContent = `C$ ${total}`;
+  modal.classList.remove('hidden');
+};
+
+const removeFromCart = (index) => {
+  cart.splice(index, 1);
+  saveCart();
+  updateCartCount();
+  toggleCartModal();
+};
+
+const updateCartCount = () => {
+  const countEl = document.getElementById('cart-count');
+  if (countEl) {
+    const totalItems = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
+    countEl.textContent = totalItems;
+  }
+};
+
+const checkout = () => {
+  if (cart.length === 0) return;
+  let text = "¡Hola Momotus! Quiero comprar:%0A";
+  cart.forEach(item => {
+    text += `• ${item.name} - Talla ${item.size} × ${item.quantity || 1}%0A`;
+  });
+  text += `%0ATotal: C$ ${cart.reduce((sum, item) => sum + item.price * (item.quantity || 1), 0)}`;
+  window.open(`https://wa.me/50555010044?text=${text}`, '_blank');
+  cart = [];
+  saveCart();
+  updateCartCount();
+  toggleCartModal();
+  showToast("✅ Pedido enviado por WhatsApp");
 };
 
 // ==================== QUICK VIEW ====================
@@ -220,7 +288,7 @@ const showQuickView = (id) => {
           <button onclick="closeQuickView()" class="text-4xl text-zinc-400 hover:text-white">×</button>
         </div>
         <div class="p-8 flex flex-col md:flex-row gap-8">
-          <img loading="eager" decoding="async" width="400" height="400" src="${product.img}" class="w-full md:w-1/2 aspect-square object-cover rounded-3xl" alt="${product.name}">
+          <img src="${product.img}" width="400" height="400" class="w-full md:w-1/2 aspect-square object-cover rounded-3xl" alt="${product.name}">
           <div class="flex-1">
             <p class="text-4xl font-bold text-yellow-400 mb-2">C$ ${product.price}</p>
             <span class="inline-block bg-black/70 text-white text-xs px-4 py-1 rounded-full mb-6">${product.category.toUpperCase()}</span>
@@ -278,7 +346,7 @@ const renderProducts = (filteredProducts) => {
     card.className = 'product-card bg-zinc-900 rounded-3xl overflow-hidden group relative';
     card.innerHTML = `
       <div class="relative">
-        <img loading="lazy" decoding="async" width="320" height="320" onclick="showQuickView(${product.id})" src="${product.img}" alt="${product.name}" class="w-full aspect-square object-cover transition group-hover:scale-105 cursor-pointer">
+        <img src="${product.img}" width="320" height="320" loading="lazy" decoding="async" onclick="showQuickView(${product.id})" class="w-full aspect-square object-cover transition group-hover:scale-105 cursor-pointer">
         <span class="absolute top-4 left-4 bg-black/70 text-white text-xs font-medium px-3 py-1 rounded-full">${product.category.toUpperCase()}</span>
         <button onclick="event.stopImmediatePropagation(); ${inWishlist ? `removeFromWishlist(${product.id})` : `addToWishlist(${product.id})`}" class="absolute top-4 right-4 text-2xl ${inWishlist ? 'text-red-500' : 'text-white/70 hover:text-red-500'} transition">
           <i class="fa-solid fa-heart"></i>
@@ -307,7 +375,7 @@ const renderBestSellers = () => {
     card.className = 'product-card bg-zinc-900 rounded-3xl overflow-hidden group relative';
     card.innerHTML = `
       <div class="relative">
-        <img loading="lazy" decoding="async" width="320" height="320" onclick="showQuickView(${product.id})" src="${product.img}" alt="${product.name}" class="w-full aspect-square object-cover transition group-hover:scale-105 cursor-pointer">
+        <img src="${product.img}" width="320" height="320" loading="lazy" decoding="async" onclick="showQuickView(${product.id})" class="w-full aspect-square object-cover transition group-hover:scale-105 cursor-pointer">
         <span class="absolute top-4 left-4 bg-orange-500 text-white text-xs font-medium px-3 py-1 rounded-full">TOP</span>
         <button onclick="event.stopImmediatePropagation(); ${inWishlist ? `removeFromWishlist(${product.id})` : `addToWishlist(${product.id})`}" class="absolute top-4 right-4 text-2xl ${inWishlist ? 'text-red-500' : 'text-white/70 hover:text-red-500'} transition">
           <i class="fa-solid fa-heart"></i>
@@ -322,89 +390,34 @@ const renderBestSellers = () => {
   });
 };
 
-// ==================== CARRITO ====================
-const updateCartCount = () => {
-  const countEl = document.getElementById('cart-count');
-  if (countEl) {
-    const totalItems = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
-    countEl.textContent = totalItems;
-  }
-};
-
-const toggleCartModal = () => {
-  const modal = document.getElementById('cart-modal');
-  if (!modal) return;
-  const container = document.getElementById('cart-items');
-  const totalEl = document.getElementById('cart-total');
-  container.innerHTML = '';
-
-  let total = 0;
-  cart.forEach((item, index) => {
-    const subtotal = item.price * (item.quantity || 1);
-    total += subtotal;
-    const div = document.createElement('div');
-    div.className = 'flex gap-4';
-    div.innerHTML = `
-      <img src="${item.img}" class="w-20 h-20 object-cover rounded-2xl">
-      <div class="flex-1">
-        <h4 class="font-medium">${item.name}</h4>
-        <p class="text-sm text-zinc-400">Talla: ${item.size} × ${item.quantity || 1}</p>
-        <p class="text-yellow-400 font-semibold">C$ ${subtotal}</p>
-      </div>
-      <button onclick="removeFromCart(${index}); toggleCartModal(); toggleCartModal()" class="text-red-400 text-xl">×</button>
-    `;
-    container.appendChild(div);
-  });
-
-  totalEl.textContent = `C$ ${total}`;
-};
-
-const removeFromCart = (index) => {
-  cart.splice(index, 1);
-  saveCart();
-  updateCartCount();
-};
-
-const checkout = () => {
-  if (cart.length === 0) return;
-  let text = "¡Hola Momotus! Quiero comprar:%0A";
-  cart.forEach(item => {
-    text += `• ${item.name} - Talla ${item.size} × ${item.quantity || 1}%0A`;
-  });
-  window.open(`https://wa.me/50555010044?text=${text}`, '_blank');
-  cart = [];
-  saveCart();
-  updateCartCount();
-  toggleCartModal();
-};
-
 // ==================== TESTIMONIALS ====================
-const testimonials = [
-  { name: "Carlos Mejía", location: "Managua", text: "La calidad de la tela es brutal. Mi Volcán Momotombo es la favorita de toda la familia. ¡100% recomendado!", rating: 5, avatar: "🇳🇮" },
-  { name: "María José López", location: "León", text: "Compré la de Naruto y me llegó en 2 días. El diseño es nítido y no se decolora después de lavarla. ¡Gracias Momotus!", rating: 5, avatar: "👩🏻" },
-  { name: "Roberto Sánchez", location: "Granada", text: "La herramienta de diseño es súper fácil. Subí mi logo y quedó perfecto. Ya pedí 3 camisetas más.", rating: 4, avatar: "🧔" }
-];
+const renderTestimonials = () => {
+  const testimonials = [
+    { name: "Carlos Mejía", location: "Managua", text: "La mejor calidad que he comprado en Nicaragua. El diseño Nica Power es brutal.", stars: "★★★★★" },
+    { name: "María José", location: "León", text: "Me llegó en 24 horas y la tela es súper suave. Ya pedí dos más.", stars: "★★★★☆" },
+    { name: "Diego Ruiz", location: "Granada", text: "El servicio por WhatsApp es rapidísimo y el producto supera mis expectativas.", stars: "★★★★★" }
+  ];
 
-const renderTestimonials = (containerId = 'testimonials-container') => {
-  const container = document.getElementById(containerId) || document.getElementById('testimonials-home');
-  if (!container) return;
-  container.innerHTML = '';
-  testimonials.forEach(t => {
-    const stars = '★'.repeat(t.rating) + '☆'.repeat(5 - t.rating);
-    const card = document.createElement('div');
-    card.className = 'bg-zinc-900 rounded-3xl p-8 hover:scale-105 transition-all';
-    card.innerHTML = `
-      <div class="flex items-center gap-4 mb-6">
-        <div class="w-12 h-12 bg-yellow-400/10 text-4xl flex items-center justify-center rounded-2xl">${t.avatar}</div>
-        <div>
-          <h4 class="font-bold">${t.name}</h4>
-          <p class="text-sm text-zinc-400">${t.location}</p>
+  const containers = document.querySelectorAll('#testimonials-container, #testimonials-home');
+  containers.forEach(container => {
+    if (!container) return;
+    container.innerHTML = '';
+    testimonials.forEach(t => {
+      const card = document.createElement('div');
+      card.className = 'bg-zinc-900 rounded-3xl p-6';
+      card.innerHTML = `
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 bg-yellow-400/20 rounded-2xl flex items-center justify-center text-2xl">👕</div>
+          <div>
+            <p class="font-bold">${t.name}</p>
+            <p class="text-sm text-zinc-400">${t.location}</p>
+          </div>
         </div>
-      </div>
-      <p class="text-zinc-300 mb-6 leading-relaxed">"${t.text}"</p>
-      <div class="text-yellow-400 text-2xl">${stars}</div>
-    `;
-    container.appendChild(card);
+        <p class="text-zinc-300 mb-6 leading-relaxed">"${t.text}"</p>
+        <div class="text-yellow-400 text-2xl">${t.stars}</div>
+      `;
+      container.appendChild(card);
+    });
   });
 };
 
@@ -463,7 +476,7 @@ const initDragListeners = () => {
 const centerDesign = (side) => {
   const previewId = side === 0 ? 'design-preview' : 'design-preview-back';
   const preview = document.getElementById(previewId);
-  const design = preview.querySelector('img');
+  const design = preview ? preview.querySelector('img') : null;
   if (!design) return showToast("❌ No hay diseño para centrar");
   const previewRect = preview.getBoundingClientRect();
   const designRect = design.getBoundingClientRect();
@@ -730,7 +743,7 @@ const prevSlide = () => {
 
 const startAutoPlay = () => carouselInterval = setInterval(nextSlide, 4800);
 
-// ==================== MOCKUP 3D FLIP (NUEVO) ====================
+// ==================== MOCKUP 3D FLIP ====================
 let isFlipped = false;
 window.flipMockup = () => {
   isFlipped = !isFlipped;
@@ -750,7 +763,7 @@ window.flipMockup = () => {
   }
 };
 
-// ==================== PARALLAX HERO (NUEVO) ====================
+// ==================== PARALLAX HERO ====================
 const initParallax = () => {
   const heroBg = document.getElementById('hero-bg');
   if (!heroBg) return;
@@ -793,19 +806,17 @@ window.onload = () => {
     renderColorButtons();
   }
 
-  renderTestimonials(); // funciona tanto para #testimonials-container como #testimonials-home
+  renderTestimonials();
   
   loadSavedDesign();
   initDragListeners();
   registerPWA();
-
-  // === NUEVAS FUNCIONES PARA INDEX ===
   initParallax();
 
-  console.log("%c🚀 Momotus Core - JS FINAL COMPLETO Y ACTUALIZADO - Mockup 3D + Parallax listo", "color:#facc15; font-weight:bold; font-size:16px");
+  console.log("%c🚀 Momotus Core - JS FINAL COMPLETO + TODAS LAS IMÁGENES EN .webp - Listo para Netlify", "color:#facc15; font-weight:bold; font-size:16px");
 };
 
-// ==================== BUSCADOR TIENDA ====================
+// ==================== BUSCADOR Y FILTROS TIENDA ====================
 let currentCategory = 'all';
 let currentSearchTerm = '';
 
