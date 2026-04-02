@@ -1,44 +1,20 @@
-// js/script.js - Momotus Core - VERSIÓN FINAL COMPLETA (Paso 4 aplicado)
+// js/script.js - Momotus Core - VERSIÓN FINAL COMPLETA Y ACTUALIZADA (2 Abril 2026)
+// WhatsApp: 50555010044 | Email: momotuscore@gmail.com
+
 let cart = [];
 let wishlist = [];
 let currentSlide = 0;
 let carouselInterval = null;
+
+// ==================== DISEÑADOR ====================
 let currentShirtType = 0;
 let currentColor = 'black';
+let currentSize = 'M';
+let designFront = null;
+let designBack = null;
 
-// ==================== TAMAÑO DINÁMICO DEL DISEÑO ====================
 const designSizes = [265, 235, 295];
 
-const updateDesignSize = () => {
-  const size = designSizes[currentShirtType];
-  ['design-preview', 'design-preview-back'].forEach(id => {
-    const preview = document.getElementById(id);
-    if (preview) {
-      preview.style.width = `${size}px`;
-      preview.style.height = `${size}px`;
-    }
-  });
-};
-
-// ==================== PRODUCTOS ====================
-const products = [
-  { id: 1, name: "Naruto Hokage Edition", price: 520, category: "anime", img: "img/products/product-1.jpg" },
-  { id: 2, name: "Nica Power", price: 420, category: "nica", img: "img/products/product-2.jpg" },
-  { id: 3, name: "Volcán Momotombo", price: 480, category: "nica", img: "img/products/product-3.jpg" },
-  { id: 4, name: "Anime Warrior", price: 520, category: "anime", img: "img/products/product-4.jpg" },
-  { id: 5, name: "Sakura Dreams", price: 490, category: "anime", img: "img/products/product-5.jpg" },
-  { id: 6, name: "Urban Graffiti", price: 460, category: "urbano", img: "img/products/product-6.jpg" },
-  { id: 7, name: "Street Kings", price: 430, category: "urbano", img: "img/products/product-7.jpg" },
-  { id: 8, name: "Abstract Waves", price: 410, category: "abstracta", img: "img/products/product-8.jpg" },
-  { id: 9, name: "Golden Flow", price: 500, category: "abstracta", img: "img/products/product-9.jpg" },
-  { id: 10, name: "Limited Edition 001", price: 650, category: "unica", img: "img/products/product-10.jpg" },
-  { id: 11, name: "Nicaragua Forever", price: 470, category: "nica", img: "img/products/product-11.jpg" },
-  { id: 12, name: "Cyber Nica", price: 550, category: "unica", img: "img/products/product-12.jpg" },
-  { id: 13, name: "Goku Ultra Instinct", price: 550, category: "anime", img: "img/products/product-13.jpg" },
-  { id: 14, name: "Luffy Gear 5", price: 530, category: "anime", img: "img/products/product-14.jpg" }
-];
-
-// ==================== MOCKUP Y COLORES ====================
 const shirtTypes = ['regular', 'slim', 'oversized'];
 const colorMap = { black: 'negro', white: 'blanco', red: 'rojo', blue: 'azul', emerald: 'verde', violet: 'violeta', amber: 'amarillo', pink: 'rosa' };
 
@@ -60,27 +36,51 @@ const colors = [
   { key: 'pink', class: 'bg-pink-500', name: 'Rosa' }
 ];
 
-const renderColorButtons = () => {
-  const container = document.getElementById('color-buttons');
-  if (!container) return;
-  container.innerHTML = '';
-  colors.forEach(color => {
-    const btn = document.createElement('button');
-    btn.onclick = () => selectColor(color.key, btn);
-    btn.className = `color-btn w-14 h-14 rounded-2xl shadow-inner border-2 border-transparent active:scale-95 transition-all ${color.class}`;
-    if (color.key === 'black') btn.classList.add('active');
-    container.appendChild(btn);
+const getDesignStyle = (colorKey) => {
+  return colorKey === 'white'
+    ? `mix-blend-mode: multiply; filter: brightness(0.95) contrast(1.25) saturate(1.1) opacity(0.92);`
+    : `mix-blend-mode: multiply; filter: brightness(1.08) contrast(1.18) saturate(1.25) opacity(0.95);`;
+};
+
+const updateMockups = () => {
+  const frontImg = document.getElementById('shirt-mockup');
+  const backImg = document.getElementById('shirt-mockup-back');
+  if (frontImg) frontImg.src = getMockupPath(currentShirtType, currentColor, false);
+  if (backImg) backImg.src = getMockupPath(currentShirtType, currentColor, true);
+  updateDesignSize();
+  saveCurrentDesign();
+};
+
+const updateDesignSize = () => {
+  const size = designSizes[currentShirtType];
+  ['design-preview', 'design-preview-back'].forEach(id => {
+    const preview = document.getElementById(id);
+    if (preview) {
+      preview.style.width = `${size}px`;
+      preview.style.height = `${size}px`;
+    }
   });
 };
 
-// ==================== BLEND MEJORADO ====================
-const getDesignStyle = (colorKey) => {
-  if (colorKey === 'white') {
-    return `mix-blend-mode: multiply; filter: brightness(0.95) contrast(1.25) saturate(1.1) opacity(0.92);`;
-  } else {
-    return `mix-blend-mode: multiply; filter: brightness(1.08) contrast(1.18) saturate(1.25) opacity(0.95);`;
-  }
-};
+// ==================== PRODUCTOS ====================
+const products = [
+  { id: 1, name: "Naruto Hokage Edition", price: 520, category: "anime", img: "img/products/product-1.jpg", sizes: ["S","M","L","XL","XXL"], stock: {S:12, M:8, L:15, XL:3, XXL:7} },
+  { id: 2, name: "Nica Power", price: 420, category: "nica", img: "img/products/product-2.jpg", sizes: ["S","M","L","XL"], stock: {S:5, M:20, L:10, XL:0, XXL:4} },
+  { id: 3, name: "Volcán Momotombo", price: 480, category: "nica", img: "img/products/product-3.jpg", sizes: ["M","L","XL","XXL"], stock: {S:8, M:12, L:6, XL:9, XXL:2} },
+  { id: 4, name: "Anime Warrior", price: 520, category: "anime", img: "img/products/product-4.jpg", sizes: ["S","M","L","XL"], stock: {S:18, M:7, L:14, XL:5, XXL:11} },
+  { id: 5, name: "Sakura Dreams", price: 490, category: "anime", img: "img/products/product-5.jpg", sizes: ["S","M","L","XL","XXL"], stock: {S:4, M:22, L:9, XL:13, XXL:6} },
+  { id: 6, name: "Urban Graffiti", price: 460, category: "urbano", img: "img/products/product-6.jpg", sizes: ["M","L","XL"], stock: {S:11, M:3, L:17, XL:8, XXL:0} },
+  { id: 7, name: "Street Kings", price: 430, category: "urbano", img: "img/products/product-7.jpg", sizes: ["S","M","L","XL","XXL"], stock: {S:15, M:19, L:2, XL:10, XXL:5} },
+  { id: 8, name: "Abstract Waves", price: 410, category: "abstracta", img: "img/products/product-8.jpg", sizes: ["S","M","L"], stock: {S:9, M:14, L:7, XL:12, XXL:8} },
+  { id: 9, name: "Golden Flow", price: 500, category: "abstracta", img: "img/products/product-9.jpg", sizes: ["M","L","XL","XXL"], stock: {S:6, M:11, L:20, XL:4, XXL:13} },
+  { id: 10, name: "Limited Edition 001", price: 650, category: "unica", img: "img/products/product-10.jpg", sizes: ["L","XL","XXL"], stock: {S:2, M:8, L:15, XL:1, XXL:9} },
+  { id: 11, name: "Nicaragua Forever", price: 470, category: "nica", img: "img/products/product-11.jpg", sizes: ["S","M","L","XL"], stock: {S:17, M:5, L:12, XL:14, XXL:3} },
+  { id: 12, name: "Cyber Nica", price: 550, category: "unica", img: "img/products/product-12.jpg", sizes: ["S","M","L","XL","XXL"], stock: {S:10, M:16, L:8, XL:6, XXL:4} },
+  { id: 13, name: "Goku Ultra Instinct", price: 550, category: "anime", img: "img/products/product-13.jpg", sizes: ["M","L","XL"], stock: {S:13, M:9, L:18, XL:7, XXL:11} },
+  { id: 14, name: "Luffy Gear 5", price: 530, category: "anime", img: "img/products/product-14.jpg", sizes: ["S","M","L","XL","XXL"], stock: {S:7, M:21, L:4, XL:15, XXL:2} }
+];
+
+const getStockColor = (stock) => stock > 8 ? 'text-green-400' : stock > 3 ? 'text-yellow-400' : 'text-red-400';
 
 // ==================== TOAST ====================
 const showToast = (message) => {
@@ -119,14 +119,14 @@ const addToWishlist = (id) => {
   wishlist.push(product);
   saveWishlist();
   showToast(`❤️ ${product.name} añadido a favoritos`);
-  renderProducts(products);
+  if (document.getElementById('products-grid')) renderProducts(products);
 };
 
 const removeFromWishlist = (id) => {
   wishlist = wishlist.filter(item => item.id !== id);
   saveWishlist();
   showToast("💔 Eliminado de favoritos");
-  renderProducts(products);
+  if (document.getElementById('products-grid')) renderProducts(products);
 };
 
 // ==================== NAVBAR ====================
@@ -150,7 +150,7 @@ const renderCommonNavbar = () => {
             <i class="fa-solid fa-shopping-cart"></i>
             <span id="cart-count" class="absolute -top-1 -right-1 bg-yellow-400 text-black text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center">0</span>
           </button>
-          <a href="https://wa.me/50512345678" target="_blank" class="text-3xl text-green-400 hover:scale-110 transition"><i class="fa-brands fa-whatsapp"></i></a>
+          <a href="https://wa.me/50555010044" target="_blank" class="text-3xl text-green-400 hover:scale-110 transition"><i class="fa-brands fa-whatsapp"></i></a>
           <button onclick="toggleMobileMenu()" class="md:hidden text-3xl"><i class="fa-solid fa-bars"></i></button>
         </div>
       </div>
@@ -201,6 +201,17 @@ const showQuickView = (id) => {
   const product = products.find(p => p.id === id);
   if (!product) return;
   const inWishlist = isInWishlist(id);
+
+  let sizesHTML = '';
+  product.sizes.forEach(s => {
+    const stock = product.stock[s] || 0;
+    const stockClass = getStockColor(stock);
+    sizesHTML += `<button onclick="addToCartWithSize(${product.id}, '${s}'); closeQuickView()" class="px-5 py-3 rounded-2xl border border-zinc-600 hover:border-yellow-400 transition flex items-center gap-2 ${stock === 0 ? 'opacity-40 pointer-events-none' : ''}">
+      <span>${s}</span>
+      <span class="${stockClass} text-xs font-medium">(${stock})</span>
+    </button>`;
+  });
+
   const modalHTML = `
     <div id="quickview-modal" class="fixed inset-0 bg-black/80 flex items-center justify-center z-[10000]">
       <div class="bg-zinc-900 rounded-3xl max-w-2xl w-full mx-4 overflow-hidden">
@@ -213,9 +224,13 @@ const showQuickView = (id) => {
           <div class="flex-1">
             <p class="text-4xl font-bold text-yellow-400 mb-2">C$ ${product.price}</p>
             <span class="inline-block bg-black/70 text-white text-xs px-4 py-1 rounded-full mb-6">${product.category.toUpperCase()}</span>
+            <div class="mb-6">
+              <p class="font-medium mb-3">Talla</p>
+              <div class="flex flex-wrap gap-2">${sizesHTML}</div>
+            </div>
             <p class="text-zinc-400 mb-8">Camiseta premium 100% algodón peinado. Diseño exclusivo de Momotus Core. Edición limitada Nicaragua 2026.</p>
             <div class="flex gap-4">
-              <button onclick="addToCartFromStore(${product.id}); closeQuickView()" class="flex-1 bg-yellow-400 text-black font-bold py-6 rounded-3xl">Agregar al carrito</button>
+              <button onclick="closeQuickView()" class="flex-1 border border-zinc-600 hover:bg-zinc-800 py-6 rounded-3xl">Cerrar</button>
               <button onclick="${inWishlist ? `removeFromWishlist(${product.id})` : `addToWishlist(${product.id})`}; closeQuickView()" class="flex-1 border border-zinc-600 hover:bg-zinc-800 py-6 rounded-3xl flex items-center justify-center gap-2">
                 <i class="fa-solid fa-heart ${inWishlist ? 'text-red-500' : 'text-zinc-400'}"></i> ${inWishlist ? 'Quitar de favoritos' : 'Añadir a favoritos'}
               </button>
@@ -233,6 +248,19 @@ const showQuickView = (id) => {
 const closeQuickView = () => {
   const modal = document.getElementById('quickview-modal');
   if (modal) modal.remove();
+};
+
+const addToCartWithSize = (id, size) => {
+  const product = products.find(p => p.id === id);
+  if (!product || (product.stock[size] || 0) === 0) return showToast("❌ Talla no disponible");
+  
+  const existing = cart.find(item => item.id === product.id && item.size === size);
+  if (existing) existing.quantity = (existing.quantity || 1) + 1;
+  else cart.push({ ...product, size, quantity: 1 });
+  
+  saveCart();
+  updateCartCount();
+  showToast(`✅ ${product.name} - Talla ${size} agregado`);
 };
 
 // ==================== TIENDA ====================
@@ -260,10 +288,7 @@ const renderProducts = (filteredProducts) => {
         <h3 onclick="showQuickView(${product.id})" class="font-bold text-lg mb-1 cursor-pointer">${product.name}</h3>
         <p class="text-yellow-400 font-semibold text-xl">C$ ${product.price}</p>
         <div class="flex gap-3 mt-4">
-          <button onclick="addToCartFromStore(${product.id}); event.stopImmediatePropagation()" class="flex-1 bg-yellow-400 hover:bg-yellow-300 text-black font-bold py-3 rounded-2xl transition flex items-center justify-center gap-2">
-            <i class="fa-solid fa-cart-plus"></i> Carrito
-          </button>
-          <button onclick="showQuickView(${product.id}); event.stopImmediatePropagation()" class="flex-1 border border-zinc-600 hover:bg-zinc-800 py-3 rounded-2xl transition">Ver rápido</button>
+          <button onclick="showQuickView(${product.id}); event.stopImmediatePropagation()" class="flex-1 bg-yellow-400 hover:bg-yellow-300 text-black font-bold py-3 rounded-2xl transition">Elegir talla</button>
         </div>
       </div>
     `;
@@ -297,18 +322,7 @@ const renderBestSellers = () => {
   });
 };
 
-// ==================== CARRITO FUNCIONES ====================
-const addToCartFromStore = (id) => {
-  const product = products.find(p => p.id === id);
-  if (!product) return;
-  const existing = cart.find(item => item.id === product.id);
-  if (existing) existing.quantity = (existing.quantity || 1) + 1;
-  else cart.push({ ...product, quantity: 1 });
-  saveCart();
-  updateCartCount();
-  showToast(`✅ ${product.name} agregado al carrito`);
-};
-
+// ==================== CARRITO ====================
 const updateCartCount = () => {
   const countEl = document.getElementById('cart-count');
   if (countEl) {
@@ -320,88 +334,48 @@ const updateCartCount = () => {
 const toggleCartModal = () => {
   const modal = document.getElementById('cart-modal');
   if (!modal) return;
-  const itemsContainer = document.getElementById('cart-items');
+  const container = document.getElementById('cart-items');
   const totalEl = document.getElementById('cart-total');
-  if (modal.classList.contains('hidden')) {
-    itemsContainer.innerHTML = '';
-    let subtotal = 0;
-    cart.forEach((item, index) => {
-      const qty = item.quantity || 1;
-      subtotal += item.price * qty;
-      itemsContainer.innerHTML += `
-        <div class="flex items-center justify-between border-b border-zinc-700 pb-6">
-          <div class="flex items-center gap-4">
-            <img loading="lazy" decoding="async" width="80" height="80" src="${item.img}" class="w-20 h-20 object-cover rounded-2xl" alt="${item.name}">
-            <div>
-              <p class="font-medium">${item.name}</p>
-              <p class="text-sm text-zinc-400">C$ ${item.price}</p>
-            </div>
-          </div>
-          <div class="flex items-center gap-5">
-            <button onclick="updateCartQuantity(${index}, -1)" class="w-8 h-8 hover:bg-zinc-700 rounded">-</button>
-            <span class="w-6 text-center">${qty}</span>
-            <button onclick="updateCartQuantity(${index}, 1)" class="w-8 h-8 hover:bg-zinc-700 rounded">+</button>
-            <button onclick="removeFromCart(${index})" class="text-red-400 hover:text-red-500 ml-4"><i class="fa-solid fa-trash"></i></button>
-          </div>
-        </div>`;
-    });
-    totalEl.textContent = `C$ ${subtotal.toFixed(0)}`;
-    modal.classList.remove('hidden');
-  } else {
-    modal.classList.add('hidden');
-  }
-};
+  container.innerHTML = '';
 
-const updateCartQuantity = (index, change) => {
-  const item = cart[index];
-  if (!item) return;
-  const newQty = (item.quantity || 1) + change;
-  if (newQty < 1) return removeFromCart(index);
-  item.quantity = newQty;
-  saveCart();
-  updateCartCount();
-  toggleCartModal();
+  let total = 0;
+  cart.forEach((item, index) => {
+    const subtotal = item.price * (item.quantity || 1);
+    total += subtotal;
+    const div = document.createElement('div');
+    div.className = 'flex gap-4';
+    div.innerHTML = `
+      <img src="${item.img}" class="w-20 h-20 object-cover rounded-2xl">
+      <div class="flex-1">
+        <h4 class="font-medium">${item.name}</h4>
+        <p class="text-sm text-zinc-400">Talla: ${item.size} × ${item.quantity || 1}</p>
+        <p class="text-yellow-400 font-semibold">C$ ${subtotal}</p>
+      </div>
+      <button onclick="removeFromCart(${index}); toggleCartModal(); toggleCartModal()" class="text-red-400 text-xl">×</button>
+    `;
+    container.appendChild(div);
+  });
+
+  totalEl.textContent = `C$ ${total}`;
 };
 
 const removeFromCart = (index) => {
   cart.splice(index, 1);
   saveCart();
   updateCartCount();
-  toggleCartModal();
 };
 
 const checkout = () => {
   if (cart.length === 0) return;
-  showToast("¡Redirigiendo a WhatsApp para pagar!");
-  setTimeout(() => window.open("https://wa.me/50512345678", "_blank"), 1500);
-};
-
-// ==================== FILTROS Y BÚSQUEDA ====================
-let currentCategory = 'all';
-let currentSearchTerm = '';
-
-const filterCategory = (category) => {
-  currentCategory = category;
-  document.querySelectorAll('.filter-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.id === `filter-${category}`);
+  let text = "¡Hola Momotus! Quiero comprar:%0A";
+  cart.forEach(item => {
+    text += `• ${item.name} - Talla ${item.size} × ${item.quantity || 1}%0A`;
   });
-  filterProducts();
-};
-
-const filterProducts = () => {
-  currentSearchTerm = document.getElementById('search-input')?.value.toLowerCase().trim() || '';
-  let filtered = products;
-  if (currentCategory !== 'all') filtered = filtered.filter(p => p.category === currentCategory);
-  if (currentSearchTerm) filtered = filtered.filter(p => p.name.toLowerCase().includes(currentSearchTerm));
-  renderProducts(filtered);
-  const countEl = document.getElementById('count-number');
-  if (countEl) countEl.textContent = filtered.length;
-};
-
-let searchTimeout;
-const debouncedSearch = () => {
-  clearTimeout(searchTimeout);
-  searchTimeout = setTimeout(filterProducts, 250);
+  window.open(`https://wa.me/50555010044?text=${text}`, '_blank');
+  cart = [];
+  saveCart();
+  updateCartCount();
+  toggleCartModal();
 };
 
 // ==================== TESTIMONIALS ====================
@@ -411,8 +385,8 @@ const testimonials = [
   { name: "Roberto Sánchez", location: "Granada", text: "La herramienta de diseño es súper fácil. Subí mi logo y quedó perfecto. Ya pedí 3 camisetas más.", rating: 4, avatar: "🧔" }
 ];
 
-const renderTestimonials = () => {
-  const container = document.getElementById('testimonials-container');
+const renderTestimonials = (containerId = 'testimonials-container') => {
+  const container = document.getElementById(containerId) || document.getElementById('testimonials-home');
   if (!container) return;
   container.innerHTML = '';
   testimonials.forEach(t => {
@@ -434,26 +408,7 @@ const renderTestimonials = () => {
   });
 };
 
-// ==================== SKELETONS ====================
-const showProductsSkeleton = () => {
-  const grid = document.getElementById('products-grid');
-  if (!grid) return;
-  grid.innerHTML = '';
-  for (let i = 0; i < 8; i++) {
-    const skeleton = document.createElement('div');
-    skeleton.className = 'bg-zinc-900 rounded-3xl overflow-hidden animate-pulse';
-    skeleton.innerHTML = `
-      <div class="aspect-square bg-zinc-800"></div>
-      <div class="p-5 space-y-3">
-        <div class="h-5 bg-zinc-800 rounded w-3/4"></div>
-        <div class="h-4 bg-zinc-800 rounded w-1/2"></div>
-        <div class="h-10 bg-zinc-800 rounded-2xl"></div>
-      </div>`;
-    grid.appendChild(skeleton);
-  }
-};
-
-// ==================== DRAG & DROP MEJORADO (Paso 4) ====================
+// ==================== DRAG & DROP ====================
 let isDragging = false;
 let currentDraggingDesign = null;
 let offsetX = 0, offsetY = 0;
@@ -505,40 +460,21 @@ const initDragListeners = () => {
   document.addEventListener('touchend', endHandler);
 };
 
-// ==================== CENTAR DISEÑO (Paso 4) ====================
 const centerDesign = (side) => {
   const previewId = side === 0 ? 'design-preview' : 'design-preview-back';
   const preview = document.getElementById(previewId);
   const design = preview.querySelector('img');
   if (!design) return showToast("❌ No hay diseño para centrar");
-
   const previewRect = preview.getBoundingClientRect();
   const designRect = design.getBoundingClientRect();
-
   const centerX = (previewRect.width - designRect.width) / 2;
   const centerY = (previewRect.height - designRect.height) / 2;
-
   design.style.left = `${centerX}px`;
   design.style.top = `${centerY}px`;
   showToast("🎯 Diseño centrado correctamente");
 };
 
-// ==================== DISEÑA ====================
-const updateMockups = () => {
-  const frontImg = document.getElementById('shirt-mockup');
-  if (frontImg) frontImg.src = getMockupPath(currentShirtType, currentColor, false);
-  const backImg = document.getElementById('shirt-mockup-back');
-  if (backImg) backImg.src = getMockupPath(currentShirtType, currentColor, true);
-  
-  updateDesignSize();
-  saveCurrentDesign();
-
-  const frontDesign = document.getElementById('draggable-design-front');
-  const backDesign = document.getElementById('draggable-design-back');
-  if (frontDesign) frontDesign.style.cssText += getDesignStyle(currentColor);
-  if (backDesign) backDesign.style.cssText += getDesignStyle(currentColor);
-};
-
+// ==================== FUNCIONES DEL DISEÑADOR ====================
 const selectShirtType = (index) => {
   currentShirtType = index;
   document.querySelectorAll('.shirt-type-btn').forEach((btn, i) => btn.classList.toggle('active', i === index));
@@ -552,42 +488,39 @@ const selectColor = (colorKey, el) => {
   updateMockups();
 };
 
-const handleDesignUpload = (e) => {
+const handleDesignUpload = (e, side) => {
   const file = e.target.files[0];
   if (!file) return;
-  if (!file.type.startsWith('image/')) { showToast("❌ Solo se permiten imágenes"); return; }
-  if (file.size > 5 * 1024 * 1024) { showToast("❌ Máximo 5 MB por imagen"); return; }
+  if (!file.type.startsWith('image/')) return showToast("❌ Solo imágenes");
+  if (file.size > 5 * 1024 * 1024) return showToast("❌ Máximo 5 MB");
 
   const reader = new FileReader();
   reader.onload = (ev) => {
-    const imageSrc = ev.target.result;
+    const src = ev.target.result;
     const style = getDesignStyle(currentColor);
+    const preview = side === 0 ? document.getElementById('design-preview') : document.getElementById('design-preview-back');
+    const id = side === 0 ? 'draggable-design-front' : 'draggable-design-back';
 
-    const previewFront = document.getElementById('design-preview');
-    if (previewFront) {
-      previewFront.innerHTML = `<img src="${imageSrc}" id="draggable-design-front" class="max-w-full max-h-full object-contain rounded-3xl" style="${style}">`;
-      previewFront.classList.add('design-loaded');
-      makeDraggable(document.getElementById('draggable-design-front'));
-    }
-    const previewBack = document.getElementById('design-preview-back');
-    if (previewBack) {
-      previewBack.innerHTML = `<img src="${imageSrc}" id="draggable-design-back" class="max-w-full max-h-full object-contain rounded-3xl" style="${style}">`;
-      previewBack.classList.add('design-loaded');
-      makeDraggable(document.getElementById('draggable-design-back'));
-    }
-    showToast("✅ Diseño integrado correctamente en la tela");
+    preview.innerHTML = `<img src="${src}" id="${id}" class="max-w-full max-h-full object-contain rounded-3xl" style="${style}">`;
+    preview.classList.add('design-loaded');
+    makeDraggable(document.getElementById(id));
+
+    if (side === 0) designFront = src;
+    else designBack = src;
+
+    showToast(side === 0 ? "✅ Diseño Frente cargado" : "✅ Diseño Espalda cargado");
     saveCurrentDesign();
   };
   reader.readAsDataURL(file);
 };
 
 const resetDesign = () => {
+  designFront = null;
+  designBack = null;
   ['design-preview', 'design-preview-back'].forEach(id => {
     const preview = document.getElementById(id);
     if (preview) {
       preview.classList.remove('design-loaded');
-      preview.style.border = '4px dashed #facc15';
-      preview.style.background = 'rgba(250, 204, 21, 0.12)';
       preview.innerHTML = `<span class="text-yellow-400 text-center text-base font-medium pointer-events-none">Arrastra tu diseño aquí</span>`;
     }
   });
@@ -596,13 +529,14 @@ const resetDesign = () => {
 };
 
 const saveCurrentDesign = () => {
-  const designData = {
+  const data = {
     shirtType: currentShirtType,
     color: currentColor,
-    frontDesign: document.getElementById('draggable-design-front') ? document.getElementById('draggable-design-front').src : null,
-    backDesign: document.getElementById('draggable-design-back') ? document.getElementById('draggable-design-back').src : null
+    size: currentSize,
+    frontDesign: designFront,
+    backDesign: designBack
   };
-  localStorage.setItem('momotusCurrentDesign', JSON.stringify(designData));
+  localStorage.setItem('momotusCurrentDesign', JSON.stringify(data));
 };
 
 const loadSavedDesign = () => {
@@ -611,30 +545,33 @@ const loadSavedDesign = () => {
   const data = JSON.parse(saved);
   currentShirtType = data.shirtType || 0;
   currentColor = data.color || 'black';
+  currentSize = data.size || 'M';
+  designFront = data.frontDesign;
+  designBack = data.backDesign;
 
   document.querySelectorAll('.shirt-type-btn').forEach((btn, i) => btn.classList.toggle('active', i === currentShirtType));
+  renderSizeButtonsDesigner();
 
   const colorBtn = Array.from(document.querySelectorAll('.color-btn')).find(btn => 
     btn.classList.contains(colors.find(c => c.key === currentColor).class)
   );
   if (colorBtn) selectColor(currentColor, colorBtn);
 
-  if (data.frontDesign) {
-    const previewFront = document.getElementById('design-preview');
-    previewFront.innerHTML = `<img src="${data.frontDesign}" id="draggable-design-front" class="max-w-full max-h-full object-contain rounded-3xl" style="${getDesignStyle(currentColor)}">`;
-    previewFront.classList.add('design-loaded');
+  if (designFront) {
+    const preview = document.getElementById('design-preview');
+    preview.innerHTML = `<img src="${designFront}" id="draggable-design-front" class="max-w-full max-h-full object-contain rounded-3xl" style="${getDesignStyle(currentColor)}">`;
+    preview.classList.add('design-loaded');
     makeDraggable(document.getElementById('draggable-design-front'));
   }
-  if (data.backDesign) {
-    const previewBack = document.getElementById('design-preview-back');
-    previewBack.innerHTML = `<img src="${data.backDesign}" id="draggable-design-back" class="max-w-full max-h-full object-contain rounded-3xl" style="${getDesignStyle(currentColor)}">`;
-    previewBack.classList.add('design-loaded');
+  if (designBack) {
+    const preview = document.getElementById('design-preview-back');
+    preview.innerHTML = `<img src="${designBack}" id="draggable-design-back" class="max-w-full max-h-full object-contain rounded-3xl" style="${getDesignStyle(currentColor)}">`;
+    preview.classList.add('design-loaded');
     makeDraggable(document.getElementById('draggable-design-back'));
   }
   updateMockups();
 };
 
-// ==================== MODAL ELIMINAR FONDO ====================
 const switchMockup = (tab) => {
   document.getElementById('tab-frente').classList.toggle('tab-active', tab === 0);
   document.getElementById('tab-espalda').classList.toggle('tab-active', tab === 1);
@@ -650,22 +587,102 @@ const abrirRemoveBg = () => {
   showToast("🪄 remove.bg abierto. Descarga la imagen sin fondo y súbela aquí.");
 };
 
+// ==================== DESCARGA ====================
+const descargarDiseno = async () => {
+  if (!designFront && !designBack) return showToast("❌ No hay diseño para descargar");
+  showToast("📸 Generando imágenes centradas...");
+  try {
+    const frontDesign = document.getElementById('draggable-design-front');
+    const backDesign = document.getElementById('draggable-design-back');
+    const originalFrontLeft = frontDesign ? frontDesign.style.left : null;
+    const originalFrontTop = frontDesign ? frontDesign.style.top : null;
+    const originalBackLeft = backDesign ? backDesign.style.left : null;
+    const originalBackTop = backDesign ? backDesign.style.top : null;
+
+    if (frontDesign) { frontDesign.style.left = '50%'; frontDesign.style.top = '50%'; frontDesign.style.transform = 'translate(-50%, -50%)'; }
+    if (backDesign) { backDesign.style.left = '50%'; backDesign.style.top = '50%'; backDesign.style.transform = 'translate(-50%, -50%)'; }
+
+    const frontMockup = document.getElementById('mockup-frente');
+    const canvasFront = await html2canvas(frontMockup, { scale: 2, useCORS: true });
+    const linkFront = document.createElement('a');
+    linkFront.download = 'mi-camiseta-momotus-frente.png';
+    linkFront.href = canvasFront.toDataURL('image/png');
+    linkFront.click();
+
+    if (designBack) {
+      const backMockup = document.getElementById('mockup-espalda');
+      const canvasBack = await html2canvas(backMockup, { scale: 2, useCORS: true });
+      const linkBack = document.createElement('a');
+      linkBack.download = 'mi-camiseta-momotus-espalda.png';
+      linkBack.href = canvasBack.toDataURL('image/png');
+      linkBack.click();
+    }
+
+    if (frontDesign) { frontDesign.style.left = originalFrontLeft; frontDesign.style.top = originalFrontTop; frontDesign.style.transform = ''; }
+    if (backDesign) { backDesign.style.left = originalBackLeft; backDesign.style.top = originalBackTop; backDesign.style.transform = ''; }
+
+    showToast("✅ Imágenes descargadas y centradas correctamente");
+  } catch (e) {
+    showToast("❌ Error al generar la imagen. Toma captura de pantalla.");
+  }
+};
+
 // ==================== COTIZACIÓN ====================
 const sendToWhatsApp = () => {
   const typeName = ['Regular / Unisex', 'Slim Fit', 'Oversized'][currentShirtType];
   const colorName = colorMap[currentColor] || currentColor;
-  const text = `¡Hola Momotus Core!%0A%0AQuiero cotizar una camiseta personalizada:%0A• Tipo de corte: ${typeName}%0A• Color: ${colorName.charAt(0).toUpperCase() + colorName.slice(1)}%0A• Incluye diseño personalizado%0A%0A¿Me pueden dar precio y tiempo de entrega? Gracias!`;
-  window.open(`https://wa.me/50512345678?text=${text}`, '_blank');
-  showToast("📱 Abriendo WhatsApp con tu cotización...");
+  const text = `¡Hola Momotus Core! 👋%0A%0A` +
+    `Acabo de diseñar mi camiseta personalizada:%0A` +
+    `• Tipo de corte: ${typeName}%0A` +
+    `• Talla: ${currentSize}%0A` +
+    `• Color: ${colorName.charAt(0).toUpperCase() + colorName.slice(1)}%0A` +
+    `• Diseño Frente: ${designFront ? 'Sí' : 'No'}%0A` +
+    `• Diseño Espalda: ${designBack ? 'Sí' : 'No'}%0A%0A` +
+    `Por favor adjunta las imágenes que descargaste del diseñador (frente y espalda) para darte la cotización exacta.%0A` +
+    `Gracias! 🇳🇮`;
+  window.open(`https://wa.me/50555010044?text=${text}`, '_blank');
+  showToast("📱 WhatsApp abierto – recuerda adjuntar las imágenes descargadas");
 };
 
 const sendToEmail = () => {
   const typeName = ['Regular / Unisex', 'Slim Fit', 'Oversized'][currentShirtType];
   const colorName = colorMap[currentColor] || currentColor;
   const subject = "Cotización - Camiseta Personalizada Momotus Core";
-  const body = `Hola equipo de Momotus Core,%0A%0AQuiero cotizar una camiseta:%0A- Tipo de corte: ${typeName}%0A- Color: ${colorName.charAt(0).toUpperCase() + colorName.slice(1)}%0A- Diseño: Personalizado%0A%0AGracias!`;
-  window.location.href = `mailto:info@momotuscore.com?subject=${encodeURIComponent(subject)}&body=${body}`;
-  showToast("✉️ Abriendo tu cliente de correo...");
+  const body = `Hola equipo,%0A%0AQuiero cotizar una camiseta:%0A- Tipo: ${typeName}%0A- Talla: ${currentSize}%0A- Color: ${colorName}%0A- Diseño Frente: ${designFront ? 'Sí' : 'No'}%0A- Diseño Espalda: ${designBack ? 'Sí' : 'No'}%0A%0APor favor revisa las imágenes adjuntas del diseñador.%0AGracias!`;
+  window.location.href = `mailto:momotuscore@gmail.com?subject=${encodeURIComponent(subject)}&body=${body}`;
+  showToast("✉️ Email abierto – recuerda adjuntar las imágenes descargadas");
+};
+
+const renderSizeButtonsDesigner = () => {
+  const container = document.getElementById('size-buttons');
+  if (!container) return;
+  container.innerHTML = '';
+  const sizes = ['S', 'M', 'L', 'XL', 'XXL'];
+  sizes.forEach(size => {
+    const btn = document.createElement('button');
+    btn.textContent = size;
+    btn.className = `size-btn px-7 py-4 rounded-3xl font-medium border border-zinc-600 hover:border-yellow-400 transition ${size === currentSize ? 'bg-yellow-400 text-black border-yellow-400' : ''}`;
+    btn.onclick = () => {
+      currentSize = size;
+      document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('bg-yellow-400', 'text-black', 'border-yellow-400'));
+      btn.classList.add('bg-yellow-400', 'text-black', 'border-yellow-400');
+      saveCurrentDesign();
+    };
+    container.appendChild(btn);
+  });
+};
+
+const renderColorButtons = () => {
+  const container = document.getElementById('color-buttons');
+  if (!container) return;
+  container.innerHTML = '';
+  colors.forEach(color => {
+    const btn = document.createElement('button');
+    btn.onclick = () => selectColor(color.key, btn);
+    btn.className = `color-btn w-14 h-14 rounded-2xl shadow-inner border-2 border-transparent active:scale-95 transition-all ${color.class}`;
+    if (color.key === 'black') btn.classList.add('active');
+    container.appendChild(btn);
+  });
 };
 
 // ==================== CARRUSEL ====================
@@ -713,11 +730,40 @@ const prevSlide = () => {
 
 const startAutoPlay = () => carouselInterval = setInterval(nextSlide, 4800);
 
+// ==================== MOCKUP 3D FLIP (NUEVO) ====================
+let isFlipped = false;
+window.flipMockup = () => {
+  isFlipped = !isFlipped;
+  const container = document.getElementById('mockup-3d');
+  const front = document.getElementById('front');
+  const back = document.getElementById('back');
+  if (!container || !front || !back) return;
+  
+  if (isFlipped) {
+    container.style.transform = 'rotateY(180deg)';
+    front.style.opacity = '0';
+    back.style.opacity = '1';
+  } else {
+    container.style.transform = 'rotateY(0deg)';
+    front.style.opacity = '1';
+    back.style.opacity = '0';
+  }
+};
+
+// ==================== PARALLAX HERO (NUEVO) ====================
+const initParallax = () => {
+  const heroBg = document.getElementById('hero-bg');
+  if (!heroBg) return;
+  window.addEventListener('scroll', () => {
+    const scroll = window.scrollY;
+    heroBg.style.transform = `translateY(${scroll * 0.4}px)`;
+  });
+};
+
 // ==================== PWA ====================
 const registerPWA = () => {
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js')
-      .then(() => console.log('%c✅ PWA registrado', 'color:#facc15'));
+    navigator.serviceWorker.register('/sw.js').then(() => console.log('%c✅ PWA registrado', 'color:#facc15'));
   }
 };
 
@@ -729,24 +775,71 @@ window.onload = () => {
   renderCartModal();
 
   if (document.getElementById('products-grid')) {
-    showProductsSkeleton();
-    setTimeout(() => {
-      renderProducts(products);
-      if (document.getElementById('best-sellers-grid')) renderBestSellers();
-    }, 380);
+    renderProducts(products);
+    if (document.getElementById('best-sellers-grid')) renderBestSellers();
   }
 
   const searchInput = document.getElementById('search-input');
   if (searchInput) searchInput.addEventListener('input', debouncedSearch);
 
-  initCarousel();
-  if (document.getElementById('type-0')) selectShirtType(0);
-  if (document.getElementById('testimonials-container')) renderTestimonials();
-  if (document.getElementById('color-buttons')) renderColorButtons();
+  const sortSelect = document.getElementById('sort-select');
+  if (sortSelect) sortSelect.addEventListener('change', sortProducts);
 
+  initCarousel();
+
+  if (document.getElementById('type-0')) {
+    selectShirtType(0);
+    renderSizeButtonsDesigner();
+    renderColorButtons();
+  }
+
+  renderTestimonials(); // funciona tanto para #testimonials-container como #testimonials-home
+  
   loadSavedDesign();
   initDragListeners();
   registerPWA();
 
-  console.log("%c🚀 Momotus Core - JS COMPLETO Y ACTUALIZADO (Paso 4)", "color:#facc15; font-weight:bold; font-size:16px");
+  // === NUEVAS FUNCIONES PARA INDEX ===
+  initParallax();
+
+  console.log("%c🚀 Momotus Core - JS FINAL COMPLETO Y ACTUALIZADO - Mockup 3D + Parallax listo", "color:#facc15; font-weight:bold; font-size:16px");
+};
+
+// ==================== BUSCADOR TIENDA ====================
+let currentCategory = 'all';
+let currentSearchTerm = '';
+
+const filterCategory = (cat) => {
+  currentCategory = cat;
+  document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.toggle('active', btn.id === `filter-${cat}`));
+  filterProducts();
+};
+
+const filterProducts = () => {
+  currentSearchTerm = document.getElementById('search-input')?.value.toLowerCase().trim() || '';
+  let filtered = products;
+  if (currentCategory !== 'all') filtered = filtered.filter(p => p.category === currentCategory);
+  if (currentSearchTerm) filtered = filtered.filter(p => p.name.toLowerCase().includes(currentSearchTerm));
+  renderProducts(filtered);
+  const countEl = document.getElementById('count-number');
+  if (countEl) countEl.textContent = filtered.length;
+};
+
+let searchTimeout;
+const debouncedSearch = () => {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(filterProducts, 250);
+};
+
+const sortProducts = () => {
+  const sortValue = document.getElementById('sort-select').value;
+  let filtered = products;
+  if (currentCategory !== 'all') filtered = filtered.filter(p => p.category === currentCategory);
+  if (currentSearchTerm) filtered = filtered.filter(p => p.name.toLowerCase().includes(currentSearchTerm));
+
+  if (sortValue === 'price-low') filtered.sort((a, b) => a.price - b.price);
+  else if (sortValue === 'price-high') filtered.sort((a, b) => b.price - a.price);
+  else if (sortValue === 'name') filtered.sort((a, b) => a.name.localeCompare(b.name));
+
+  renderProducts(filtered);
 };

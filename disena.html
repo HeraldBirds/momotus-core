@@ -7,9 +7,24 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
   <link rel="stylesheet" href="css/style.css">
+  
+  <!-- CDN necesario para descargar el diseño centrado -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
   <style>
-    .mockup-wrapper { background: #111827; border-radius: 40px; padding: 40px; box-shadow: 0 40px 80px -20px rgb(0 0 0 / 0.8); }
-    .shirt-mockup { width: 100%; max-width: 520px; border-radius: 30px; box-shadow: 0 30px 60px -15px rgb(0 0 0 / 0.7); transition: all 0.5s ease; }
+    .mockup-wrapper { 
+      background: #111827; 
+      border-radius: 40px; 
+      padding: 40px; 
+      box-shadow: 0 40px 80px -20px rgb(0 0 0 / 0.8); 
+    }
+    .shirt-mockup { 
+      width: 100%; 
+      max-width: 520px; 
+      border-radius: 32px; 
+      box-shadow: 0 40px 80px -20px rgb(0 0 0 / 0.75);
+      transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); 
+    }
 
     #design-preview, #design-preview-back {
       position: absolute;
@@ -20,17 +35,36 @@
       overflow: hidden;
       z-index: 20;
       transition: all 0.4s ease;
-      box-shadow: 0 10px 20px rgba(0,0,0,0.3);
     }
-
     #design-preview.design-loaded,
     #design-preview-back.design-loaded {
       border: none !important;
       background: transparent !important;
-      box-shadow: none !important;
+    }
+    .tab-active { 
+      border-bottom: 4px solid #facc15; 
+      color: #facc15; 
     }
 
-    .tab-active { border-bottom: 4px solid #facc15; color: #facc15; }
+    .gallery-section {
+      background: #111827;
+      border-radius: 32px;
+      padding: 32px;
+      box-shadow: 0 20px 40px -15px rgb(0 0 0 / 0.6);
+    }
+    .ready-designs img {
+      transition: all 0.3s ease;
+      border-radius: 16px;
+      border: 2px solid transparent;
+      background: #0a0a0a;
+      padding: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    .ready-designs img:hover {
+      transform: scale(1.06);
+      border-color: #facc15;
+      box-shadow: 0 12px 25px -8px rgb(250 204 21 / 0.5);
+    }
   </style>
 </head>
 <body class="bg-zinc-950 text-white">
@@ -40,8 +74,11 @@
   <section class="py-20 bg-zinc-950">
     <div class="max-w-7xl mx-auto px-6">
       <div class="text-center mb-16">
+        <span class="inline-flex items-center gap-2 bg-yellow-400 text-black text-sm font-bold px-6 py-2 rounded-3xl live-badge">
+          <i class="fa-solid fa-eye"></i> VISTA EN TIEMPO REAL
+        </span>
         <h2 class="text-6xl font-black mb-4 tracking-tighter">Diseña tu camiseta</h2>
-        <p class="text-2xl text-zinc-400">Sube tu diseño y visualízalo en frente y espalda</p>
+        <p class="text-2xl text-zinc-400">Sube tu diseño y visualízalo en frente y espalda al instante</p>
       </div>
 
       <div class="grid lg:grid-cols-2 gap-16 items-start">
@@ -65,8 +102,20 @@
 
         <!-- Panel de personalización -->
         <div class="space-y-12">
-          <h3 class="text-4xl font-bold">Personaliza tu camiseta</h3>
-          
+          <div>
+            <h3 class="text-4xl font-bold">Personaliza tu camiseta</h3>
+            <div class="mt-4 bg-zinc-900 border border-yellow-400/30 rounded-3xl p-5 text-sm">
+              <div class="flex items-center gap-2 text-yellow-400 mb-2">
+                <i class="fa-solid fa-print"></i>
+                <span class="font-semibold">Impresión DTF Premium</span>
+              </div>
+              <p class="text-zinc-400 leading-relaxed">
+                Utilizamos tecnología DTF de última generación: colores vibrantes, excelente durabilidad y tacto suave. 
+                Resistente a más de 50 lavados sin agrietarse ni perder intensidad. Calidad profesional en cada camiseta.
+              </p>
+            </div>
+          </div>
+
           <div>
             <p class="font-medium mb-4">Tipo de corte</p>
             <div class="flex gap-3 flex-wrap">
@@ -77,55 +126,145 @@
           </div>
 
           <div>
+            <p class="font-medium mb-4">Talla</p>
+            <div class="flex gap-3 flex-wrap" id="size-buttons"></div>
+          </div>
+
+          <div>
             <p class="font-medium mb-4">Color de camiseta</p>
             <div class="flex flex-wrap gap-3" id="color-buttons"></div>
           </div>
 
-          <div>
-            <input type="file" id="design-upload" accept="image/*" class="hidden" onchange="handleDesignUpload(event)">
-            <button onclick="document.getElementById('design-upload').click()" 
-                    class="w-full bg-yellow-400 hover:bg-yellow-300 text-black font-bold py-7 rounded-3xl flex items-center justify-center gap-4 text-xl transition">
-              <i class="fa-solid fa-upload"></i> SUBIR MI DISEÑO
-            </button>
-            <button onclick="mostrarModalEliminarFondo()" 
-                    class="mt-4 w-full border-2 border-yellow-400 hover:bg-yellow-400 hover:text-black text-yellow-400 font-bold py-5 rounded-3xl flex items-center justify-center gap-3 text-lg transition">
-              <i class="fa-solid fa-magic text-2xl"></i> 🪄 ELIMINAR FONDO AUTOMÁTICO
-            </button>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <p class="font-medium mb-3">Diseño Frente</p>
+              <input type="file" id="design-upload-front" accept="image/*" class="hidden" onchange="handleDesignUpload(event, 0)">
+              <button onclick="document.getElementById('design-upload-front').click()" 
+                      class="w-full bg-yellow-400 hover:bg-yellow-300 text-black font-bold py-6 rounded-3xl flex items-center justify-center gap-3">
+                <i class="fa-solid fa-upload"></i> Frente
+              </button>
+            </div>
+            <div>
+              <p class="font-medium mb-3">Diseño Espalda</p>
+              <input type="file" id="design-upload-back" accept="image/*" class="hidden" onchange="handleDesignUpload(event, 1)">
+              <button onclick="document.getElementById('design-upload-back').click()" 
+                      class="w-full bg-yellow-400 hover:bg-yellow-300 text-black font-bold py-6 rounded-3xl flex items-center justify-center gap-3">
+                <i class="fa-solid fa-upload"></i> Espalda
+              </button>
+            </div>
           </div>
+
+          <button onclick="mostrarModalEliminarFondo()" 
+                  class="w-full border-2 border-yellow-400 hover:bg-yellow-400 hover:text-black text-yellow-400 font-bold py-5 rounded-3xl flex items-center justify-center gap-3 text-lg transition">
+            <i class="fa-solid fa-magic text-2xl"></i> 🪄 ELIMINAR FONDO AUTOMÁTICO
+          </button>
 
           <div class="flex gap-4">
             <button onclick="resetDesign()" class="flex-1 bg-zinc-700 hover:bg-zinc-600 py-6 rounded-3xl font-bold text-lg">Resetear diseño</button>
           </div>
 
-          <!-- Botones de Paso 4 -->
           <div class="flex gap-4 mt-6">
-            <button onclick="centerDesign(0)" 
-                    class="flex-1 bg-sky-600 hover:bg-sky-500 text-white font-bold py-6 rounded-3xl flex items-center justify-center gap-3 text-lg transition">
+            <button onclick="centerDesign(0)" class="flex-1 bg-sky-600 hover:bg-sky-500 text-white font-bold py-6 rounded-3xl flex items-center justify-center gap-3 text-lg transition">
               <i class="fa-solid fa-arrows-to-center"></i> Centrar Frente
             </button>
-            <button onclick="centerDesign(1)" 
-                    class="flex-1 bg-sky-600 hover:bg-sky-500 text-white font-bold py-6 rounded-3xl flex items-center justify-center gap-3 text-lg transition">
+            <button onclick="centerDesign(1)" class="flex-1 bg-sky-600 hover:bg-sky-500 text-white font-bold py-6 rounded-3xl flex items-center justify-center gap-3 text-lg transition">
               <i class="fa-solid fa-arrows-to-center"></i> Centrar Espalda
             </button>
           </div>
 
+          <button onclick="descargarDiseno()" 
+                  class="w-full mt-6 bg-sky-600 hover:bg-sky-500 text-white font-bold py-6 rounded-3xl flex items-center justify-center gap-3 text-lg transition">
+            <i class="fa-solid fa-download"></i> 📸 Descargar mi camiseta diseñada (Frente + Espalda)
+          </button>
+
+          <!-- COTIZACIÓN -->
+          <div class="mt-8 bg-gradient-to-r from-yellow-400/10 to-transparent border border-yellow-400/30 rounded-3xl p-6 text-center">
+            <div class="flex justify-center mb-3">
+              <span class="inline-flex items-center gap-2 bg-yellow-400 text-black text-xs font-bold px-5 py-1.5 rounded-3xl">
+                <i class="fa-solid fa-tag"></i>
+                PRECIO POR COTIZACIÓN
+              </span>
+            </div>
+            <p class="text-yellow-300 font-semibold text-lg">Cada diseño es 100% único</p>
+            <p class="text-zinc-400 text-sm leading-relaxed mt-2">
+              No mostramos precio automático porque tu camiseta es totalmente personalizada.<br>
+              <strong>Te respondemos con el precio exacto en menos de 10 minutos</strong> por WhatsApp o Email.
+            </p>
+          </div>
+
           <div class="pt-8 border-t border-zinc-700">
-            <p class="font-medium mb-4">Solicitar cotización</p>
+            <p class="font-medium mb-4 text-lg">Solicitar cotización</p>
             <div class="grid grid-cols-2 gap-4">
-              <button onclick="sendToWhatsApp()" class="flex items-center justify-center gap-3 bg-green-600 hover:bg-green-500 py-6 rounded-3xl font-bold">WhatsApp</button>
-              <button onclick="sendToEmail()" class="flex items-center justify-center gap-3 bg-zinc-700 hover:bg-zinc-600 py-6 rounded-3xl font-bold">Email</button>
+              <button onclick="sendToWhatsApp()" 
+                      class="flex items-center justify-center gap-3 bg-green-600 hover:bg-green-500 py-6 rounded-3xl font-bold text-lg transition">
+                <i class="fa-brands fa-whatsapp text-2xl"></i>
+                WhatsApp
+              </button>
+              <button onclick="sendToEmail()" 
+                      class="flex items-center justify-center gap-3 bg-zinc-700 hover:bg-zinc-600 py-6 rounded-3xl font-bold text-lg transition">
+                <i class="fa-solid fa-envelope text-2xl"></i>
+                Email
+              </button>
             </div>
           </div>
         </div>
       </div>
+
+      <!-- GALERÍA -->
+      <div class="gallery-section mt-20">
+        <div class="flex items-center justify-between mb-6">
+          <p class="font-medium text-zinc-400 flex items-center gap-2">
+            <i class="fa-solid fa-file-image"></i>
+            Diseños listos para aplicar (PNG transparente)
+          </p>
+          <span class="text-xs bg-emerald-400 text-black px-4 py-1 rounded-3xl font-medium">10 diseños disponibles</span>
+        </div>
+        
+        <div class="ready-designs grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-6 gap-6">
+          <img onclick="showPreviewModal(this.src)" src="img/ready-designs/D1.png" alt="D1" class="cursor-pointer aspect-square object-contain">
+          <img onclick="showPreviewModal(this.src)" src="img/ready-designs/D2.png" alt="D2" class="cursor-pointer aspect-square object-contain">
+          <img onclick="showPreviewModal(this.src)" src="img/ready-designs/D3.png" alt="D3" class="cursor-pointer aspect-square object-contain">
+          <img onclick="showPreviewModal(this.src)" src="img/ready-designs/D4.png" alt="D4" class="cursor-pointer aspect-square object-contain">
+          <img onclick="showPreviewModal(this.src)" src="img/ready-designs/D5.png" alt="D5" class="cursor-pointer aspect-square object-contain">
+          <img onclick="showPreviewModal(this.src)" src="img/ready-designs/D6.png" alt="D6" class="cursor-pointer aspect-square object-contain">
+          <img onclick="showPreviewModal(this.src)" src="img/ready-designs/D7.png" alt="D7" class="cursor-pointer aspect-square object-contain">
+          <img onclick="showPreviewModal(this.src)" src="img/ready-designs/D8.png" alt="D8" class="cursor-pointer aspect-square object-contain">
+          <img onclick="showPreviewModal(this.src)" src="img/ready-designs/D9.png" alt="D9" class="cursor-pointer aspect-square object-contain">
+          <img onclick="showPreviewModal(this.src)" src="img/ready-designs/D10.png" alt="D10" class="cursor-pointer aspect-square object-contain">
+        </div>
+        
+        <p class="text-xs text-zinc-500 mt-6 text-center">Haz clic en cualquier diseño para ver vista previa y aplicarlo</p>
+      </div>
     </div>
   </section>
 
-  <!-- MODAL ELIMINAR FONDO -->
+  <!-- MODAL VISTA PREVIA -->
+  <div id="preview-modal" onclick="if(event.target.id === 'preview-modal') hidePreviewModal()" 
+       class="hidden fixed inset-0 bg-black/90 flex items-center justify-center z-[11000]">
+    <div class="max-w-sm w-full mx-4 bg-zinc-900 rounded-3xl overflow-hidden">
+      <div class="p-4 flex justify-end border-b border-zinc-700">
+        <button onclick="hidePreviewModal()" class="text-3xl text-zinc-400 hover:text-white">×</button>
+      </div>
+      <div class="p-6">
+        <img id="preview-image" src="" class="w-full rounded-2xl max-h-[340px] object-contain mx-auto" alt="Vista previa">
+      </div>
+      <div class="px-6 pb-8 flex flex-col gap-3">
+        <button onclick="applyFromPreview(0)" class="w-full bg-yellow-400 text-black font-bold py-5 rounded-3xl flex items-center justify-center gap-3 text-lg hover:bg-yellow-300 transition">
+          <i class="fa-solid fa-shirt"></i> Aplicar al Frente
+        </button>
+        <button onclick="applyFromPreview(1)" class="w-full bg-yellow-400 text-black font-bold py-5 rounded-3xl flex items-center justify-center gap-3 text-lg hover:bg-yellow-300 transition">
+          <i class="fa-solid fa-shirt"></i> Aplicar a la Espalda
+        </button>
+        <button onclick="hidePreviewModal()" class="w-full border border-zinc-600 hover:bg-zinc-800 py-5 rounded-3xl font-medium text-lg">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL ELIMINAR FONDO (igual que antes) -->
   <div id="modal-eliminar-fondo" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[10000]">
     <div class="bg-zinc-900 rounded-3xl max-w-md w-full mx-4 p-8 text-center">
       <h3 class="text-2xl font-bold mb-4">🪄 Eliminar fondo automáticamente</h3>
-      <p class="text-zinc-400 mb-6">1. Abre la herramienta gratuita remove.bg<br>2. Sube tu imagen<br>3. Descarga la versión sin fondo (PNG transparente)<br>4. Vuelve aquí y súbela</p>
+      <p class="text-zinc-400 mb-6">1. Abre remove.bg<br>2. Sube tu imagen<br>3. Descarga PNG transparente<br>4. Súbela aquí</p>
       <button onclick="abrirRemoveBg()" class="w-full bg-yellow-400 text-black font-bold py-6 rounded-3xl text-xl mb-6 flex items-center justify-center gap-3 hover:bg-yellow-300 transition">
         <i class="fa-solid fa-magic"></i> ABRIR REMOVE.BG
       </button>
@@ -136,5 +275,36 @@
   <div id="cart-modal-placeholder"></div>
 
   <script src="js/script.js"></script>
+  <script>
+    let currentPreviewSrc = '';
+
+    function showPreviewModal(src) {
+      currentPreviewSrc = src;
+      const modal = document.getElementById('preview-modal');
+      const img = document.getElementById('preview-image');
+      img.src = src;
+      modal.classList.remove('hidden');
+    }
+
+    function hidePreviewModal() {
+      document.getElementById('preview-modal').classList.add('hidden');
+    }
+
+    function applyFromPreview(side) {
+      const preview = side === 0 ? document.getElementById('design-preview') : document.getElementById('design-preview-back');
+      const id = side === 0 ? 'draggable-design-front' : 'draggable-design-back';
+
+      preview.innerHTML = `<img src="${currentPreviewSrc}" id="${id}" class="max-w-full max-h-full object-contain rounded-3xl" style="${getDesignStyle(currentColor)}">`;
+      preview.classList.add('design-loaded');
+      makeDraggable(document.getElementById(id));
+
+      if (side === 0) designFront = currentPreviewSrc;
+      else designBack = currentPreviewSrc;
+
+      hidePreviewModal();
+      showToast("✅ Diseño aplicado correctamente");
+      saveCurrentDesign();
+    }
+  </script>
 </body>
 </html>

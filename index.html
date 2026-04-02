@@ -7,38 +7,69 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
   <link rel="stylesheet" href="css/style.css">
+  <style>
+    .mockup-3d-container {
+      perspective: 1600px;
+      perspective-origin: 50% 40%;
+    }
+    .mockup-3d {
+      width: 100%;
+      max-width: 420px;           /* ← Tamaño mediano */
+      aspect-ratio: 1 / 1;        /* ← Evita que se colapse */
+      min-height: 420px;
+      transition: transform 0.8s cubic-bezier(0.25, 0.1, 0.25, 1);
+      animation: gentleRotate 35s linear infinite;
+      box-shadow: 
+        0 60px 100px -30px rgb(0 0 0 / 0.7),
+        0 0 0 18px rgba(250, 204, 21, 0.18);
+      border-radius: 40px;
+      background: #1f2937;        /* ← Fondo temporal por si las imágenes fallan */
+      position: relative;
+      overflow: hidden;
+    }
+    @keyframes gentleRotate {
+      from { transform: rotateY(0deg); }
+      to   { transform: rotateY(360deg); }
+    }
+    .mockup-3d:hover {
+      animation-play-state: paused;
+      transform: scale(1.08) rotateY(18deg) rotateX(8deg);
+    }
+    .rotate-y-180 { transform: rotateY(180deg); }
+
+    /* Imágenes más robustas */
+    #front, #back {
+      width: 100% !important;
+      height: 100% !important;
+      object-fit: contain;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+
+    .benefit-card {
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .benefit-card:hover .icon-wrapper {
+      transform: scale(1.12) rotate(12deg);
+    }
+  </style>
 </head>
 <body class="bg-zinc-950 text-white">
 
-  <!-- NAVBAR -->
   <div id="navbar-placeholder"></div>
 
-  <!-- CARRUSEL HERO -->
+  <!-- HERO -->
   <section class="relative h-screen overflow-hidden">
-    <div id="carousel" class="relative h-full">
-      <div class="carousel-slide absolute inset-0 bg-cover bg-center transition-opacity duration-1000" style="background-image: url('img/heroes/hero-1.jpg')">
-        <div class="absolute inset-0 bg-gradient-to-r from-black/70 to-transparent"></div>
-        <div class="absolute bottom-20 left-6 md:left-16 max-w-lg">
-          <h2 class="text-5xl md:text-7xl font-black leading-none mb-4">VIBES MANAGUA</h2>
-          <p class="text-xl md:text-2xl text-zinc-200 mb-8">Diseños únicos que representan nuestra cultura</p>
-          <a href="tienda.html" class="inline-block bg-yellow-400 text-black font-bold px-10 py-5 rounded-3xl text-lg hover:bg-yellow-300 btn-hover">Explorar Tienda</a>
-        </div>
-      </div>
-      <div class="carousel-slide absolute inset-0 bg-cover bg-center transition-opacity duration-1000 opacity-0" style="background-image: url('img/heroes/hero-2.jpg')">
-        <div class="absolute inset-0 bg-gradient-to-r from-black/70 to-transparent"></div>
-        <div class="absolute bottom-20 left-6 md:left-16 max-w-lg">
-          <h2 class="text-5xl md:text-7xl font-black leading-none mb-4">CREA TU ESTILO</h2>
-          <p class="text-xl md:text-2xl text-zinc-200 mb-8">Sube tu diseño y recibe calidad premium</p>
-          <a href="disena.html" class="inline-block bg-yellow-400 text-black font-bold px-10 py-5 rounded-3xl text-lg hover:bg-yellow-300 btn-hover">Diseñar Ahora</a>
-        </div>
-      </div>
-      <div class="carousel-slide absolute inset-0 bg-cover bg-center transition-opacity duration-1000 opacity-0" style="background-image: url('img/heroes/hero-3.jpg')">
-        <div class="absolute inset-0 bg-gradient-to-r from-black/70 to-transparent"></div>
-        <div class="absolute bottom-20 left-6 md:left-16 max-w-lg">
-          <h2 class="text-5xl md:text-7xl font-black leading-none mb-4">EDICIONES LIMITADAS</h2>
-          <p class="text-xl md:text-2xl text-zinc-200 mb-8">Solo en Momotus Core</p>
-          <a href="tienda.html" class="inline-block bg-yellow-400 text-black font-bold px-10 py-5 rounded-3xl text-lg hover:bg-yellow-300 btn-hover">Ver Colección</a>
-        </div>
+    <div id="hero-bg" class="absolute inset-0 bg-cover bg-center transition-transform duration-1000" 
+         style="background-image: url('img/heroes/hero-1.jpg');"></div>
+    <div class="absolute inset-0 bg-gradient-to-r from-black/70 to-transparent"></div>
+    
+    <div class="max-w-7xl mx-auto px-6 relative z-10 h-full flex items-center">
+      <div class="max-w-lg">
+        <h2 class="text-5xl md:text-7xl font-black leading-none mb-4">VIBES MANAGUA</h2>
+        <p class="text-xl md:text-2xl text-zinc-200 mb-8">Diseños únicos que representan nuestra cultura</p>
+        <a href="tienda.html" class="inline-block bg-yellow-400 text-black font-bold px-10 py-5 rounded-3xl text-lg hover:bg-yellow-300 btn-hover">Explorar Tienda</a>
       </div>
     </div>
 
@@ -47,7 +78,97 @@
     <div class="absolute bottom-10 left-1/2 -translate-x-1/2 flex gap-3 z-20" id="carousel-indicators"></div>
   </section>
 
-  <!-- MODAL CARRITO -->
+  <!-- MOCKUP 3D - VERSIÓN CORREGIDA Y MEDIANA -->
+  <section class="py-20 bg-zinc-900 border-t border-b border-zinc-800 overflow-hidden">
+    <div class="max-w-7xl mx-auto px-6">
+      <div class="text-center mb-12">
+        <span class="inline-flex items-center gap-2 bg-orange-500 text-white text-sm font-bold px-6 py-2 rounded-3xl">
+          <i class="fa-solid fa-fire"></i> MÁS VENDIDO 2026
+        </span>
+        <h2 class="text-5xl md:text-5xl font-black tracking-tighter mt-6">Nica Power</h2>
+        <p class="text-xl md:text-2xl text-zinc-400 mt-4 max-w-md mx-auto">
+          El poder de Nicaragua en tu pecho.<br>
+          Diseño premium que representa nuestra fuerza y orgullo nica.
+        </p>
+      </div>
+
+      <div class="flex justify-center mb-12">
+        <div class="mockup-3d-container">
+          <div id="mockup-3d" class="mockup-3d mx-auto relative">
+            <!-- Imagen principal (Nica Power) -->
+            <img id="front" src="img/products/product-2.jpg" 
+                 alt="Nica Power Frente">
+            <!-- Imagen espalda -->
+            <img id="back" src="img/mockups/mockup-regular-negro-espalda.png" 
+                 class="opacity-0 rotate-y-180"
+                 alt="Nica Power Espalda">
+          </div>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap justify-center gap-6 text-center">
+        <button onclick="flipMockup()" 
+                class="bg-yellow-400 hover:bg-yellow-300 text-black font-bold px-10 py-6 rounded-3xl text-xl flex items-center gap-3 transition shadow-xl">
+          <i class="fa-solid fa-sync"></i> Ver Frente / Espalda
+        </button>
+        <a href="tienda.html" onclick="showQuickView(2); return false;" 
+           class="border border-white/60 hover:bg-white/10 font-medium px-10 py-6 rounded-3xl text-xl transition">
+          Crear mi propia versión
+        </a>
+      </div>
+
+      <p class="text-center text-zinc-500 text-sm mt-10">
+        +380 nicaragüenses ya lo llevan • Stock limitado
+      </p>
+    </div>
+  </section>
+
+  <!-- BENEFICIOS -->
+  <section class="py-16 bg-zinc-950">
+    <div class="max-w-7xl mx-auto px-6 grid md:grid-cols-3 gap-8">
+      <div class="benefit-card text-center">
+        <div class="icon-wrapper w-20 h-20 mx-auto mb-6 bg-yellow-400/10 rounded-3xl flex items-center justify-center text-5xl">
+          <i class="fa-solid fa-shirt"></i>
+        </div>
+        <h4 class="font-bold text-xl mb-2">100% Algodón Premium</h4>
+        <p class="text-zinc-400">Tela peinada suave que no se decolora ni encoge.</p>
+      </div>
+      <div class="benefit-card text-center">
+        <div class="icon-wrapper w-20 h-20 mx-auto mb-6 bg-yellow-400/10 rounded-3xl flex items-center justify-center text-5xl">
+          <i class="fa-solid fa-truck-fast"></i>
+        </div>
+        <h4 class="font-bold text-xl mb-2">Envío en 48h a todo Nicaragua</h4>
+        <p class="text-zinc-400">Managua, León, Granada, Matagalpa… donde estés.</p>
+      </div>
+      <div class="benefit-card text-center">
+        <div class="icon-wrapper w-20 h-20 mx-auto mb-6 bg-yellow-400/10 rounded-3xl flex items-center justify-center text-5xl">
+          <i class="fa-solid fa-medal"></i>
+        </div>
+        <h4 class="font-bold text-xl mb-2">Ediciones Limitadas</h4>
+        <p class="text-zinc-400">Diseños únicos que no encontrarás en ningún otro lado.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- TESTIMONIALS -->
+  <section class="py-16 bg-black">
+    <div class="max-w-7xl mx-auto px-6">
+      <h3 class="text-3xl font-bold text-center mb-10">Lo que dice la comunidad</h3>
+      <div class="grid md:grid-cols-3 gap-8" id="testimonials-home"></div>
+    </div>
+  </section>
+
+  <!-- CTA FINAL -->
+  <div class="bg-gradient-to-r from-yellow-400 to-amber-500 py-16 text-black text-center">
+    <div class="max-w-4xl mx-auto px-6">
+      <h2 class="text-5xl font-black mb-6">¿Listo para llevar Nicaragua en el pecho?</h2>
+      <div class="flex flex-wrap justify-center gap-6">
+        <a href="tienda.html" class="bg-black text-white px-12 py-6 rounded-3xl font-bold text-xl hover:scale-105 transition">Ir a la Tienda</a>
+        <a href="disena.html" class="border-2 border-black px-12 py-6 rounded-3xl font-bold text-xl hover:bg-black hover:text-white transition">Diseña tu propia camiseta</a>
+      </div>
+    </div>
+  </div>
+
   <div id="cart-modal-placeholder"></div>
 
   <!-- FOOTER -->
