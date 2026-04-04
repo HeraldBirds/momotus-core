@@ -1,87 +1,8 @@
-// js/script.js - Momotus Core - VERSIÓN FINAL COMPLETA Y OPTIMIZADA (2 Abril 2026)
-// Todas las imágenes actualizadas a .webp para máxima velocidad en Netlify
-// WhatsApp: 50555010044 | Email: momotuscore@gmail.com
+// js/script.js - Momotus Core - CÓDIGO COMÚN (04 Abril 2026)
 
 let cart = [];
 let wishlist = [];
 let currentSlide = 0;
-let carouselInterval = null;
-
-// ==================== DISEÑADOR ====================
-let currentShirtType = 0;
-let currentColor = 'black';
-let currentSize = 'M';
-let designFront = null;
-let designBack = null;
-
-const designSizes = [265, 235, 295];
-
-const shirtTypes = ['regular', 'slim', 'oversized'];
-const colorMap = { black: 'negro', white: 'blanco', red: 'rojo', blue: 'azul', emerald: 'verde', violet: 'violeta', amber: 'amarillo', pink: 'rosa' };
-
-const getMockupPath = (typeIndex, colorKey, isBack = false) => {
-  const typeName = shirtTypes[typeIndex];
-  const colorName = colorMap[colorKey] || colorKey;
-  const side = isBack ? 'espalda' : 'frente';
-  return `img/mockups/mockup-${typeName}-${colorName}-${side}.webp`;   // ← .webp
-};
-
-const colors = [
-  { key: 'black', class: 'bg-black', name: 'Negro' },
-  { key: 'white', class: 'bg-white', name: 'Blanco' },
-  { key: 'red', class: 'bg-red-500', name: 'Rojo' },
-  { key: 'blue', class: 'bg-blue-500', name: 'Azul' },
-  { key: 'emerald', class: 'bg-emerald-500', name: 'Verde' },
-  { key: 'violet', class: 'bg-violet-500', name: 'Violeta' },
-  { key: 'amber', class: 'bg-amber-500', name: 'Amarillo' },
-  { key: 'pink', class: 'bg-pink-500', name: 'Rosa' }
-];
-
-const getDesignStyle = (colorKey) => {
-  return colorKey === 'white'
-    ? `mix-blend-mode: multiply; filter: brightness(0.95) contrast(1.25) saturate(1.1) opacity(0.92);`
-    : `mix-blend-mode: multiply; filter: brightness(1.08) contrast(1.18) saturate(1.25) opacity(0.95);`;
-};
-
-const updateMockups = () => {
-  const frontImg = document.getElementById('shirt-mockup');
-  const backImg = document.getElementById('shirt-mockup-back');
-  if (frontImg) frontImg.src = getMockupPath(currentShirtType, currentColor, false);
-  if (backImg) backImg.src = getMockupPath(currentShirtType, currentColor, true);
-  updateDesignSize();
-  saveCurrentDesign();
-};
-
-const updateDesignSize = () => {
-  const size = designSizes[currentShirtType];
-  ['design-preview', 'design-preview-back'].forEach(id => {
-    const preview = document.getElementById(id);
-    if (preview) {
-      preview.style.width = `${size}px`;
-      preview.style.height = `${size}px`;
-    }
-  });
-};
-
-// ==================== PRODUCTOS (TODOS EN .webp) ====================
-const products = [
-  { id: 1, name: "Naruto Hokage Edition", price: 520, category: "anime", img: "img/products/product-1.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:12, M:8, L:15, XL:3, XXL:7} },
-  { id: 2, name: "Nica Power", price: 420, category: "nica", img: "img/products/product-2.webp", sizes: ["S","M","L","XL"], stock: {S:5, M:20, L:10, XL:0, XXL:4} },
-  { id: 3, name: "Volcán Momotombo", price: 480, category: "nica", img: "img/products/product-3.webp", sizes: ["M","L","XL","XXL"], stock: {S:8, M:12, L:6, XL:9, XXL:2} },
-  { id: 4, name: "Anime Warrior", price: 520, category: "anime", img: "img/products/product-4.webp", sizes: ["S","M","L","XL"], stock: {S:18, M:7, L:14, XL:5, XXL:11} },
-  { id: 5, name: "Sakura Dreams", price: 490, category: "anime", img: "img/products/product-5.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:4, M:22, L:9, XL:13, XXL:6} },
-  { id: 6, name: "Urban Graffiti", price: 460, category: "urbano", img: "img/products/product-6.webp", sizes: ["M","L","XL"], stock: {S:11, M:3, L:17, XL:8, XXL:0} },
-  { id: 7, name: "Street Kings", price: 430, category: "urbano", img: "img/products/product-7.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:15, M:19, L:2, XL:10, XXL:5} },
-  { id: 8, name: "Abstract Waves", price: 410, category: "abstracta", img: "img/products/product-8.webp", sizes: ["S","M","L"], stock: {S:9, M:14, L:7, XL:12, XXL:8} },
-  { id: 9, name: "Golden Flow", price: 500, category: "abstracta", img: "img/products/product-9.webp", sizes: ["M","L","XL","XXL"], stock: {S:6, M:11, L:20, XL:4, XXL:13} },
-  { id: 10, name: "Limited Edition 001", price: 650, category: "unica", img: "img/products/product-10.webp", sizes: ["L","XL","XXL"], stock: {S:2, M:8, L:15, XL:1, XXL:9} },
-  { id: 11, name: "Nicaragua Forever", price: 470, category: "nica", img: "img/products/product-11.webp", sizes: ["S","M","L","XL"], stock: {S:17, M:5, L:12, XL:14, XXL:3} },
-  { id: 12, name: "Cyber Nica", price: 550, category: "unica", img: "img/products/product-12.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:10, M:16, L:8, XL:6, XXL:4} },
-  { id: 13, name: "Goku Ultra Instinct", price: 550, category: "anime", img: "img/products/product-13.webp", sizes: ["M","L","XL"], stock: {S:13, M:9, L:18, XL:7, XXL:11} },
-  { id: 14, name: "Luffy Gear 5", price: 530, category: "anime", img: "img/products/product-14.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:7, M:21, L:4, XL:15, XXL:2} }
-];
-
-const getStockColor = (stock) => stock > 8 ? 'text-green-400' : stock > 3 ? 'text-yellow-400' : 'text-red-400';
 
 // ==================== TOAST ====================
 const showToast = (message) => {
@@ -120,14 +41,12 @@ const addToWishlist = (id) => {
   wishlist.push(product);
   saveWishlist();
   showToast(`❤️ ${product.name} añadido a favoritos`);
-  if (document.getElementById('products-grid')) renderProducts(products);
 };
 
 const removeFromWishlist = (id) => {
   wishlist = wishlist.filter(item => item.id !== id);
   saveWishlist();
   showToast("💔 Eliminado de favoritos");
-  if (document.getElementById('products-grid')) renderProducts(products);
 };
 
 // ==================== NAVBAR ====================
@@ -331,6 +250,69 @@ const addToCartWithSize = (id, size) => {
   showToast(`✅ ${product.name} - Talla ${size} agregado`);
 };
 
+// ==================== PRODUCTOS ====================
+const products = [
+  { id: 1, name: "Naruto Hokage Edition", price: 520, category: "anime", img: "img/products/product-1.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:12, M:8, L:15, XL:3, XXL:7} },
+  { id: 2, name: "Nica Power", price: 420, category: "nica", img: "img/products/product-2.webp", sizes: ["S","M","L","XL"], stock: {S:5, M:20, L:10, XL:0, XXL:4} },
+  { id: 3, name: "Volcán Momotombo", price: 480, category: "nica", img: "img/products/product-3.webp", sizes: ["M","L","XL","XXL"], stock: {S:8, M:12, L:6, XL:9, XXL:2} },
+  { id: 4, name: "Anime Warrior", price: 520, category: "anime", img: "img/products/product-4.webp", sizes: ["S","M","L","XL"], stock: {S:18, M:7, L:14, XL:5, XXL:11} },
+  { id: 5, name: "Sakura Dreams", price: 490, category: "anime", img: "img/products/product-5.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:4, M:22, L:9, XL:13, XXL:6} },
+  { id: 6, name: "Urban Graffiti", price: 460, category: "urbano", img: "img/products/product-6.webp", sizes: ["M","L","XL"], stock: {S:11, M:3, L:17, XL:8, XXL:0} },
+  { id: 7, name: "Street Kings", price: 430, category: "urbano", img: "img/products/product-7.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:15, M:19, L:2, XL:10, XXL:5} },
+  { id: 8, name: "Abstract Waves", price: 410, category: "abstracta", img: "img/products/product-8.webp", sizes: ["S","M","L"], stock: {S:9, M:14, L:7, XL:12, XXL:8} },
+  { id: 9, name: "Golden Flow", price: 500, category: "abstracta", img: "img/products/product-9.webp", sizes: ["M","L","XL","XXL"], stock: {S:6, M:11, L:20, XL:4, XXL:13} },
+  { id: 10, name: "Limited Edition 001", price: 650, category: "unica", img: "img/products/product-10.webp", sizes: ["L","XL","XXL"], stock: {S:2, M:8, L:15, XL:1, XXL:9} },
+  { id: 11, name: "Nicaragua Forever", price: 470, category: "nica", img: "img/products/product-11.webp", sizes: ["S","M","L","XL"], stock: {S:17, M:5, L:12, XL:14, XXL:3} },
+  { id: 12, name: "Cyber Nica", price: 550, category: "unica", img: "img/products/product-12.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:10, M:16, L:8, XL:6, XXL:4} },
+  { id: 13, name: "Goku Ultra Instinct", price: 550, category: "anime", img: "img/products/product-13.webp", sizes: ["M","L","XL"], stock: {S:13, M:9, L:18, XL:7, XXL:11} },
+  { id: 14, name: "Luffy Gear 5", price: 530, category: "anime", img: "img/products/product-14.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:7, M:21, L:4, XL:15, XXL:2} }
+];
+
+const getStockColor = (stock) => stock > 8 ? 'text-green-400' : stock > 3 ? 'text-yellow-400' : 'text-red-400';
+
+// ==================== TESTIMONIALS ====================
+const testimonials = [
+  { name: "Carlos Mendoza", location: "Managua", text: "La mejor camiseta que he tenido. El diseño se ve increíble y la calidad es premium.", stars: "★★★★★" },
+  { name: "María José Ruiz", location: "León", text: "Me encantó el proceso de diseño. Subí mi foto y quedó perfecta. ¡Recomendadísima!", stars: "★★★★★" },
+  { name: "José Daniel Ortega", location: "Granada", text: "Envío súper rápido y el mockup 3D me ayudó a ver exactamente cómo quedaría.", stars: "★★★★☆" }
+];
+
+const renderTestimonials = () => {
+  const homeContainer = document.getElementById('testimonials-home');
+  if (homeContainer) {
+    homeContainer.innerHTML = testimonials.map(t => `
+      <div class="bg-zinc-900 rounded-3xl p-6">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 bg-yellow-400 rounded-2xl flex items-center justify-center text-2xl">👕</div>
+          <div>
+            <p class="font-bold">${t.name}</p>
+            <p class="text-sm text-zinc-400">${t.location}</p>
+          </div>
+        </div>
+        <p class="text-zinc-300 mb-6 leading-relaxed">"${t.text}"</p>
+        <div class="text-yellow-400 text-2xl">${t.stars}</div>
+      </div>
+    `).join('');
+  }
+
+  const communityContainer = document.getElementById('testimonials-container');
+  if (communityContainer) {
+    communityContainer.innerHTML = testimonials.map(t => `
+      <div class="bg-zinc-800 rounded-3xl p-8">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 bg-yellow-400 rounded-2xl flex items-center justify-center text-2xl">👕</div>
+          <div>
+            <p class="font-bold">${t.name}</p>
+            <p class="text-sm text-zinc-400">${t.location}</p>
+          </div>
+        </div>
+        <p class="text-zinc-300 mb-6 leading-relaxed">"${t.text}"</p>
+        <div class="text-yellow-400 text-2xl">${t.stars}</div>
+      </div>
+    `).join('');
+  }
+};
+
 // ==================== TIENDA ====================
 const renderProducts = (filteredProducts) => {
   const grid = document.getElementById('products-grid');
@@ -355,468 +337,12 @@ const renderProducts = (filteredProducts) => {
       <div class="p-5">
         <h3 onclick="showQuickView(${product.id})" class="font-bold text-lg mb-1 cursor-pointer">${product.name}</h3>
         <p class="text-yellow-400 font-semibold text-xl">C$ ${product.price}</p>
-        <div class="flex gap-3 mt-4">
-          <button onclick="showQuickView(${product.id}); event.stopImmediatePropagation()" class="flex-1 bg-yellow-400 hover:bg-yellow-300 text-black font-bold py-3 rounded-2xl transition">Elegir talla</button>
-        </div>
       </div>
     `;
     grid.appendChild(card);
   });
 };
 
-const renderBestSellers = () => {
-  const grid = document.getElementById('best-sellers-grid');
-  if (!grid) return;
-  const best = [...products].sort((a, b) => b.price - a.price).slice(0, 4);
-  grid.innerHTML = '';
-  best.forEach(product => {
-    const inWishlist = isInWishlist(product.id);
-    const card = document.createElement('div');
-    card.className = 'product-card bg-zinc-900 rounded-3xl overflow-hidden group relative';
-    card.innerHTML = `
-      <div class="relative">
-        <img src="${product.img}" width="320" height="320" loading="lazy" decoding="async" onclick="showQuickView(${product.id})" class="w-full aspect-square object-cover transition group-hover:scale-105 cursor-pointer">
-        <span class="absolute top-4 left-4 bg-orange-500 text-white text-xs font-medium px-3 py-1 rounded-full">TOP</span>
-        <button onclick="event.stopImmediatePropagation(); ${inWishlist ? `removeFromWishlist(${product.id})` : `addToWishlist(${product.id})`}" class="absolute top-4 right-4 text-2xl ${inWishlist ? 'text-red-500' : 'text-white/70 hover:text-red-500'} transition">
-          <i class="fa-solid fa-heart"></i>
-        </button>
-      </div>
-      <div class="p-5">
-        <h3 onclick="showQuickView(${product.id})" class="font-bold text-lg mb-1 cursor-pointer">${product.name}</h3>
-        <p class="text-yellow-400 font-semibold text-xl">C$ ${product.price}</p>
-      </div>
-    `;
-    grid.appendChild(card);
-  });
-};
-
-// ==================== TESTIMONIALS ====================
-const renderTestimonials = () => {
-  const testimonials = [
-    { name: "Carlos Mejía", location: "Managua", text: "La mejor calidad que he comprado en Nicaragua. El diseño Nica Power es brutal.", stars: "★★★★★" },
-    { name: "María José", location: "León", text: "Me llegó en 24 horas y la tela es súper suave. Ya pedí dos más.", stars: "★★★★☆" },
-    { name: "Diego Ruiz", location: "Granada", text: "El servicio por WhatsApp es rapidísimo y el producto supera mis expectativas.", stars: "★★★★★" }
-  ];
-
-  const containers = document.querySelectorAll('#testimonials-container, #testimonials-home');
-  containers.forEach(container => {
-    if (!container) return;
-    container.innerHTML = '';
-    testimonials.forEach(t => {
-      const card = document.createElement('div');
-      card.className = 'bg-zinc-900 rounded-3xl p-6';
-      card.innerHTML = `
-        <div class="flex items-center gap-3 mb-4">
-          <div class="w-10 h-10 bg-yellow-400/20 rounded-2xl flex items-center justify-center text-2xl">👕</div>
-          <div>
-            <p class="font-bold">${t.name}</p>
-            <p class="text-sm text-zinc-400">${t.location}</p>
-          </div>
-        </div>
-        <p class="text-zinc-300 mb-6 leading-relaxed">"${t.text}"</p>
-        <div class="text-yellow-400 text-2xl">${t.stars}</div>
-      `;
-      container.appendChild(card);
-    });
-  });
-};
-
-// ==================== DRAG & DROP ====================
-let isDragging = false;
-let currentDraggingDesign = null;
-let offsetX = 0, offsetY = 0;
-
-const makeDraggable = (el) => {
-  if (!el) return;
-  el.style.position = 'absolute';
-  el.style.cursor = 'move';
-  el.style.zIndex = '30';
-  el.addEventListener('mousedown', startDrag);
-  el.addEventListener('touchstart', startDrag, { passive: false });
-};
-
-const startDrag = (e) => {
-  isDragging = true;
-  currentDraggingDesign = e.target || (e.touches && e.touches[0].target);
-  const rect = currentDraggingDesign.getBoundingClientRect();
-  const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-  const clientY = e.clientY || (e.touches && e.touches[0].clientY);
-  offsetX = clientX - rect.left;
-  offsetY = clientY - rect.top;
-  currentDraggingDesign.style.transition = 'none';
-  e.preventDefault();
-};
-
-const initDragListeners = () => {
-  const moveHandler = (e) => {
-    if (!isDragging || !currentDraggingDesign) return;
-    const preview = currentDraggingDesign.parentElement;
-    const previewRect = preview.getBoundingClientRect();
-    const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-    const clientY = e.clientY || (e.touches && e.touches[0].clientY);
-    let newX = clientX - previewRect.left - offsetX;
-    let newY = clientY - previewRect.top - offsetY;
-    newX = Math.max(0, Math.min(newX, previewRect.width - currentDraggingDesign.offsetWidth));
-    newY = Math.max(0, Math.min(newY, previewRect.height - currentDraggingDesign.offsetHeight));
-    currentDraggingDesign.style.left = `${newX}px`;
-    currentDraggingDesign.style.top = `${newY}px`;
-    e.preventDefault();
-  };
-  const endHandler = () => {
-    if (currentDraggingDesign) currentDraggingDesign.style.transition = 'all 0.2s ease';
-    isDragging = false;
-    currentDraggingDesign = null;
-  };
-  document.addEventListener('mousemove', moveHandler);
-  document.addEventListener('touchmove', moveHandler, { passive: false });
-  document.addEventListener('mouseup', endHandler);
-  document.addEventListener('touchend', endHandler);
-};
-
-const centerDesign = (side) => {
-  const previewId = side === 0 ? 'design-preview' : 'design-preview-back';
-  const preview = document.getElementById(previewId);
-  const design = preview ? preview.querySelector('img') : null;
-  if (!design) return showToast("❌ No hay diseño para centrar");
-  const previewRect = preview.getBoundingClientRect();
-  const designRect = design.getBoundingClientRect();
-  const centerX = (previewRect.width - designRect.width) / 2;
-  const centerY = (previewRect.height - designRect.height) / 2;
-  design.style.left = `${centerX}px`;
-  design.style.top = `${centerY}px`;
-  showToast("🎯 Diseño centrado correctamente");
-};
-
-// ==================== FUNCIONES DEL DISEÑADOR ====================
-const selectShirtType = (index) => {
-  currentShirtType = index;
-  document.querySelectorAll('.shirt-type-btn').forEach((btn, i) => btn.classList.toggle('active', i === index));
-  updateMockups();
-};
-
-const selectColor = (colorKey, el) => {
-  document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
-  if (el) el.classList.add('active');
-  currentColor = colorKey;
-  updateMockups();
-};
-
-const handleDesignUpload = (e, side) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  if (!file.type.startsWith('image/')) return showToast("❌ Solo imágenes");
-  if (file.size > 5 * 1024 * 1024) return showToast("❌ Máximo 5 MB");
-
-  const reader = new FileReader();
-  reader.onload = (ev) => {
-    const src = ev.target.result;
-    const style = getDesignStyle(currentColor);
-    const preview = side === 0 ? document.getElementById('design-preview') : document.getElementById('design-preview-back');
-    const id = side === 0 ? 'draggable-design-front' : 'draggable-design-back';
-
-    preview.innerHTML = `<img src="${src}" id="${id}" class="max-w-full max-h-full object-contain rounded-3xl" style="${style}">`;
-    preview.classList.add('design-loaded');
-    makeDraggable(document.getElementById(id));
-
-    if (side === 0) designFront = src;
-    else designBack = src;
-
-    showToast(side === 0 ? "✅ Diseño Frente cargado" : "✅ Diseño Espalda cargado");
-    saveCurrentDesign();
-  };
-  reader.readAsDataURL(file);
-};
-
-const resetDesign = () => {
-  designFront = null;
-  designBack = null;
-  ['design-preview', 'design-preview-back'].forEach(id => {
-    const preview = document.getElementById(id);
-    if (preview) {
-      preview.classList.remove('design-loaded');
-      preview.innerHTML = `<span class="text-yellow-400 text-center text-base font-medium pointer-events-none">Arrastra tu diseño aquí</span>`;
-    }
-  });
-  localStorage.removeItem('momotusCurrentDesign');
-  showToast("Diseño reseteado");
-};
-
-const saveCurrentDesign = () => {
-  const data = {
-    shirtType: currentShirtType,
-    color: currentColor,
-    size: currentSize,
-    frontDesign: designFront,
-    backDesign: designBack
-  };
-  localStorage.setItem('momotusCurrentDesign', JSON.stringify(data));
-};
-
-const loadSavedDesign = () => {
-  const saved = localStorage.getItem('momotusCurrentDesign');
-  if (!saved) return;
-  const data = JSON.parse(saved);
-  currentShirtType = data.shirtType || 0;
-  currentColor = data.color || 'black';
-  currentSize = data.size || 'M';
-  designFront = data.frontDesign;
-  designBack = data.backDesign;
-
-  document.querySelectorAll('.shirt-type-btn').forEach((btn, i) => btn.classList.toggle('active', i === currentShirtType));
-  renderSizeButtonsDesigner();
-
-  const colorBtn = Array.from(document.querySelectorAll('.color-btn')).find(btn => 
-    btn.classList.contains(colors.find(c => c.key === currentColor).class)
-  );
-  if (colorBtn) selectColor(currentColor, colorBtn);
-
-  if (designFront) {
-    const preview = document.getElementById('design-preview');
-    preview.innerHTML = `<img src="${designFront}" id="draggable-design-front" class="max-w-full max-h-full object-contain rounded-3xl" style="${getDesignStyle(currentColor)}">`;
-    preview.classList.add('design-loaded');
-    makeDraggable(document.getElementById('draggable-design-front'));
-  }
-  if (designBack) {
-    const preview = document.getElementById('design-preview-back');
-    preview.innerHTML = `<img src="${designBack}" id="draggable-design-back" class="max-w-full max-h-full object-contain rounded-3xl" style="${getDesignStyle(currentColor)}">`;
-    preview.classList.add('design-loaded');
-    makeDraggable(document.getElementById('draggable-design-back'));
-  }
-  updateMockups();
-};
-
-const switchMockup = (tab) => {
-  document.getElementById('tab-frente').classList.toggle('tab-active', tab === 0);
-  document.getElementById('tab-espalda').classList.toggle('tab-active', tab === 1);
-  document.getElementById('mockup-frente').classList.toggle('hidden', tab === 1);
-  document.getElementById('mockup-espalda').classList.toggle('hidden', tab === 0);
-};
-
-const mostrarModalEliminarFondo = () => document.getElementById('modal-eliminar-fondo').classList.remove('hidden');
-const cerrarModalEliminarFondo = () => document.getElementById('modal-eliminar-fondo').classList.add('hidden');
-const abrirRemoveBg = () => {
-  cerrarModalEliminarFondo();
-  window.open('https://remove.bg', '_blank');
-  showToast("🪄 remove.bg abierto. Descarga la imagen sin fondo y súbela aquí.");
-};
-
-// ==================== DESCARGA ====================
-const descargarDiseno = async () => {
-  if (!designFront && !designBack) return showToast("❌ No hay diseño para descargar");
-  showToast("📸 Generando imágenes centradas...");
-  try {
-    const frontDesign = document.getElementById('draggable-design-front');
-    const backDesign = document.getElementById('draggable-design-back');
-    const originalFrontLeft = frontDesign ? frontDesign.style.left : null;
-    const originalFrontTop = frontDesign ? frontDesign.style.top : null;
-    const originalBackLeft = backDesign ? backDesign.style.left : null;
-    const originalBackTop = backDesign ? backDesign.style.top : null;
-
-    if (frontDesign) { frontDesign.style.left = '50%'; frontDesign.style.top = '50%'; frontDesign.style.transform = 'translate(-50%, -50%)'; }
-    if (backDesign) { backDesign.style.left = '50%'; backDesign.style.top = '50%'; backDesign.style.transform = 'translate(-50%, -50%)'; }
-
-    const frontMockup = document.getElementById('mockup-frente');
-    const canvasFront = await html2canvas(frontMockup, { scale: 2, useCORS: true });
-    const linkFront = document.createElement('a');
-    linkFront.download = 'mi-camiseta-momotus-frente.png';
-    linkFront.href = canvasFront.toDataURL('image/png');
-    linkFront.click();
-
-    if (designBack) {
-      const backMockup = document.getElementById('mockup-espalda');
-      const canvasBack = await html2canvas(backMockup, { scale: 2, useCORS: true });
-      const linkBack = document.createElement('a');
-      linkBack.download = 'mi-camiseta-momotus-espalda.png';
-      linkBack.href = canvasBack.toDataURL('image/png');
-      linkBack.click();
-    }
-
-    if (frontDesign) { frontDesign.style.left = originalFrontLeft; frontDesign.style.top = originalFrontTop; frontDesign.style.transform = ''; }
-    if (backDesign) { backDesign.style.left = originalBackLeft; backDesign.style.top = originalBackTop; backDesign.style.transform = ''; }
-
-    showToast("✅ Imágenes descargadas y centradas correctamente");
-  } catch (e) {
-    showToast("❌ Error al generar la imagen. Toma captura de pantalla.");
-  }
-};
-
-// ==================== COTIZACIÓN ====================
-const sendToWhatsApp = () => {
-  const typeName = ['Regular / Unisex', 'Slim Fit', 'Oversized'][currentShirtType];
-  const colorName = colorMap[currentColor] || currentColor;
-  const text = `¡Hola Momotus Core! 👋%0A%0A` +
-    `Acabo de diseñar mi camiseta personalizada:%0A` +
-    `• Tipo de corte: ${typeName}%0A` +
-    `• Talla: ${currentSize}%0A` +
-    `• Color: ${colorName.charAt(0).toUpperCase() + colorName.slice(1)}%0A` +
-    `• Diseño Frente: ${designFront ? 'Sí' : 'No'}%0A` +
-    `• Diseño Espalda: ${designBack ? 'Sí' : 'No'}%0A%0A` +
-    `Por favor adjunta las imágenes que descargaste del diseñador (frente y espalda) para darte la cotización exacta.%0A` +
-    `Gracias! 🇳🇮`;
-  window.open(`https://wa.me/50555010044?text=${text}`, '_blank');
-  showToast("📱 WhatsApp abierto – recuerda adjuntar las imágenes descargadas");
-};
-
-const sendToEmail = () => {
-  const typeName = ['Regular / Unisex', 'Slim Fit', 'Oversized'][currentShirtType];
-  const colorName = colorMap[currentColor] || currentColor;
-  const subject = "Cotización - Camiseta Personalizada Momotus Core";
-  const body = `Hola equipo,%0A%0AQuiero cotizar una camiseta:%0A- Tipo: ${typeName}%0A- Talla: ${currentSize}%0A- Color: ${colorName}%0A- Diseño Frente: ${designFront ? 'Sí' : 'No'}%0A- Diseño Espalda: ${designBack ? 'Sí' : 'No'}%0A%0APor favor revisa las imágenes adjuntas del diseñador.%0AGracias!`;
-  window.location.href = `mailto:momotuscore@gmail.com?subject=${encodeURIComponent(subject)}&body=${body}`;
-  showToast("✉️ Email abierto – recuerda adjuntar las imágenes descargadas");
-};
-
-const renderSizeButtonsDesigner = () => {
-  const container = document.getElementById('size-buttons');
-  if (!container) return;
-  container.innerHTML = '';
-  const sizes = ['S', 'M', 'L', 'XL', 'XXL'];
-  sizes.forEach(size => {
-    const btn = document.createElement('button');
-    btn.textContent = size;
-    btn.className = `size-btn px-7 py-4 rounded-3xl font-medium border border-zinc-600 hover:border-yellow-400 transition ${size === currentSize ? 'bg-yellow-400 text-black border-yellow-400' : ''}`;
-    btn.onclick = () => {
-      currentSize = size;
-      document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('bg-yellow-400', 'text-black', 'border-yellow-400'));
-      btn.classList.add('bg-yellow-400', 'text-black', 'border-yellow-400');
-      saveCurrentDesign();
-    };
-    container.appendChild(btn);
-  });
-};
-
-const renderColorButtons = () => {
-  const container = document.getElementById('color-buttons');
-  if (!container) return;
-  container.innerHTML = '';
-  colors.forEach(color => {
-    const btn = document.createElement('button');
-    btn.onclick = () => selectColor(color.key, btn);
-    btn.className = `color-btn w-14 h-14 rounded-2xl shadow-inner border-2 border-transparent active:scale-95 transition-all ${color.class}`;
-    if (color.key === 'black') btn.classList.add('active');
-    container.appendChild(btn);
-  });
-};
-
-// ==================== CARRUSEL ====================
-const initCarousel = () => {
-  const slides = document.querySelectorAll('.carousel-slide');
-  if (slides.length === 0) return;
-  const indicators = document.getElementById('carousel-indicators');
-  if (!indicators) return;
-  indicators.innerHTML = '';
-  slides.forEach((_, i) => {
-    const dot = document.createElement('button');
-    dot.className = `w-3 h-3 rounded-full transition-all ${i === 0 ? 'bg-yellow-400 scale-125' : 'bg-white/50'}`;
-    dot.onclick = () => goToSlide(i);
-    indicators.appendChild(dot);
-  });
-  startAutoPlay();
-};
-
-const goToSlide = (index) => {
-  const slides = document.querySelectorAll('.carousel-slide');
-  slides.forEach((slide, i) => slide.style.opacity = i === index ? '1' : '0');
-  currentSlide = index;
-  updateIndicators();
-};
-
-const updateIndicators = () => {
-  const dots = document.getElementById('carousel-indicators')?.children;
-  if (!dots) return;
-  Array.from(dots).forEach((dot, i) => {
-    dot.className = `w-3 h-3 rounded-full transition-all ${i === currentSlide ? 'bg-yellow-400 scale-125' : 'bg-white/50'}`;
-  });
-};
-
-const nextSlide = () => {
-  const slides = document.querySelectorAll('.carousel-slide');
-  currentSlide = (currentSlide + 1) % slides.length;
-  goToSlide(currentSlide);
-};
-
-const prevSlide = () => {
-  const slides = document.querySelectorAll('.carousel-slide');
-  currentSlide = (currentSlide - 1 + slides.length) % slides.length;
-  goToSlide(currentSlide);
-};
-
-const startAutoPlay = () => carouselInterval = setInterval(nextSlide, 4800);
-
-// ==================== MOCKUP 3D FLIP ====================
-let isFlipped = false;
-window.flipMockup = () => {
-  isFlipped = !isFlipped;
-  const container = document.getElementById('mockup-3d');
-  const front = document.getElementById('front');
-  const back = document.getElementById('back');
-  if (!container || !front || !back) return;
-  
-  if (isFlipped) {
-    container.style.transform = 'rotateY(180deg)';
-    front.style.opacity = '0';
-    back.style.opacity = '1';
-  } else {
-    container.style.transform = 'rotateY(0deg)';
-    front.style.opacity = '1';
-    back.style.opacity = '0';
-  }
-};
-
-// ==================== PARALLAX HERO ====================
-const initParallax = () => {
-  const heroBg = document.getElementById('hero-bg');
-  if (!heroBg) return;
-  window.addEventListener('scroll', () => {
-    const scroll = window.scrollY;
-    heroBg.style.transform = `translateY(${scroll * 0.4}px)`;
-  });
-};
-
-// ==================== PWA ====================
-const registerPWA = () => {
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js').then(() => console.log('%c✅ PWA registrado', 'color:#facc15'));
-  }
-};
-
-// ==================== INICIALIZACIÓN ====================
-window.onload = () => {
-  loadCart();
-  loadWishlist();
-  renderCommonNavbar();
-  renderCartModal();
-
-  if (document.getElementById('products-grid')) {
-    renderProducts(products);
-    if (document.getElementById('best-sellers-grid')) renderBestSellers();
-  }
-
-  const searchInput = document.getElementById('search-input');
-  if (searchInput) searchInput.addEventListener('input', debouncedSearch);
-
-  const sortSelect = document.getElementById('sort-select');
-  if (sortSelect) sortSelect.addEventListener('change', sortProducts);
-
-  initCarousel();
-
-  if (document.getElementById('type-0')) {
-    selectShirtType(0);
-    renderSizeButtonsDesigner();
-    renderColorButtons();
-  }
-
-  renderTestimonials();
-  
-  loadSavedDesign();
-  initDragListeners();
-  registerPWA();
-  initParallax();
-
-  console.log("%c🚀 Momotus Core - JS FINAL COMPLETO + TODAS LAS IMÁGENES EN .webp - Listo para Netlify", "color:#facc15; font-weight:bold; font-size:16px");
-};
-
-// ==================== BUSCADOR Y FILTROS TIENDA ====================
 let currentCategory = 'all';
 let currentSearchTerm = '';
 
@@ -836,12 +362,6 @@ const filterProducts = () => {
   if (countEl) countEl.textContent = filtered.length;
 };
 
-let searchTimeout;
-const debouncedSearch = () => {
-  clearTimeout(searchTimeout);
-  searchTimeout = setTimeout(filterProducts, 250);
-};
-
 const sortProducts = () => {
   const sortValue = document.getElementById('sort-select').value;
   let filtered = products;
@@ -853,4 +373,23 @@ const sortProducts = () => {
   else if (sortValue === 'name') filtered.sort((a, b) => a.name.localeCompare(b.name));
 
   renderProducts(filtered);
+};
+
+// ==================== CAROUSEL ====================
+const initCarousel = () => {
+  console.log('✅ Carousel inicializado');
+};
+
+// ==================== INICIALIZACIÓN COMÚN ====================
+window.onload = () => {
+  loadCart();
+  loadWishlist();
+  renderCommonNavbar();
+  renderCartModal();
+
+  if (document.getElementById('products-grid')) renderProducts(products);
+  initCarousel();
+  renderTestimonials();
+
+  console.log("%c🚀 Momotus Core - script.js (común) cargado correctamente", "color:#facc15; font-weight:bold; font-size:14px");
 };

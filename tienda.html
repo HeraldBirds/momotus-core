@@ -5,7 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Tienda - Momotus Core | Camisetas Nicaragua</title>
   <meta name="description" content="Tienda oficial Momotus Core. Camisetas premium con diseños únicos de Nicaragua: Nicas, Anime, Arte Urbano y más. Envío rápido en todo el país.">
+  
+  <link rel="preload" href="img/heroes/hero-tienda.webp" as="image" type="image/webp">
+
+  <!-- Tailwind CDN optimizado -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      content: [],
+      theme: {
+        extend: {
+          colors: {
+            momotus: '#facc15'
+          }
+        }
+      }
+    }
+  </script>
+
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
   <link rel="stylesheet" href="css/style.css">
 </head>
@@ -14,7 +31,7 @@
   <div id="navbar-placeholder"></div>
 
   <!-- HERO TIENDA -->
-  <div class="relative h-[620px] bg-cover bg-center flex items-center overflow-hidden" style="background-image: url('img/heroes/hero-tienda.jpg');">
+  <div class="relative h-[620px] bg-cover bg-center flex items-center overflow-hidden" style="background-image: url('img/heroes/hero-tienda.webp');">
     <div class="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/70"></div>
     <div class="max-w-7xl mx-auto px-6 relative z-10 text-center w-full">
       <h1 class="text-7xl md:text-8xl font-black tracking-[-3px] leading-none text-white mb-4 drop-shadow-2xl">TIENDA MOMOTUS</h1>
@@ -68,6 +85,8 @@
   </section>
 
   <div id="cart-modal-placeholder"></div>
+
+  <!-- SCRIPT ORIGINAL -->
   <script src="js/script.js"></script>
 </body>
 </html>

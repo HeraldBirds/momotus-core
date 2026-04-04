@@ -4,26 +4,112 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Comunidad - Momotus Core</title>
+  <meta name="description" content="Conoce las historias de +380 nicaragüenses que ya visten Momotus Core. Testimonios reales y únete a la comunidad más nica de Nicaragua.">
+  
+  <!-- Tailwind CDN optimizado -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      content: [],
+      theme: {
+        extend: {
+          colors: {
+            momotus: '#facc15'
+          }
+        }
+      }
+    }
+  </script>
+
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body class="bg-zinc-950 text-white">
 
-  <!-- NAVBAR (inyectado por JS) -->
   <div id="navbar-placeholder"></div>
 
-  <section class="py-20 bg-black">
+  <!-- HERO COMUNIDAD -->
+  <div class="relative h-[580px] bg-cover bg-center flex items-center overflow-hidden" 
+       style="background-image: linear-gradient(rgba(0,0,0,0.65), rgba(0,0,0,0.75)), url('img/heroes/hero-comunidad.webp');">
+    <div class="max-w-7xl mx-auto px-6 text-center relative z-10">
+      <span class="inline-flex items-center gap-2 bg-yellow-400 text-black text-sm font-bold px-6 py-2 rounded-3xl mb-6">
+        <i class="fa-solid fa-users"></i> COMUNIDAD MOMOTUS
+      </span>
+      <h1 class="text-6xl md:text-7xl font-black tracking-[-2px] leading-none mb-6">
+        Nicaragua viste<br>con orgullo
+      </h1>
+      <p class="text-2xl text-zinc-200 max-w-2xl mx-auto mb-10">
+        +380 nicas ya llevan diseños únicos de Momotus Core
+      </p>
+      <div class="flex flex-wrap justify-center gap-4">
+        <a href="tienda.html" class="bg-yellow-400 hover:bg-yellow-300 text-black font-bold px-10 py-5 rounded-3xl text-lg transition">Ver Tienda</a>
+        <button onclick="document.getElementById('compartir-section').scrollIntoView({ behavior: 'smooth' })" 
+                class="border-2 border-white hover:bg-white hover:text-black font-bold px-10 py-5 rounded-3xl text-lg transition">
+          Comparte tu foto
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ESTADÍSTICAS -->
+  <section class="py-8 bg-black border-b border-zinc-800">
+    <div class="max-w-7xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+      <div>
+        <div class="text-5xl font-black text-yellow-400">380+</div>
+        <p class="text-zinc-400 mt-1">Nicaragüenses felices</p>
+      </div>
+      <div>
+        <div class="text-5xl font-black text-yellow-400">4.9</div>
+        <p class="text-zinc-400 mt-1">Calificación promedio</p>
+      </div>
+      <div>
+        <div class="text-5xl font-black text-yellow-400">14</div>
+        <p class="text-zinc-400 mt-1">Diseños únicos</p>
+      </div>
+      <div>
+        <div class="text-5xl font-black text-yellow-400">48h</div>
+        <p class="text-zinc-400 mt-1">Envío promedio</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- TESTIMONIOS -->
+  <section class="py-20 bg-zinc-900">
     <div class="max-w-7xl mx-auto px-6">
       <h2 class="text-5xl font-bold text-center mb-4">Lo que dice nuestra comunidad</h2>
-      <p class="text-center text-zinc-400 mb-12">+380 nicaragüenses ya visten Momotus Core</p>
+      <p class="text-center text-zinc-400 mb-12">Historias reales de gente que ya lleva Nicaragua en el pecho</p>
       <div class="grid md:grid-cols-3 gap-8" id="testimonials-container"></div>
     </div>
   </section>
 
-  <!-- MODAL CARRITO (inyectado por JS) -->
+  <!-- COMPARTE TU MOMOTUS -->
+  <section id="compartir-section" class="py-20 bg-gradient-to-br from-yellow-400/10 to-transparent border-t border-b border-zinc-800">
+    <div class="max-w-4xl mx-auto px-6 text-center">
+      <h2 class="text-5xl font-bold mb-6">¿Ya tienes tu Momotus?</h2>
+      <p class="text-2xl text-zinc-300 mb-10">Comparte tu foto con el hashtag #MomotusCore y aparece aquí</p>
+      
+      <button onclick="compartirWhatsApp()" 
+              class="bg-green-600 hover:bg-green-500 text-white font-bold text-xl px-12 py-7 rounded-3xl inline-flex items-center gap-4 transition">
+        <i class="fa-brands fa-whatsapp text-3xl"></i>
+        ENVIAR MI FOTO POR WHATSAPP
+      </button>
+      
+      <p class="text-zinc-400 text-sm mt-8">Te responderemos en menos de 10 minutos y tu foto puede salir en la galería oficial</p>
+    </div>
+  </section>
+
   <div id="cart-modal-placeholder"></div>
 
+  <!-- SCRIPT ORIGINAL -->
   <script src="js/script.js"></script>
+
+  <!-- Script extra para el botón de compartir -->
+  <script>
+    function compartirWhatsApp() {
+      const text = "¡Hola Momotus! Quiero compartir mi foto con mi camiseta Momotus Core 🇳🇮%0A%0A";
+      window.open(`https://wa.me/50555010044?text=${text}`, '_blank');
+      showToast("✅ WhatsApp abierto - ¡Envía tu foto!");
+    }
+  </script>
 </body>
 </html>

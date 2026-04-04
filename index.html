@@ -6,11 +6,24 @@
   <title>Momotus Core | Camisetas Personalizadas Nicaragua</title>
   <meta name="description" content="Camisetas premium con diseños únicos de Nicaragua. Nicas, Anime, Arte Urbano y más. Envío rápido en todo el país.">
   
-  <!-- Preload crítico (hero + mockup principal) -->
-  <link rel="preload" href="img/heroes/hero-1.jpg" as="image" type="image/jpeg">
-  <link rel="preload" href="img/products/product-2.jpg" as="image" type="image/jpeg">
+  <link rel="preload" href="img/heroes/hero-1.webp" as="image" type="image/webp">
+  <link rel="preload" href="img/products/product-2.webp" as="image" type="image/webp">
 
+  <!-- Tailwind CDN optimizado -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      content: [],
+      theme: {
+        extend: {
+          colors: {
+            momotus: '#facc15'
+          }
+        }
+      }
+    }
+  </script>
+
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
   <link rel="stylesheet" href="css/style.css">
 
@@ -26,9 +39,7 @@
       min-height: 520px;
       transition: transform 0.8s cubic-bezier(0.25, 0.1, 0.25, 1);
       animation: gentleRotate 35s linear infinite;
-      box-shadow: 
-        0 60px 100px -30px rgb(0 0 0 / 0.7),
-        0 0 0 18px rgba(250, 204, 21, 0.18);
+      box-shadow: 0 60px 100px -30px rgb(0 0 0 / 0.7), 0 0 0 18px rgba(250, 204, 21, 0.18);
       border-radius: 40px;
       background: #1f2937;
       position: relative;
@@ -42,17 +53,16 @@
       animation-play-state: paused;
       transform: scale(1.08) rotateY(18deg) rotateX(8deg);
     }
-    .rotate-y-180 { transform: rotateY(180deg); }
   </style>
 </head>
 <body class="bg-zinc-950 text-white">
 
   <div id="navbar-placeholder"></div>
 
-  <!-- HERO -->
+  <!-- HERO CORREGIDO (Carousel funcionando) -->
   <section class="relative h-screen overflow-hidden">
     <div id="hero-bg" class="absolute inset-0 bg-cover bg-center transition-transform duration-1000" 
-         style="background-image: url('img/heroes/hero-1.jpg');"></div>
+         style="background-image: url('img/heroes/hero-1.webp');"></div>
     <div class="absolute inset-0 bg-gradient-to-r from-black/70 to-transparent"></div>
     
     <div class="max-w-7xl mx-auto px-6 relative z-10 h-full flex items-center">
@@ -85,24 +95,17 @@
       <div class="flex justify-center mb-12">
         <div class="mockup-3d-container">
           <div id="mockup-3d" class="mockup-3d mx-auto relative">
-            <img id="front" src="img/products/product-2.jpg" 
-                 width="520" height="520"
-                 alt="Nica Power Frente" loading="eager" decoding="async">
-            <img id="back" src="img/mockups/mockup-regular-negro-espalda.png" 
-                 width="520" height="520"
-                 class="opacity-0 rotate-y-180"
-                 alt="Nica Power Espalda" loading="lazy" decoding="async">
+            <img id="front" src="img/products/product-2.webp" width="520" height="520" alt="Nica Power Frente" loading="eager">
+            <img id="back" src="img/mockups/mockup-regular-negro-espalda.webp" width="520" height="520" class="opacity-0 rotate-y-180" alt="Nica Power Espalda" loading="lazy">
           </div>
         </div>
       </div>
 
       <div class="flex flex-wrap justify-center gap-6 text-center">
-        <button onclick="flipMockup()" 
-                class="bg-yellow-400 hover:bg-yellow-300 text-black font-bold px-10 py-6 rounded-3xl text-xl flex items-center gap-3 transition shadow-xl">
+        <button onclick="flipMockup()" class="bg-yellow-400 hover:bg-yellow-300 text-black font-bold px-10 py-6 rounded-3xl text-xl flex items-center gap-3 transition shadow-xl">
           <i class="fa-solid fa-sync"></i> Ver Frente / Espalda
         </button>
-        <a href="tienda.html" onclick="showQuickView(2); return false;" 
-           class="border border-white/60 hover:bg-white/10 font-medium px-10 py-6 rounded-3xl text-xl transition">
+        <a href="tienda.html" onclick="showQuickView(2); return false;" class="border border-white/60 hover:bg-white/10 font-medium px-10 py-6 rounded-3xl text-xl transition">
           Crear mi propia versión
         </a>
       </div>
@@ -117,23 +120,17 @@
   <section class="py-16 bg-zinc-950">
     <div class="max-w-7xl mx-auto px-6 grid md:grid-cols-3 gap-8">
       <div class="benefit-card text-center">
-        <div class="icon-wrapper w-20 h-20 mx-auto mb-6 bg-yellow-400/10 rounded-3xl flex items-center justify-center text-5xl">
-          <i class="fa-solid fa-shirt"></i>
-        </div>
+        <div class="icon-wrapper w-20 h-20 mx-auto mb-6 bg-yellow-400/10 rounded-3xl flex items-center justify-center text-5xl"><i class="fa-solid fa-shirt"></i></div>
         <h4 class="font-bold text-xl mb-2">100% Algodón Premium</h4>
         <p class="text-zinc-400">Tela peinada suave que no se decolora ni encoge.</p>
       </div>
       <div class="benefit-card text-center">
-        <div class="icon-wrapper w-20 h-20 mx-auto mb-6 bg-yellow-400/10 rounded-3xl flex items-center justify-center text-5xl">
-          <i class="fa-solid fa-truck-fast"></i>
-        </div>
+        <div class="icon-wrapper w-20 h-20 mx-auto mb-6 bg-yellow-400/10 rounded-3xl flex items-center justify-center text-5xl"><i class="fa-solid fa-truck-fast"></i></div>
         <h4 class="font-bold text-xl mb-2">Envío en 48h a todo Nicaragua</h4>
         <p class="text-zinc-400">Managua, León, Granada, Matagalpa… donde estés.</p>
       </div>
       <div class="benefit-card text-center">
-        <div class="icon-wrapper w-20 h-20 mx-auto mb-6 bg-yellow-400/10 rounded-3xl flex items-center justify-center text-5xl">
-          <i class="fa-solid fa-medal"></i>
-        </div>
+        <div class="icon-wrapper w-20 h-20 mx-auto mb-6 bg-yellow-400/10 rounded-3xl flex items-center justify-center text-5xl"><i class="fa-solid fa-medal"></i></div>
         <h4 class="font-bold text-xl mb-2">Ediciones Limitadas</h4>
         <p class="text-zinc-400">Diseños únicos que no encontrarás en ningún otro lado.</p>
       </div>
@@ -191,6 +188,7 @@
     </div>
   </footer>
 
+  <!-- SCRIPT ORIGINAL -->
   <script src="js/script.js"></script>
 </body>
 </html>
