@@ -1,8 +1,10 @@
-// js/script.js - Momotus Core - CÓDIGO COMÚN (04 Abril 2026)
+// js/script.js - Momotus Core - VERSIÓN FINAL ACTUALIZADA (05 Abril 2026)
+// Imágenes organizadas por categoría: nica-1, anime-1, game-1, etc.
 
 let cart = [];
 let wishlist = [];
-let currentSlide = 0;
+let currentCategory = 'all';
+let currentSearchTerm = '';
 
 // ==================== TOAST ====================
 const showToast = (message) => {
@@ -192,7 +194,7 @@ const showQuickView = (id) => {
   let sizesHTML = '';
   product.sizes.forEach(s => {
     const stock = product.stock[s] || 0;
-    const stockClass = getStockColor(stock);
+    const stockClass = stock > 8 ? 'text-green-400' : stock > 3 ? 'text-yellow-400' : 'text-red-400';
     sizesHTML += `<button onclick="addToCartWithSize(${product.id}, '${s}'); closeQuickView()" class="px-5 py-3 rounded-2xl border border-zinc-600 hover:border-yellow-400 transition flex items-center gap-2 ${stock === 0 ? 'opacity-40 pointer-events-none' : ''}">
       <span>${s}</span>
       <span class="${stockClass} text-xs font-medium">(${stock})</span>
@@ -250,22 +252,47 @@ const addToCartWithSize = (id, size) => {
   showToast(`✅ ${product.name} - Talla ${size} agregado`);
 };
 
-// ==================== PRODUCTOS ====================
+// ==================== PRODUCTOS - ORGANIZADOS POR CATEGORÍA ====================
 const products = [
-  { id: 1, name: "Naruto Hokage Edition", price: 520, category: "anime", img: "img/products/product-1.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:12, M:8, L:15, XL:3, XXL:7} },
-  { id: 2, name: "Nica Power", price: 420, category: "nica", img: "img/products/product-2.webp", sizes: ["S","M","L","XL"], stock: {S:5, M:20, L:10, XL:0, XXL:4} },
-  { id: 3, name: "Volcán Momotombo", price: 480, category: "nica", img: "img/products/product-3.webp", sizes: ["M","L","XL","XXL"], stock: {S:8, M:12, L:6, XL:9, XXL:2} },
-  { id: 4, name: "Anime Warrior", price: 520, category: "anime", img: "img/products/product-4.webp", sizes: ["S","M","L","XL"], stock: {S:18, M:7, L:14, XL:5, XXL:11} },
-  { id: 5, name: "Sakura Dreams", price: 490, category: "anime", img: "img/products/product-5.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:4, M:22, L:9, XL:13, XXL:6} },
-  { id: 6, name: "Urban Graffiti", price: 460, category: "urbano", img: "img/products/product-6.webp", sizes: ["M","L","XL"], stock: {S:11, M:3, L:17, XL:8, XXL:0} },
-  { id: 7, name: "Street Kings", price: 430, category: "urbano", img: "img/products/product-7.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:15, M:19, L:2, XL:10, XXL:5} },
-  { id: 8, name: "Abstract Waves", price: 410, category: "abstracta", img: "img/products/product-8.webp", sizes: ["S","M","L"], stock: {S:9, M:14, L:7, XL:12, XXL:8} },
-  { id: 9, name: "Golden Flow", price: 500, category: "abstracta", img: "img/products/product-9.webp", sizes: ["M","L","XL","XXL"], stock: {S:6, M:11, L:20, XL:4, XXL:13} },
-  { id: 10, name: "Limited Edition 001", price: 650, category: "unica", img: "img/products/product-10.webp", sizes: ["L","XL","XXL"], stock: {S:2, M:8, L:15, XL:1, XXL:9} },
-  { id: 11, name: "Nicaragua Forever", price: 470, category: "nica", img: "img/products/product-11.webp", sizes: ["S","M","L","XL"], stock: {S:17, M:5, L:12, XL:14, XXL:3} },
-  { id: 12, name: "Cyber Nica", price: 550, category: "unica", img: "img/products/product-12.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:10, M:16, L:8, XL:6, XXL:4} },
-  { id: 13, name: "Goku Ultra Instinct", price: 550, category: "anime", img: "img/products/product-13.webp", sizes: ["M","L","XL"], stock: {S:13, M:9, L:18, XL:7, XXL:11} },
-  { id: 14, name: "Luffy Gear 5", price: 530, category: "anime", img: "img/products/product-14.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:7, M:21, L:4, XL:15, XXL:2} }
+  // NICAS (4)
+  { id: 1, name: "Nica Power", price: 420, category: "nica", img: "img/products/nica-1.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:12, M:25, L:18, XL:8, XXL:5} },
+  { id: 2, name: "Volcán Momotombo", price: 480, category: "nica", img: "img/products/nica-2.webp", sizes: ["M","L","XL","XXL"], stock: {S:8, M:15, L:12, XL:9, XXL:4} },
+  { id: 3, name: "Nicaragua Forever", price: 470, category: "nica", img: "img/products/nica-3.webp", sizes: ["S","M","L","XL"], stock: {S:20, M:14, L:10, XL:7, XXL:3} },
+  { id: 4, name: "Bandera Nica Pride", price: 450, category: "nica", img: "img/products/nica-4.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:10, M:22, L:15, XL:6, XXL:8} },
+
+  // ANIME (10)
+  { id: 5, name: "Satoru Gojō Edition", price: 520, category: "anime", img: "img/products/anime-1.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:15, M:20, L:12, XL:8, XXL:5} },
+  { id: 6, name: "Kento Nanami", price: 550, category: "anime", img: "img/products/anime-2.webp", sizes: ["M","L","XL","XXL"], stock: {S:9, M:18, L:14, XL:10, XXL:6} },
+  { id: 7, name: "Luffy Gear 5", price: 530, category: "anime", img: "img/products/anime-3.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:11, M:19, L:13, XL:7, XXL:4} },
+  { id: 8, name: "Sakura Dreams", price: 490, category: "anime", img: "img/products/anime-4.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:14, M:22, L:16, XL:9, XXL:5} },
+  { id: 9, name: "Anime Warrior", price: 520, category: "anime", img: "img/products/anime-5.webp", sizes: ["S","M","L","XL"], stock: {S:18, M:12, L:15, XL:8, XXL:6} },
+  { id: 10, name: "One Piece Crew", price: 510, category: "anime", img: "img/products/anime-6.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:13, M:17, L:11, XL:9, XXL:7} },
+  { id: 11, name: "Dragon Ball Z Legacy", price: 540, category: "anime", img: "img/products/anime-7.webp", sizes: ["M","L","XL"], stock: {S:8, M:20, L:14, XL:10, XXL:5} },
+  { id: 12, name: "Attack on Titan", price: 500, category: "anime", img: "img/products/anime-8.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:16, M:13, L:19, XL:7, XXL:4} },
+  { id: 13, name: "Jujutsu Kaisen", price: 525, category: "anime", img: "img/products/anime-9.webp", sizes: ["S","M","L","XL"], stock: {S:12, M:15, L:10, XL:8, XXL:6} },
+  { id: 14, name: "Demon Slayer", price: 515, category: "anime", img: "img/products/anime-10.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:14, M:21, L:12, XL:9, XXL:5} },
+
+  // URBANO (4)
+  { id: 15, name: "Urban Graffiti", price: 460, category: "urbano", img: "img/products/urbano-1.webp", sizes: ["M","L","XL"], stock: {S:11, M:8, L:17, XL:6, XXL:3} },
+  { id: 16, name: "Street Kings", price: 430, category: "urbano", img: "img/products/urbano-2.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:15, M:19, L:12, XL:10, XXL:5} },
+  { id: 17, name: "Managua Nights", price: 445, category: "urbano", img: "img/products/urbano-3.webp", sizes: ["S","M","L","XL"], stock: {S:10, M:14, L:9, XL:7, XXL:4} },
+  { id: 18, name: "Hip Hop Nica", price: 455, category: "urbano", img: "img/products/urbano-4.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:13, M:16, L:11, XL:8, XXL:6} },
+
+  // GAMES (6)
+  { id: 19, name: "Cyber Nica", price: 550, category: "games", img: "img/products/game-1.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:10, M:16, L:13, XL:9, XXL:5} },
+  { id: 20, name: "Pixel Nicaragua", price: 480, category: "games", img: "img/products/game-2.webp", sizes: ["M","L","XL"], stock: {S:8, M:12, L:15, XL:7, XXL:4} },
+  { id: 21, name: "Retro Gamer Nica", price: 495, category: "games", img: "img/products/game-3.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:14, M:18, L:10, XL:6, XXL:5} },
+  { id: 22, name: "Fortnite Vibes", price: 510, category: "games", img: "img/products/game-4.webp", sizes: ["S","M","L","XL"], stock: {S:9, M:15, L:12, XL:8, XXL:3} },
+  { id: 23, name: "Minecraft Nicaragua", price: 465, category: "games", img: "img/products/game-5.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:11, M:17, L:14, XL:9, XXL:6} },
+  { id: 24, name: "Zelda Legend Nica", price: 530, category: "games", img: "img/products/game-6.webp", sizes: ["M","L","XL"], stock: {S:7, M:13, L:16, XL:10, XXL:4} },
+
+  // ÚNICAS (6)
+  { id: 25, name: "Limited Edition 001", price: 650, category: "unica", img: "img/products/unica-1.webp", sizes: ["L","XL","XXL"], stock: {S:5, M:8, L:15, XL:4, XXL:9} },
+  { id: 26, name: "Golden Flow", price: 500, category: "unica", img: "img/products/unica-2.webp", sizes: ["M","L","XL","XXL"], stock: {S:6, M:11, L:20, XL:7, XXL:13} },
+  { id: 27, name: "Eclipse Nica", price: 620, category: "unica", img: "img/products/unica-3.webp", sizes: ["S","M","L","XL"], stock: {S:9, M:14, L:8, XL:5, XXL:3} },
+  { id: 28, name: "Midnight Warrior", price: 580, category: "unica", img: "img/products/unica-4.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:12, M:10, L:16, XL:8, XXL:6} },
+  { id: 29, name: "Fire & Gold", price: 590, category: "unica", img: "img/products/unica-5.webp", sizes: ["M","L","XL"], stock: {S:7, M:15, L:11, XL:9, XXL:4} },
+  { id: 30, name: "Legendary Nica", price: 670, category: "unica", img: "img/products/unica-6.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:8, M:12, L:14, XL:6, XXL:5} }
 ];
 
 const getStockColor = (stock) => stock > 8 ? 'text-green-400' : stock > 3 ? 'text-yellow-400' : 'text-red-400';
@@ -279,41 +306,29 @@ const testimonials = [
 
 const renderTestimonials = () => {
   const homeContainer = document.getElementById('testimonials-home');
-  if (homeContainer) {
-    homeContainer.innerHTML = testimonials.map(t => `
-      <div class="bg-zinc-900 rounded-3xl p-6">
-        <div class="flex items-center gap-3 mb-4">
-          <div class="w-10 h-10 bg-yellow-400 rounded-2xl flex items-center justify-center text-2xl">👕</div>
-          <div>
-            <p class="font-bold">${t.name}</p>
-            <p class="text-sm text-zinc-400">${t.location}</p>
-          </div>
-        </div>
-        <p class="text-zinc-300 mb-6 leading-relaxed">"${t.text}"</p>
-        <div class="text-yellow-400 text-2xl">${t.stars}</div>
+  if (homeContainer) homeContainer.innerHTML = testimonials.map(t => `
+    <div class="bg-zinc-900 rounded-3xl p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-10 h-10 bg-yellow-400 rounded-2xl flex items-center justify-center text-2xl">👕</div>
+        <div><p class="font-bold">${t.name}</p><p class="text-sm text-zinc-400">${t.location}</p></div>
       </div>
-    `).join('');
-  }
+      <p class="text-zinc-300 mb-6 leading-relaxed">"${t.text}"</p>
+      <div class="text-yellow-400 text-2xl">${t.stars}</div>
+    </div>`).join('');
 
   const communityContainer = document.getElementById('testimonials-container');
-  if (communityContainer) {
-    communityContainer.innerHTML = testimonials.map(t => `
-      <div class="bg-zinc-800 rounded-3xl p-8">
-        <div class="flex items-center gap-3 mb-4">
-          <div class="w-10 h-10 bg-yellow-400 rounded-2xl flex items-center justify-center text-2xl">👕</div>
-          <div>
-            <p class="font-bold">${t.name}</p>
-            <p class="text-sm text-zinc-400">${t.location}</p>
-          </div>
-        </div>
-        <p class="text-zinc-300 mb-6 leading-relaxed">"${t.text}"</p>
-        <div class="text-yellow-400 text-2xl">${t.stars}</div>
+  if (communityContainer) communityContainer.innerHTML = testimonials.map(t => `
+    <div class="bg-zinc-800 rounded-3xl p-8">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-10 h-10 bg-yellow-400 rounded-2xl flex items-center justify-center text-2xl">👕</div>
+        <div><p class="font-bold">${t.name}</p><p class="text-sm text-zinc-400">${t.location}</p></div>
       </div>
-    `).join('');
-  }
+      <p class="text-zinc-300 mb-6 leading-relaxed">"${t.text}"</p>
+      <div class="text-yellow-400 text-2xl">${t.stars}</div>
+    </div>`).join('');
 };
 
-// ==================== TIENDA ====================
+// ==================== TIENDA - RENDER Y FILTROS ====================
 const renderProducts = (filteredProducts) => {
   const grid = document.getElementById('products-grid');
   if (!grid) return;
@@ -328,7 +343,7 @@ const renderProducts = (filteredProducts) => {
     card.className = 'product-card bg-zinc-900 rounded-3xl overflow-hidden group relative';
     card.innerHTML = `
       <div class="relative">
-        <img src="${product.img}" width="320" height="320" loading="lazy" decoding="async" onclick="showQuickView(${product.id})" class="w-full aspect-square object-cover transition group-hover:scale-105 cursor-pointer">
+        <img src="${product.img}" width="320" height="320" loading="lazy" onclick="showQuickView(${product.id})" class="w-full aspect-square object-cover transition group-hover:scale-105 cursor-pointer">
         <span class="absolute top-4 left-4 bg-black/70 text-white text-xs font-medium px-3 py-1 rounded-full">${product.category.toUpperCase()}</span>
         <button onclick="event.stopImmediatePropagation(); ${inWishlist ? `removeFromWishlist(${product.id})` : `addToWishlist(${product.id})`}" class="absolute top-4 right-4 text-2xl ${inWishlist ? 'text-red-500' : 'text-white/70 hover:text-red-500'} transition">
           <i class="fa-solid fa-heart"></i>
@@ -343,9 +358,6 @@ const renderProducts = (filteredProducts) => {
   });
 };
 
-let currentCategory = 'all';
-let currentSearchTerm = '';
-
 const filterCategory = (cat) => {
   currentCategory = cat;
   document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.toggle('active', btn.id === `filter-${cat}`));
@@ -353,7 +365,6 @@ const filterCategory = (cat) => {
 };
 
 const filterProducts = () => {
-  currentSearchTerm = document.getElementById('search-input')?.value.toLowerCase().trim() || '';
   let filtered = products;
   if (currentCategory !== 'all') filtered = filtered.filter(p => p.category === currentCategory);
   if (currentSearchTerm) filtered = filtered.filter(p => p.name.toLowerCase().includes(currentSearchTerm));
@@ -375,21 +386,18 @@ const sortProducts = () => {
   renderProducts(filtered);
 };
 
-// ==================== CAROUSEL ====================
-const initCarousel = () => {
-  console.log('✅ Carousel inicializado');
-};
-
-// ==================== INICIALIZACIÓN COMÚN ====================
+// ==================== INICIALIZACIÓN ====================
 window.onload = () => {
   loadCart();
   loadWishlist();
   renderCommonNavbar();
   renderCartModal();
-
-  if (document.getElementById('products-grid')) renderProducts(products);
-  initCarousel();
   renderTestimonials();
 
-  console.log("%c🚀 Momotus Core - script.js (común) cargado correctamente", "color:#facc15; font-weight:bold; font-size:14px");
+  if (document.getElementById('products-grid')) {
+    renderProducts(products);
+    filterProducts();
+  }
+
+  console.log("%c🚀 Momotus Core - script.js COMPLETO Y ACTUALIZADO (imágenes por categoría)", "color:#facc15; font-weight:bold; font-size:14px");
 };

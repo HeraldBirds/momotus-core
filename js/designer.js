@@ -1,5 +1,5 @@
-// js/designer.js - Momotus Core - VERSIÓN FINAL CORREGIDA (04 Abril 2026)
-// ✅ Sin borde amarillo en Vista Previa Final + diseño completo visible
+// js/designer.js - Momotus Core - VERSIÓN FINAL ACTUALIZADA (05 Abril 2026)
+// Compatible con margen 90%/88% (más libertad de movimiento)
 
 let currentShirtType = 0;
 let currentColor = 'black';
@@ -8,8 +8,7 @@ let designFront = null;
 let designBack = null;
 let currentScaleFront = 1;
 let currentScaleBack = 1;
-
-const designSizes = [265, 235, 295];
+let currentTab = 0; // 0 = Frente, 1 = Espalda
 
 const shirtTypes = ['regular', 'slim', 'oversized'];
 const colorMap = { black: 'negro', white: 'blanco', red: 'rojo', blue: 'azul', emerald: 'verde', violet: 'violeta', amber: 'amarillo', pink: 'rosa' };
@@ -38,18 +37,17 @@ const getDesignStyle = (colorKey) => {
     : `mix-blend-mode: multiply; filter: brightness(1.08) contrast(1.18) saturate(1.25) opacity(0.95);`;
 };
 
-// ==================== ACTUALIZAR TAMAÑO ====================
+// ==================== ACTUALIZAR TAMAÑO (SOLO ESCALA DEL DISEÑO) ====================
 const updateDesignSize = () => {
-  const containerSize = designSizes[currentShirtType];
   ['design-preview', 'design-preview-back'].forEach((id, index) => {
     const preview = document.getElementById(id);
     if (!preview) return;
-    preview.style.width = `${containerSize}px`;
-    preview.style.height = `${containerSize}px`;
+
     const designImg = preview.querySelector('img');
     if (designImg) {
       const scale = index === 0 ? currentScaleFront : currentScaleBack;
       designImg.style.transform = `scale(${scale})`;
+      designImg.style.transformOrigin = 'center center';
     }
   });
 };
@@ -59,10 +57,19 @@ const updateMockups = () => {
   const backImg = document.getElementById('shirt-mockup-back');
   let loaded = 0;
   const total = (frontImg ? 1 : 0) + (backImg ? 1 : 0);
-  const onLoad = () => { loaded++; if (loaded === total) updateDesignSize(); };
+  const onLoad = () => { 
+    loaded++; 
+    if (loaded === total) updateDesignSize(); 
+  };
 
-  if (frontImg) { frontImg.src = getMockupPath(currentShirtType, currentColor, false); frontImg.onload = onLoad; }
-  if (backImg) { backImg.src = getMockupPath(currentShirtType, currentColor, true); backImg.onload = onLoad; }
+  if (frontImg) { 
+    frontImg.src = getMockupPath(currentShirtType, currentColor, false); 
+    frontImg.onload = onLoad; 
+  }
+  if (backImg) { 
+    backImg.src = getMockupPath(currentShirtType, currentColor, true); 
+    backImg.onload = onLoad; 
+  }
   setTimeout(updateDesignSize, 100);
 };
 
@@ -79,9 +86,13 @@ const selectColor = (colorKey, el) => {
   updateMockups();
 };
 
+// ==================== ESCALADO (+ / -) ====================
 window.scaleDesign = (side, delta) => {
-  if (side === 0) currentScaleFront = Math.max(0.3, Math.min(3, currentScaleFront + delta));
-  else currentScaleBack = Math.max(0.3, Math.min(3, currentScaleBack + delta));
+  if (currentTab === 0) {
+    currentScaleFront = Math.max(0.3, Math.min(3, currentScaleFront + delta));
+  } else {
+    currentScaleBack = Math.max(0.3, Math.min(3, currentScaleBack + delta));
+  }
   updateDesignSize();
 };
 
@@ -120,24 +131,28 @@ const initDragListeners = () => {
     const clientY = e.clientY || (e.touches && e.touches[0].clientY);
     let newX = clientX - previewRect.left - offsetX;
     let newY = clientY - previewRect.top - offsetY;
-    newX = Math.max(-currentDraggingDesign.offsetWidth * 0.8, Math.min(newX, previewRect.width - currentDraggingDesign.offsetWidth * 0.2));
-    newY = Math.max(-currentDraggingDesign.offsetHeight * 0.8, Math.min(newY, previewRect.height - currentDraggingDesign.offsetHeight * 0.2));
+
+    newX = Math.max(-currentDraggingDesign.offsetWidth * 0.9, Math.min(newX, previewRect.width - currentDraggingDesign.offsetWidth * 0.1));
+    newY = Math.max(-currentDraggingDesign.offsetHeight * 0.9, Math.min(newY, previewRect.height - currentDraggingDesign.offsetHeight * 0.1));
+
     currentDraggingDesign.style.left = `${newX}px`;
     currentDraggingDesign.style.top = `${newY}px`;
     e.preventDefault();
   };
+
   const endHandler = () => {
     if (currentDraggingDesign) currentDraggingDesign.style.transition = 'all 0.2s ease';
     isDragging = false;
     currentDraggingDesign = null;
   };
+
   document.addEventListener('mousemove', moveHandler);
   document.addEventListener('touchmove', moveHandler, { passive: false });
   document.addEventListener('mouseup', endHandler);
   document.addEventListener('touchend', endHandler);
 };
 
-// ==================== SUBIR DISEÑO ====================
+// ==================== RESTO DE FUNCIONES ====================
 const handleDesignUpload = (e, side) => {
   const file = e.target.files[0];
   if (!file) return;
@@ -228,6 +243,7 @@ const loadSavedDesign = () => {
 };
 
 const switchMockup = (tab) => {
+  currentTab = tab;
   document.getElementById('tab-frente').classList.toggle('tab-active', tab === 0);
   document.getElementById('tab-espalda').classList.toggle('tab-active', tab === 1);
   document.getElementById('mockup-frente').classList.toggle('hidden', tab === 1);
@@ -274,106 +290,21 @@ const abrirRemoveBg = () => {
   showToast("🪄 remove.bg abierto");
 };
 
-// ==================== VISTA PREVIA FINAL (SIN BORDE AMARILLO) ====================
-const showFinalPreview = async () => {
-  const modalHTML = `
-    <div id="final-preview-modal" class="fixed inset-0 bg-black/95 flex items-center justify-center z-[12000] p-4">
-      <div class="bg-zinc-900 rounded-3xl max-w-md w-full overflow-hidden shadow-2xl">
-        <div class="px-6 py-5 border-b border-zinc-700 flex justify-between items-center">
-          <h3 class="text-2xl font-bold">Vista Previa Final</h3>
-          <button onclick="closeFinalPreview()" class="text-4xl text-zinc-400 hover:text-white">×</button>
-        </div>
-        <div class="p-6" id="preview-content">
-          <div class="flex justify-center items-center py-12">
-            <div class="text-center">
-              <i class="fa-solid fa-spinner animate-spin text-5xl text-yellow-400 mb-4"></i>
-              <p class="text-zinc-300">Generando vista limpia...</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-
-  document.body.insertAdjacentHTML('beforeend', modalHTML);
-  const contentContainer = document.getElementById('preview-content');
-
-  try {
-    // Clonamos para no modificar el editor
-    const originalFront = document.getElementById('mockup-frente');
-    const cloneFront = originalFront.cloneNode(true);
-    const designPreviewClone = cloneFront.querySelector('#design-preview');
-    if (designPreviewClone) {
-      designPreviewClone.style.border = 'none';
-      designPreviewClone.style.background = 'transparent';
-    }
-
-    const canvasFront = await html2canvas(cloneFront, {
-      scale: 2,
-      useCORS: true,
-      backgroundColor: null,
-      logging: false,
-      allowTaint: true
-    });
-
-    let backSection = '';
-    if (designBack) {
-      const originalBack = document.getElementById('mockup-espalda');
-      const cloneBack = originalBack.cloneNode(true);
-      const designPreviewBackClone = cloneBack.querySelector('#design-preview-back');
-      if (designPreviewBackClone) {
-        designPreviewBackClone.style.border = 'none';
-        designPreviewBackClone.style.background = 'transparent';
-      }
-      const canvasBack = await html2canvas(cloneBack, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: null,
-        logging: false,
-        allowTaint: true
-      });
-      backSection = `
-        <div class="mt-8">
-          <h4 class="text-xl font-semibold text-center mb-4 text-yellow-300">Vista Espalda</h4>
-          <img src="${canvasBack.toDataURL('image/png')}" class="mx-auto rounded-3xl shadow-xl w-full max-w-[420px]">
-        </div>`;
-    }
-
-    contentContainer.innerHTML = `
-      <div class="space-y-8">
-        <div>
-          <h4 class="text-xl font-semibold text-center mb-4 text-yellow-300">Vista Frente</h4>
-          <img src="${canvasFront.toDataURL('image/png')}" class="mx-auto rounded-3xl shadow-xl w-full max-w-[420px]">
-        </div>
-        ${backSection}
-        <div class="pt-6 border-t border-zinc-700 flex gap-3">
-          <button onclick="sendToWhatsAppFromPreview()" class="flex-1 bg-green-600 hover:bg-green-500 text-white font-bold py-6 rounded-3xl text-lg flex items-center justify-center gap-3">
-            <i class="fa-brands fa-whatsapp text-2xl"></i> WhatsApp
-          </button>
-          <button onclick="closeFinalPreview()" class="flex-1 border border-zinc-600 hover:bg-zinc-800 py-6 rounded-3xl font-bold text-lg">Cerrar</button>
-        </div>
-      </div>
-    `;
-  } catch (err) {
-    console.error(err);
-    contentContainer.innerHTML = `<p class="text-red-400 text-center py-8">Error al generar la vista previa.</p>`;
-  }
-};
-
-const closeFinalPreview = () => {
-  const modal = document.getElementById('final-preview-modal');
-  if (modal) modal.remove();
-};
-
-const sendToWhatsAppFromPreview = () => {
-  closeFinalPreview();
-  sendToWhatsApp();
+const centerDesign = (side) => {
+  const previewId = side === 0 ? 'design-preview' : 'design-preview-back';
+  const preview = document.getElementById(previewId);
+  const design = preview ? preview.querySelector('img') : null;
+  if (!design) return showToast("❌ No hay diseño para centrar");
+  design.style.left = '50%';
+  design.style.top = '50%';
+  design.style.transform = `translate(-50%, -50%) scale(${side === 0 ? currentScaleFront : currentScaleBack})`;
+  showToast("🎯 Diseño centrado correctamente");
 };
 
 const sendToWhatsApp = () => {
   const typeName = ['Regular / Unisex', 'Slim Fit', 'Oversized'][currentShirtType];
   const colorName = colorMap[currentColor] || currentColor;
-  const text = `¡Hola Momotus Core! 👋%0A%0AAcabo de diseñar mi camiseta:%0A• Tipo: ${typeName}%0A• Talla: ${currentSize}%0A• Color: ${colorName.charAt(0).toUpperCase() + colorName.slice(1)}%0A• Frente: ${designFront ? 'Sí' : 'No'}%0A• Espalda: ${designBack ? 'Sí' : 'No'}%0A%0ARevisa la vista previa adjunta.%0AGracias! 🇳🇮`;
+  const text = `¡Hola Momotus Core! 👋%0A%0AAcabo de diseñar mi camiseta:%0A• Tipo: ${typeName}%0A• Talla: ${currentSize}%0A• Color: ${colorName.charAt(0).toUpperCase() + colorName.slice(1)}%0A• Frente: ${designFront ? 'Sí' : 'No'}%0A• Espalda: ${designBack ? 'Sí' : 'No'}%0A%0ARevisa la captura que adjunto.%0AGracias! 🇳🇮`;
   window.open(`https://wa.me/50555010044?text=${text}`, '_blank');
   showToast("📱 WhatsApp abierto");
 };
@@ -387,18 +318,6 @@ const sendToEmail = () => {
   showToast("✉️ Email abierto");
 };
 
-const centerDesign = (side) => {
-  const previewId = side === 0 ? 'design-preview' : 'design-preview-back';
-  const preview = document.getElementById(previewId);
-  const design = preview ? preview.querySelector('img') : null;
-  if (!design) return showToast("❌ No hay diseño para centrar");
-  const previewRect = preview.getBoundingClientRect();
-  const designRect = design.getBoundingClientRect();
-  design.style.left = `${(previewRect.width - designRect.width) / 2}px`;
-  design.style.top = `${(previewRect.height - designRect.height) / 2}px`;
-  showToast("🎯 Diseño centrado");
-};
-
 const initDesigner = () => {
   if (document.getElementById('type-0')) {
     selectShirtType(0);
@@ -408,7 +327,7 @@ const initDesigner = () => {
   loadSavedDesign();
   initDragListeners();
   window.addEventListener('resize', () => setTimeout(updateDesignSize, 200));
-  console.log("%c✅ Diseñador COMPLETO y corregido cargado", "color:#facc15; font-weight:bold");
+  console.log("%c✅ Diseñador COMPLETO y sin errores - Margen 90%/88% mantenido", "color:#facc15; font-weight:bold");
 };
 
 window.addEventListener('load', initDesigner);

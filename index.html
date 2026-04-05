@@ -7,18 +7,18 @@
   <meta name="description" content="Camisetas premium con diseños únicos de Nicaragua. Nicas, Anime, Arte Urbano y más. Envío rápido en todo el país.">
   
   <link rel="preload" href="img/heroes/hero-1.webp" as="image" type="image/webp">
-  <link rel="preload" href="img/products/product-2.webp" as="image" type="image/webp">
+  <link rel="preload" href="img/heroes/hero-tienda.webp" as="image" type="image/webp">
+  <link rel="preload" href="img/heroes/hero-comunidad.webp" as="image" type="image/webp">
+  <link rel="preload" href="img/products/anime-1.webp" as="image" type="image/webp">
 
-  <!-- Tailwind CDN optimizado -->
+  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
       content: [],
       theme: {
         extend: {
-          colors: {
-            momotus: '#facc15'
-          }
+          colors: { momotus: '#facc15' }
         }
       }
     }
@@ -37,13 +37,14 @@
       max-width: 520px;
       aspect-ratio: 1 / 1;
       min-height: 520px;
-      transition: transform 0.8s cubic-bezier(0.25, 0.1, 0.25, 1);
+      transition: transform 0.9s cubic-bezier(0.25, 0.1, 0.25, 1);
       animation: gentleRotate 35s linear infinite;
       box-shadow: 0 60px 100px -30px rgb(0 0 0 / 0.7), 0 0 0 18px rgba(250, 204, 21, 0.18);
       border-radius: 40px;
       background: #1f2937;
       position: relative;
       overflow: hidden;
+      transform-style: preserve-3d;
     }
     @keyframes gentleRotate {
       from { transform: rotateY(0deg); }
@@ -53,50 +54,77 @@
       animation-play-state: paused;
       transform: scale(1.08) rotateY(18deg) rotateX(8deg);
     }
+
+    /* Flip 3D */
+    .mockup-3d.flipped {
+      animation-play-state: paused;
+      transform: rotateY(180deg);
+    }
+    #front, #back {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      backface-visibility: hidden;
+      transition: opacity 0.4s ease;
+    }
+    #back {
+      transform: rotateY(180deg);
+      opacity: 0;
+    }
+    .mockup-3d.flipped #front { opacity: 0; }
+    .mockup-3d.flipped #back { opacity: 1; }
   </style>
 </head>
 <body class="bg-zinc-950 text-white">
 
   <div id="navbar-placeholder"></div>
 
-  <!-- HERO CORREGIDO (Carousel funcionando) -->
+  <!-- HERO CAROUSEL -->
   <section class="relative h-screen overflow-hidden">
-    <div id="hero-bg" class="absolute inset-0 bg-cover bg-center transition-transform duration-1000" 
+    <div id="hero-bg" class="absolute inset-0 bg-cover bg-center transition-all duration-1000 ease-in-out" 
          style="background-image: url('img/heroes/hero-1.webp');"></div>
     <div class="absolute inset-0 bg-gradient-to-r from-black/70 to-transparent"></div>
     
     <div class="max-w-7xl mx-auto px-6 relative z-10 h-full flex items-center">
       <div class="max-w-lg">
-        <h2 class="text-5xl md:text-7xl font-black leading-none mb-4">VIBES MANAGUA</h2>
-        <p class="text-xl md:text-2xl text-zinc-200 mb-8">Diseños únicos que representan nuestra cultura</p>
+        <h2 id="hero-title" class="text-5xl md:text-7xl font-black leading-none mb-4">VIBES MANAGUA</h2>
+        <p id="hero-subtitle" class="text-xl md:text-2xl text-zinc-200 mb-8">Diseños únicos que representan nuestra cultura</p>
         <a href="tienda.html" class="inline-block bg-yellow-400 text-black font-bold px-10 py-5 rounded-3xl text-lg hover:bg-yellow-300 btn-hover">Explorar Tienda</a>
       </div>
     </div>
 
-    <button onclick="prevSlide()" class="absolute left-6 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black text-white p-5 rounded-full z-20"><i class="fa-solid fa-chevron-left text-3xl"></i></button>
-    <button onclick="nextSlide()" class="absolute right-6 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black text-white p-5 rounded-full z-20"><i class="fa-solid fa-chevron-right text-3xl"></i></button>
+    <button onclick="prevSlide()" aria-label="Slide anterior" class="absolute left-6 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black text-white p-5 rounded-full z-20 transition-all">
+      <i class="fa-solid fa-chevron-left text-3xl"></i>
+    </button>
+    <button onclick="nextSlide()" aria-label="Slide siguiente" class="absolute right-6 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black text-white p-5 rounded-full z-20 transition-all">
+      <i class="fa-solid fa-chevron-right text-3xl"></i>
+    </button>
+    
     <div class="absolute bottom-10 left-1/2 -translate-x-1/2 flex gap-3 z-20" id="carousel-indicators"></div>
   </section>
 
-  <!-- MOCKUP 3D -->
+  <!-- MOCKUP 3D - ACTUALIZADO CON ANIME-1 -->
   <section class="py-20 bg-zinc-900 border-t border-b border-zinc-800 overflow-hidden">
     <div class="max-w-7xl mx-auto px-6">
       <div class="text-center mb-12">
         <span class="inline-flex items-center gap-2 bg-orange-500 text-white text-sm font-bold px-6 py-2 rounded-3xl">
           <i class="fa-solid fa-fire"></i> MÁS VENDIDO 2026
         </span>
-        <h2 class="text-5xl md:text-5xl font-black tracking-tighter mt-6">Nica Power</h2>
+        <h2 class="text-5xl md:text-5xl font-black tracking-tighter mt-6">ANIME POWER</h2>
         <p class="text-xl md:text-2xl text-zinc-400 mt-4 max-w-md mx-auto">
-          El poder de Nicaragua en tu pecho.<br>
-          Diseño premium que representa nuestra fuerza y orgullo nica.
+          El poder del anime en tu pecho.<br>
+          Diseño premium que representa tu estilo nica.
         </p>
       </div>
 
       <div class="flex justify-center mb-12">
         <div class="mockup-3d-container">
           <div id="mockup-3d" class="mockup-3d mx-auto relative">
-            <img id="front" src="img/products/product-2.webp" width="520" height="520" alt="Nica Power Frente" loading="eager">
-            <img id="back" src="img/mockups/mockup-regular-negro-espalda.webp" width="520" height="520" class="opacity-0 rotate-y-180" alt="Nica Power Espalda" loading="lazy">
+            <img id="front" src="img/products/anime-1.webp" width="520" height="520" alt="Anime 1 Frente" loading="eager">
+            <img id="back" src="img/mockups/mockup-regular-negro-espalda.webp" width="520" height="520" alt="Anime 1 Espalda" loading="lazy">
           </div>
         </div>
       </div>
@@ -105,7 +133,7 @@
         <button onclick="flipMockup()" class="bg-yellow-400 hover:bg-yellow-300 text-black font-bold px-10 py-6 rounded-3xl text-xl flex items-center gap-3 transition shadow-xl">
           <i class="fa-solid fa-sync"></i> Ver Frente / Espalda
         </button>
-        <a href="tienda.html" onclick="showQuickView(2); return false;" class="border border-white/60 hover:bg-white/10 font-medium px-10 py-6 rounded-3xl text-xl transition">
+        <a href="tienda.html" onclick="showQuickView(5); return false;" class="border border-white/60 hover:bg-white/10 font-medium px-10 py-6 rounded-3xl text-xl transition">
           Crear mi propia versión
         </a>
       </div>
@@ -188,7 +216,65 @@
     </div>
   </footer>
 
-  <!-- SCRIPT ORIGINAL -->
+  <!-- SCRIPT ESPECÍFICO DE INDEX -->
+  <script>
+    let currentSlide = 0;
+    const heroImages = [
+      { src: "img/heroes/hero-1.webp", title: "VIBES MANAGUA", subtitle: "Diseños únicos que representan nuestra cultura" },
+      { src: "img/heroes/hero-tienda.webp", title: "COLECCIÓN 2026", subtitle: "Camisetas premium con alma nica" },
+      { src: "img/heroes/hero-comunidad.webp", title: "NICARAGUA VISTE", subtitle: "+380 nicas ya llevan Momotus Core" }
+    ];
+
+    function updateHero() {
+      const bg = document.getElementById('hero-bg');
+      const title = document.getElementById('hero-title');
+      const subtitle = document.getElementById('hero-subtitle');
+      bg.style.backgroundImage = `url('${heroImages[currentSlide].src}')`;
+      title.textContent = heroImages[currentSlide].title;
+      subtitle.textContent = heroImages[currentSlide].subtitle;
+      updateIndicators();
+    }
+
+    function updateIndicators() {
+      const container = document.getElementById('carousel-indicators');
+      container.innerHTML = '';
+      heroImages.forEach((_, index) => {
+        const dot = document.createElement('button');
+        dot.className = `w-3 h-3 rounded-full transition-all ${index === currentSlide ? 'bg-yellow-400 scale-125' : 'bg-white/50 hover:bg-white/70'}`;
+        dot.onclick = () => { currentSlide = index; updateHero(); };
+        container.appendChild(dot);
+      });
+    }
+
+    window.prevSlide = () => {
+      currentSlide = (currentSlide - 1 + heroImages.length) % heroImages.length;
+      updateHero();
+    };
+
+    window.nextSlide = () => {
+      currentSlide = (currentSlide + 1) % heroImages.length;
+      updateHero();
+    };
+
+    window.flipMockup = () => {
+      const mockup = document.getElementById('mockup-3d');
+      mockup.classList.toggle('flipped');
+    };
+
+    function startCarousel() {
+      setInterval(() => {
+        currentSlide = (currentSlide + 1) % heroImages.length;
+        updateHero();
+      }, 5000);
+    }
+
+    window.addEventListener('load', () => {
+      updateIndicators();
+      startCarousel();
+      console.log("%c✅ index.html - Mockup 3D con anime-1 cargado correctamente", "color:#facc15; font-weight:bold");
+    });
+  </script>
+
   <script src="js/script.js"></script>
 </body>
 </html>

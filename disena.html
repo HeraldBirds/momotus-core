@@ -22,24 +22,43 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
   <style>
-    .mockup-wrapper { background: #111827; border-radius: 40px; padding: 40px; box-shadow: 0 40px 80px -20px rgb(0 0 0 / 0.8); }
-    @media (max-width: 767px) { .mockup-wrapper { padding: 20px; border-radius: 28px; } }
-    .shirt-mockup { width: 100%; max-width: 520px; border-radius: 32px; box-shadow: 0 40px 80px -20px rgb(0 0 0 / 0.75); }
+    .mockup-wrapper { 
+      background: #111827; 
+      border-radius: 40px; 
+      padding: 40px; 
+      box-shadow: 0 40px 80px -20px rgb(0 0 0 / 0.8); 
+    }
+    @media (max-width: 767px) { 
+      .mockup-wrapper { padding: 20px; border-radius: 28px; } 
+    }
+    .shirt-mockup { 
+      width: 100%; 
+      max-width: 520px; 
+      border-radius: 32px; 
+      box-shadow: 0 40px 80px -20px rgb(0 0 0 / 0.75); 
+    }
     
-    #design-preview, #design-preview-back { 
-      position: absolute; 
-      cursor: move; 
-      border: 4px dashed #facc15; 
-      background: rgba(250, 204, 21, 0.12); 
-      border-radius: 24px; 
-      overflow: hidden; 
-      z-index: 20; 
+    /* === CUADRO AMARILLO - SOLO BORDE (fondo totalmente transparente) === */
+    #design-preview, 
+    #design-preview-back { 
+      position: absolute !important; 
+      cursor: move !important; 
+      border: 4px dashed #facc15 !important; 
+      background: transparent !important; 
+      border-radius: 24px !important; 
+      overflow: hidden !important; 
+      z-index: 20 !important;
+      top: 5% !important; 
+      left: 5% !important; 
+      width: 90% !important; 
+      height: 88% !important; 
     }
 
     .tab-active { border-bottom: 4px solid #facc15; color: #facc15; }
     
     .resize-btn {
-      width: 52px; height: 52px; border-radius: 9999px; font-size: 26px; display: flex; align-items: center; justify-content: center;
+      width: 52px; height: 52px; border-radius: 9999px; font-size: 26px; 
+      display: flex; align-items: center; justify-content: center;
       transition: all 0.2s ease; box-shadow: 0 4px 15px -2px rgb(250 204 21 / 0.3);
     }
     .resize-btn:hover { transform: scale(1.1); }
@@ -70,11 +89,11 @@
 
             <div id="mockup-frente" class="relative">
               <img id="shirt-mockup" src="img/mockups/mockup-regular-negro-frente.webp" class="shirt-mockup w-full" alt="Mockup Frente">
-              <div id="design-preview" class="absolute top-[26%] left-1/2 -translate-x-1/2 flex items-center justify-center"></div>
+              <div id="design-preview" class="absolute flex items-center justify-center"></div>
             </div>
             <div id="mockup-espalda" class="relative hidden">
               <img id="shirt-mockup-back" src="img/mockups/mockup-regular-negro-espalda.webp" class="shirt-mockup w-full" alt="Mockup Espalda">
-              <div id="design-preview-back" class="absolute top-[26%] left-1/2 -translate-x-1/2 flex items-center justify-center"></div>
+              <div id="design-preview-back" class="absolute flex items-center justify-center"></div>
             </div>
 
             <!-- Botones de tamaño -->
@@ -88,7 +107,7 @@
               </button>
             </div>
 
-            <!-- === NUEVO MENSAJE PROFESIONAL EN LUGAR DE VISTA PREVIA === -->
+            <!-- Mensaje profesional -->
             <div class="bg-gradient-to-r from-yellow-400/10 to-transparent border border-yellow-400/30 rounded-3xl p-8 text-center">
               <p class="text-yellow-300 font-semibold text-xl mb-3">¿Listo para pedir tu camiseta?</p>
               <p class="text-zinc-300 leading-relaxed text-base">
@@ -102,7 +121,7 @@
           </div>
         </div>
 
-        <!-- Panel de personalización (sin cambios) -->
+        <!-- Panel de personalización -->
         <div class="space-y-12">
           <div>
             <h3 class="text-4xl font-bold">Personaliza tu camiseta</h3>
