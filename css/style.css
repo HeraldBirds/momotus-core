@@ -1,4 +1,4 @@
-/* css/style.css - Momotus Core - VERSIÓN PULIDA 2026 */
+/* css/style.css - Momotus Core - VERSIÓN ACTUALIZADA Y MEJORADA (04 Abril 2026) */
 
 @layer base {
   body { 
@@ -20,21 +20,6 @@
   box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.35); 
 }
 
-.mobile-menu { 
-  animation: menuSlide 0.3s ease forwards; 
-}
-@keyframes menuSlide { 
-  from { opacity: 0; transform: translateY(-20px); } 
-  to { opacity: 1; transform: translateY(0); } 
-}
-
-.footer { 
-  background: #111827; 
-}
-
-.btn-hover { 
-  transition: all 0.3s ease; 
-}
 .btn-hover:hover { 
   transform: scale(1.05); 
 }
@@ -50,7 +35,7 @@
   transform: scale(1.08); 
 }
 
-/* ==================== MOCKUP 3D MEJORADO ==================== */
+/* ==================== MOCKUP 3D ==================== */
 .mockup-3d-container {
   perspective: 1600px;
   perspective-origin: 50% 40%;
@@ -58,13 +43,14 @@
 
 .mockup-3d {
   width: 100%;
-  max-width: 480px;
+  max-width: 520px;
+  min-height: 520px;
   transition: transform 0.8s cubic-bezier(0.25, 0.1, 0.25, 1);
   animation: gentleRotate 35s linear infinite;
-  box-shadow: 
-    0 60px 100px -30px rgb(0 0 0 / 0.7),
-    0 0 0 18px rgba(250, 204, 21, 0.18);
+  box-shadow: 0 60px 100px -30px rgb(0 0 0 / 0.7),
+              0 0 0 18px rgba(250, 204, 21, 0.18);
   border-radius: 40px;
+  background: #1f2937;
 }
 
 @keyframes gentleRotate {
@@ -77,11 +63,49 @@
   transform: scale(1.08) rotateY(18deg) rotateX(8deg);
 }
 
-.rotate-y-180 { 
-  transform: rotateY(180deg); 
+/* ==================== DISEÑADOR - VISTA PREVIA FINAL (MEJORADO) ==================== */
+#final-preview-modal img {
+  box-shadow: 0 35px 70px -15px rgb(0 0 0 / 0.65),
+              0 0 0 12px rgba(250, 204, 21, 0.12) !important;
+  transition: all 0.4s ease;
+  border-radius: 24px;
 }
 
-/* ==================== BENEFICIOS ANIMADOS ==================== */
+#final-preview-modal .shadow-2xl {
+  box-shadow: 0 35px 70px -15px rgb(0 0 0 / 0.65) !important;
+}
+
+/* Elimina cualquier borde amarillo que pueda filtrarse */
+#design-preview, 
+#design-preview-back {
+  border: 4px dashed #facc15 !important; /* solo visible en el editor */
+  background: rgba(250, 204, 21, 0.08) !important;
+}
+
+/* En la vista previa final NO debe aparecer el borde */
+#final-preview-modal #design-preview,
+#final-preview-modal #design-preview-back {
+  border: none !important;
+  background: transparent !important;
+}
+
+/* ==================== BOTONES DE REDIMENSIONAMIENTO ==================== */
+.resize-btn {
+  width: 52px; 
+  height: 52px; 
+  border-radius: 9999px; 
+  font-size: 26px; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center;
+  transition: all 0.2s ease; 
+  box-shadow: 0 4px 15px -2px rgb(250 204 21 / 0.3);
+}
+.resize-btn:hover { 
+  transform: scale(1.1); 
+}
+
+/* ==================== BENEFICIOS ==================== */
 .benefit-card {
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -89,18 +113,17 @@
   transform: scale(1.12) rotate(12deg);
 }
 
-/* ==================== HERO PARALLAX (opcional) ==================== */
+/* ==================== HERO & OTROS ==================== */
 #hero-bg {
   transition: transform 0.1s ease-out;
 }
 
-/* ==================== OTROS ESTILOS ÚTILES ==================== */
 .shirt-type-btn.active {
   background-color: #facc15 !important;
   color: #000 !important;
 }
 
-.size-btn {
+.size-btn, .filter-btn.active {
   transition: all 0.2s ease;
 }
 
@@ -110,19 +133,17 @@
   font-weight: 600;
 }
 
-/* Scrollbar bonito para la tienda */
+/* Scrollbar bonito */
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
 
-.mockup-3d {
-  width: 100%;
-  max-width: 520px;
-  min-height: 520px;        /* ← Esto es lo que faltaba */
-  transition: transform 0.8s cubic-bezier(0.25, 0.1, 0.25, 1);
-  animation: gentleRotate 35s linear infinite;
-  box-shadow: 
-    0 60px 100px -30px rgb(0 0 0 / 0.7),
-    0 0 0 18px rgba(250, 204, 21, 0.18);
-  border-radius: 40px;
+/* ==================== MEJORAS GENERALES ==================== */
+.rounded-3xl {
+  border-radius: 1.5rem;
+}
+
+/* Footer */
+.footer {
+  background: #111827;
 }

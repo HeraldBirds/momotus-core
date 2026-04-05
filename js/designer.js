@@ -1,13 +1,15 @@
-// js/designer.js - Momotus Core - SOLO DISEÑADOR (COMPLETO + OPTIMIZADO PARA MÓVIL)
-// Bug #1 corregido + Mejoras móviles - 04 Abril 2026
+// js/designer.js - Momotus Core - VERSIÓN FINAL CORREGIDA (04 Abril 2026)
+// ✅ Sin borde amarillo en Vista Previa Final + diseño completo visible
 
 let currentShirtType = 0;
 let currentColor = 'black';
 let currentSize = 'M';
 let designFront = null;
 let designBack = null;
+let currentScaleFront = 1;
+let currentScaleBack = 1;
 
-const designSizes = [265, 235, 295]; // Regular, Slim, Oversized
+const designSizes = [265, 235, 295];
 
 const shirtTypes = ['regular', 'slim', 'oversized'];
 const colorMap = { black: 'negro', white: 'blanco', red: 'rojo', blue: 'azul', emerald: 'verde', violet: 'violeta', amber: 'amarillo', pink: 'rosa' };
@@ -36,42 +38,18 @@ const getDesignStyle = (colorKey) => {
     : `mix-blend-mode: multiply; filter: brightness(1.08) contrast(1.18) saturate(1.25) opacity(0.95);`;
 };
 
-// ==================== ACTUALIZACIÓN DE TAMAÑO (OPTIMIZADO PARA MÓVIL) ====================
+// ==================== ACTUALIZAR TAMAÑO ====================
 const updateDesignSize = () => {
   const containerSize = designSizes[currentShirtType];
-  const isMobile = window.innerWidth < 768;
-  const scaleFactor = isMobile ? 0.88 : 0.82;
-
-  ['design-preview', 'design-preview-back'].forEach(id => {
+  ['design-preview', 'design-preview-back'].forEach((id, index) => {
     const preview = document.getElementById(id);
     if (!preview) return;
-
     preview.style.width = `${containerSize}px`;
     preview.style.height = `${containerSize}px`;
-
     const designImg = preview.querySelector('img');
     if (designImg) {
-      designImg.style.transition = 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
-
-      const targetSize = Math.round(containerSize * scaleFactor);
-      const aspect = designImg.naturalWidth / designImg.naturalHeight || 1;
-
-      let newWidth = targetSize;
-      let newHeight = Math.round(newWidth / aspect);
-
-      if (newHeight > containerSize * 0.90) {
-        newHeight = Math.round(containerSize * 0.90);
-        newWidth = Math.round(newHeight * aspect);
-      }
-
-      designImg.style.width = `${newWidth}px`;
-      designImg.style.height = `${newHeight}px`;
-
-      const centerX = (containerSize - newWidth) / 2;
-      const centerY = (containerSize - newHeight) / 2;
-
-      designImg.style.left = `${centerX}px`;
-      designImg.style.top = `${centerY}px`;
+      const scale = index === 0 ? currentScaleFront : currentScaleBack;
+      designImg.style.transform = `scale(${scale})`;
     }
   });
 };
@@ -79,37 +57,18 @@ const updateDesignSize = () => {
 const updateMockups = () => {
   const frontImg = document.getElementById('shirt-mockup');
   const backImg = document.getElementById('shirt-mockup-back');
+  let loaded = 0;
+  const total = (frontImg ? 1 : 0) + (backImg ? 1 : 0);
+  const onLoad = () => { loaded++; if (loaded === total) updateDesignSize(); };
 
-  let imagesLoaded = 0;
-  const totalImages = (frontImg ? 1 : 0) + (backImg ? 1 : 0);
-
-  const onImageLoad = () => {
-    imagesLoaded++;
-    if (imagesLoaded === totalImages) {
-      updateDesignSize();
-      saveCurrentDesign();
-    }
-  };
-
-  if (frontImg) {
-    frontImg.src = getMockupPath(currentShirtType, currentColor, false);
-    frontImg.onload = onImageLoad;
-  }
-  if (backImg) {
-    backImg.src = getMockupPath(currentShirtType, currentColor, true);
-    backImg.onload = onImageLoad;
-  }
-
-  setTimeout(() => {
-    if (imagesLoaded < totalImages) updateDesignSize();
-  }, 150);
+  if (frontImg) { frontImg.src = getMockupPath(currentShirtType, currentColor, false); frontImg.onload = onLoad; }
+  if (backImg) { backImg.src = getMockupPath(currentShirtType, currentColor, true); backImg.onload = onLoad; }
+  setTimeout(updateDesignSize, 100);
 };
 
 const selectShirtType = (index) => {
   currentShirtType = index;
-  document.querySelectorAll('.shirt-type-btn').forEach((btn, i) => 
-    btn.classList.toggle('active', i === index)
-  );
+  document.querySelectorAll('.shirt-type-btn').forEach((btn, i) => btn.classList.toggle('active', i === index));
   updateMockups();
 };
 
@@ -120,6 +79,65 @@ const selectColor = (colorKey, el) => {
   updateMockups();
 };
 
+window.scaleDesign = (side, delta) => {
+  if (side === 0) currentScaleFront = Math.max(0.3, Math.min(3, currentScaleFront + delta));
+  else currentScaleBack = Math.max(0.3, Math.min(3, currentScaleBack + delta));
+  updateDesignSize();
+};
+
+// ==================== DRAG & DROP ====================
+let isDragging = false;
+let currentDraggingDesign = null;
+let offsetX = 0, offsetY = 0;
+
+const makeDraggable = (el) => {
+  if (!el) return;
+  el.style.position = 'absolute';
+  el.style.cursor = 'grab';
+  el.style.zIndex = '30';
+  el.addEventListener('mousedown', startDrag);
+  el.addEventListener('touchstart', startDrag, { passive: false });
+};
+
+const startDrag = (e) => {
+  isDragging = true;
+  currentDraggingDesign = e.target || (e.touches && e.touches[0].target);
+  const rect = currentDraggingDesign.getBoundingClientRect();
+  const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+  const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+  offsetX = clientX - rect.left;
+  offsetY = clientY - rect.top;
+  currentDraggingDesign.style.transition = 'none';
+  e.preventDefault();
+};
+
+const initDragListeners = () => {
+  const moveHandler = (e) => {
+    if (!isDragging || !currentDraggingDesign) return;
+    const preview = currentDraggingDesign.parentElement;
+    const previewRect = preview.getBoundingClientRect();
+    const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+    const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+    let newX = clientX - previewRect.left - offsetX;
+    let newY = clientY - previewRect.top - offsetY;
+    newX = Math.max(-currentDraggingDesign.offsetWidth * 0.8, Math.min(newX, previewRect.width - currentDraggingDesign.offsetWidth * 0.2));
+    newY = Math.max(-currentDraggingDesign.offsetHeight * 0.8, Math.min(newY, previewRect.height - currentDraggingDesign.offsetHeight * 0.2));
+    currentDraggingDesign.style.left = `${newX}px`;
+    currentDraggingDesign.style.top = `${newY}px`;
+    e.preventDefault();
+  };
+  const endHandler = () => {
+    if (currentDraggingDesign) currentDraggingDesign.style.transition = 'all 0.2s ease';
+    isDragging = false;
+    currentDraggingDesign = null;
+  };
+  document.addEventListener('mousemove', moveHandler);
+  document.addEventListener('touchmove', moveHandler, { passive: false });
+  document.addEventListener('mouseup', endHandler);
+  document.addEventListener('touchend', endHandler);
+};
+
+// ==================== SUBIR DISEÑO ====================
 const handleDesignUpload = (e, side) => {
   const file = e.target.files[0];
   if (!file) return;
@@ -149,6 +167,8 @@ const handleDesignUpload = (e, side) => {
 const resetDesign = () => {
   designFront = null;
   designBack = null;
+  currentScaleFront = 1;
+  currentScaleBack = 1;
   ['design-preview', 'design-preview-back'].forEach(id => {
     const preview = document.getElementById(id);
     if (preview) {
@@ -166,7 +186,9 @@ const saveCurrentDesign = () => {
     color: currentColor,
     size: currentSize,
     frontDesign: designFront,
-    backDesign: designBack
+    backDesign: designBack,
+    scaleFront: currentScaleFront,
+    scaleBack: currentScaleBack
   };
   localStorage.setItem('momotusCurrentDesign', JSON.stringify(data));
 };
@@ -180,6 +202,8 @@ const loadSavedDesign = () => {
   currentSize = data.size || 'M';
   designFront = data.frontDesign;
   designBack = data.backDesign;
+  currentScaleFront = data.scaleFront || 1;
+  currentScaleBack = data.scaleBack || 1;
 
   document.querySelectorAll('.shirt-type-btn').forEach((btn, i) => btn.classList.toggle('active', i === currentShirtType));
 
@@ -250,71 +274,95 @@ const abrirRemoveBg = () => {
   showToast("🪄 remove.bg abierto");
 };
 
-// ==================== VISTA PREVIA FINAL ====================
-const showFinalPreview = () => {
+// ==================== VISTA PREVIA FINAL (SIN BORDE AMARILLO) ====================
+const showFinalPreview = async () => {
   const modalHTML = `
     <div id="final-preview-modal" class="fixed inset-0 bg-black/95 flex items-center justify-center z-[12000] p-4">
-      <div class="bg-zinc-900 rounded-3xl max-w-5xl w-full max-h-[95vh] overflow-hidden">
-        <div class="px-8 py-6 border-b border-zinc-700 flex justify-between items-center">
-          <h3 class="text-3xl font-bold">Vista Previa Final de tu Camiseta</h3>
-          <button onclick="closeFinalPreview()" class="text-5xl text-zinc-400 hover:text-white leading-none">×</button>
+      <div class="bg-zinc-900 rounded-3xl max-w-md w-full overflow-hidden shadow-2xl">
+        <div class="px-6 py-5 border-b border-zinc-700 flex justify-between items-center">
+          <h3 class="text-2xl font-bold">Vista Previa Final</h3>
+          <button onclick="closeFinalPreview()" class="text-4xl text-zinc-400 hover:text-white">×</button>
         </div>
-        <div class="p-8 flex flex-col lg:flex-row gap-12">
-          <div class="flex-1 flex justify-center">
-            <div class="relative max-w-md w-full">
-              <img id="preview-shirt-big" src="${getMockupPath(currentShirtType, currentColor, false)}" class="w-full rounded-3xl shadow-2xl" alt="Vista previa final">
-              <div id="preview-design-big" class="absolute top-[26%] left-1/2 -translate-x-1/2 pointer-events-none"></div>
+        <div class="p-6" id="preview-content">
+          <div class="flex justify-center items-center py-12">
+            <div class="text-center">
+              <i class="fa-solid fa-spinner animate-spin text-5xl text-yellow-400 mb-4"></i>
+              <p class="text-zinc-300">Generando vista limpia...</p>
             </div>
-          </div>
-          <div class="flex-1">
-            <h4 class="text-2xl font-bold mb-6">Tu diseño personalizado</h4>
-            <div class="mb-8">
-              <p class="font-medium mb-3">Talla</p>
-              <div class="flex flex-wrap gap-3" id="preview-size-buttons"></div>
-            </div>
-            <div class="bg-gradient-to-r from-yellow-400/10 to-transparent border border-yellow-400/30 rounded-3xl p-6 mb-8">
-              <p class="text-yellow-300 font-semibold">¿Listo para pedirla?</p>
-              <p class="text-zinc-400 text-sm mt-2">Envíanos esta vista previa por WhatsApp y te damos el precio exacto en menos de 10 minutos.</p>
-            </div>
-            <button onclick="sendToWhatsAppFromPreview()" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-7 rounded-3xl text-xl flex items-center justify-center gap-4 mb-4">
-              <i class="fa-brands fa-whatsapp text-3xl"></i>
-              ENVIAR POR WHATSAPP
-            </button>
-            <p class="text-center text-xs text-zinc-500">Toma captura de pantalla de esta vista para guardar tu diseño.</p>
           </div>
         </div>
       </div>
     </div>
   `;
-  document.body.insertAdjacentHTML('beforeend', modalHTML);
 
-  const container = document.getElementById('preview-design-big');
-  if (designFront) {
-    container.innerHTML = `<img src="${designFront}" class="max-w-full max-h-full object-contain rounded-3xl" style="${getDesignStyle(currentColor)}">`;
+  document.body.insertAdjacentHTML('beforeend', modalHTML);
+  const contentContainer = document.getElementById('preview-content');
+
+  try {
+    // Clonamos para no modificar el editor
+    const originalFront = document.getElementById('mockup-frente');
+    const cloneFront = originalFront.cloneNode(true);
+    const designPreviewClone = cloneFront.querySelector('#design-preview');
+    if (designPreviewClone) {
+      designPreviewClone.style.border = 'none';
+      designPreviewClone.style.background = 'transparent';
+    }
+
+    const canvasFront = await html2canvas(cloneFront, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: null,
+      logging: false,
+      allowTaint: true
+    });
+
+    let backSection = '';
+    if (designBack) {
+      const originalBack = document.getElementById('mockup-espalda');
+      const cloneBack = originalBack.cloneNode(true);
+      const designPreviewBackClone = cloneBack.querySelector('#design-preview-back');
+      if (designPreviewBackClone) {
+        designPreviewBackClone.style.border = 'none';
+        designPreviewBackClone.style.background = 'transparent';
+      }
+      const canvasBack = await html2canvas(cloneBack, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: null,
+        logging: false,
+        allowTaint: true
+      });
+      backSection = `
+        <div class="mt-8">
+          <h4 class="text-xl font-semibold text-center mb-4 text-yellow-300">Vista Espalda</h4>
+          <img src="${canvasBack.toDataURL('image/png')}" class="mx-auto rounded-3xl shadow-xl w-full max-w-[420px]">
+        </div>`;
+    }
+
+    contentContainer.innerHTML = `
+      <div class="space-y-8">
+        <div>
+          <h4 class="text-xl font-semibold text-center mb-4 text-yellow-300">Vista Frente</h4>
+          <img src="${canvasFront.toDataURL('image/png')}" class="mx-auto rounded-3xl shadow-xl w-full max-w-[420px]">
+        </div>
+        ${backSection}
+        <div class="pt-6 border-t border-zinc-700 flex gap-3">
+          <button onclick="sendToWhatsAppFromPreview()" class="flex-1 bg-green-600 hover:bg-green-500 text-white font-bold py-6 rounded-3xl text-lg flex items-center justify-center gap-3">
+            <i class="fa-brands fa-whatsapp text-2xl"></i> WhatsApp
+          </button>
+          <button onclick="closeFinalPreview()" class="flex-1 border border-zinc-600 hover:bg-zinc-800 py-6 rounded-3xl font-bold text-lg">Cerrar</button>
+        </div>
+      </div>
+    `;
+  } catch (err) {
+    console.error(err);
+    contentContainer.innerHTML = `<p class="text-red-400 text-center py-8">Error al generar la vista previa.</p>`;
   }
-  renderPreviewSizeButtons();
 };
 
 const closeFinalPreview = () => {
   const modal = document.getElementById('final-preview-modal');
   if (modal) modal.remove();
-};
-
-const renderPreviewSizeButtons = () => {
-  const container = document.getElementById('preview-size-buttons');
-  if (!container) return;
-  container.innerHTML = '';
-  const sizes = ['S', 'M', 'L', 'XL', 'XXL'];
-  sizes.forEach(size => {
-    const btn = document.createElement('button');
-    btn.textContent = size;
-    btn.className = `px-8 py-4 rounded-3xl font-medium border transition ${size === currentSize ? 'bg-yellow-400 text-black border-yellow-400' : 'border-zinc-600 hover:border-yellow-400'}`;
-    btn.onclick = () => {
-      currentSize = size;
-      renderPreviewSizeButtons();
-    };
-    container.appendChild(btn);
-  });
 };
 
 const sendToWhatsAppFromPreview = () => {
@@ -325,90 +373,18 @@ const sendToWhatsAppFromPreview = () => {
 const sendToWhatsApp = () => {
   const typeName = ['Regular / Unisex', 'Slim Fit', 'Oversized'][currentShirtType];
   const colorName = colorMap[currentColor] || currentColor;
-  const text = `¡Hola Momotus Core! 👋%0A%0AAcabo de diseñar mi camiseta personalizada:%0A• Tipo de corte: ${typeName}%0A• Talla: ${currentSize}%0A• Color: ${colorName.charAt(0).toUpperCase() + colorName.slice(1)}%0A• Diseño Frente: ${designFront ? 'Sí' : 'No'}%0A• Diseño Espalda: ${designBack ? 'Sí' : 'No'}%0A%0APor favor revisa la vista previa que adjuntaré.%0AGracias! 🇳🇮`;
+  const text = `¡Hola Momotus Core! 👋%0A%0AAcabo de diseñar mi camiseta:%0A• Tipo: ${typeName}%0A• Talla: ${currentSize}%0A• Color: ${colorName.charAt(0).toUpperCase() + colorName.slice(1)}%0A• Frente: ${designFront ? 'Sí' : 'No'}%0A• Espalda: ${designBack ? 'Sí' : 'No'}%0A%0ARevisa la vista previa adjunta.%0AGracias! 🇳🇮`;
   window.open(`https://wa.me/50555010044?text=${text}`, '_blank');
-  showToast("📱 WhatsApp abierto – adjunta la captura");
+  showToast("📱 WhatsApp abierto");
 };
 
 const sendToEmail = () => {
   const typeName = ['Regular / Unisex', 'Slim Fit', 'Oversized'][currentShirtType];
   const colorName = colorMap[currentColor] || currentColor;
   const subject = "Cotización - Camiseta Personalizada Momotus Core";
-  const body = `Hola equipo,%0A%0AQuiero cotizar una camiseta:%0A- Tipo: ${typeName}%0A- Talla: ${currentSize}%0A- Color: ${colorName}%0A- Diseño Frente: ${designFront ? 'Sí' : 'No'}%0A- Diseño Espalda: ${designBack ? 'Sí' : 'No'}%0A%0APor favor revisa las imágenes adjuntas.%0AGracias!`;
+  const body = `Hola,%0A%0AQuiero cotizar:%0A- Tipo: ${typeName}%0A- Talla: ${currentSize}%0A- Color: ${colorName}%0A- Frente: ${designFront ? 'Sí' : 'No'}%0A- Espalda: ${designBack ? 'Sí' : 'No'}%0A%0AGracias!`;
   window.location.href = `mailto:momotuscore@gmail.com?subject=${encodeURIComponent(subject)}&body=${body}`;
   showToast("✉️ Email abierto");
-};
-
-// ==================== MOCKUP 3D FLIP ====================
-let isFlipped = false;
-window.flipMockup = () => {
-  isFlipped = !isFlipped;
-  const container = document.getElementById('mockup-3d');
-  const front = document.getElementById('front');
-  const back = document.getElementById('back');
-  if (!container || !front || !back) return;
-  
-  if (isFlipped) {
-    container.style.transform = 'rotateY(180deg)';
-    front.style.opacity = '0';
-    back.style.opacity = '1';
-  } else {
-    container.style.transform = 'rotateY(0deg)';
-    front.style.opacity = '1';
-    back.style.opacity = '0';
-  }
-};
-
-// ==================== DRAG & DROP ====================
-let isDragging = false;
-let currentDraggingDesign = null;
-let offsetX = 0, offsetY = 0;
-
-const makeDraggable = (el) => {
-  if (!el) return;
-  el.style.position = 'absolute';
-  el.style.cursor = 'grab';
-  el.style.zIndex = '30';
-  el.addEventListener('mousedown', startDrag);
-  el.addEventListener('touchstart', startDrag, { passive: false });
-};
-
-const startDrag = (e) => {
-  isDragging = true;
-  currentDraggingDesign = e.target || (e.touches && e.touches[0].target);
-  const rect = currentDraggingDesign.getBoundingClientRect();
-  const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-  const clientY = e.clientY || (e.touches && e.touches[0].clientY);
-  offsetX = clientX - rect.left;
-  offsetY = clientY - rect.top;
-  currentDraggingDesign.style.transition = 'none';
-  e.preventDefault();
-};
-
-const initDragListeners = () => {
-  const moveHandler = (e) => {
-    if (!isDragging || !currentDraggingDesign) return;
-    const preview = currentDraggingDesign.parentElement;
-    const previewRect = preview.getBoundingClientRect();
-    const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-    const clientY = e.clientY || (e.touches && e.touches[0].clientY);
-    let newX = clientX - previewRect.left - offsetX;
-    let newY = clientY - previewRect.top - offsetY;
-    newX = Math.max(0, Math.min(newX, previewRect.width - currentDraggingDesign.offsetWidth));
-    newY = Math.max(0, Math.min(newY, previewRect.height - currentDraggingDesign.offsetHeight));
-    currentDraggingDesign.style.left = `${newX}px`;
-    currentDraggingDesign.style.top = `${newY}px`;
-    e.preventDefault();
-  };
-  const endHandler = () => {
-    if (currentDraggingDesign) currentDraggingDesign.style.transition = 'all 0.2s ease';
-    isDragging = false;
-    currentDraggingDesign = null;
-  };
-  document.addEventListener('mousemove', moveHandler);
-  document.addEventListener('touchmove', moveHandler, { passive: false });
-  document.addEventListener('mouseup', endHandler);
-  document.addEventListener('touchend', endHandler);
 };
 
 const centerDesign = (side) => {
@@ -418,14 +394,11 @@ const centerDesign = (side) => {
   if (!design) return showToast("❌ No hay diseño para centrar");
   const previewRect = preview.getBoundingClientRect();
   const designRect = design.getBoundingClientRect();
-  const centerX = (previewRect.width - designRect.width) / 2;
-  const centerY = (previewRect.height - designRect.height) / 2;
-  design.style.left = `${centerX}px`;
-  design.style.top = `${centerY}px`;
-  showToast("🎯 Diseño centrado correctamente");
+  design.style.left = `${(previewRect.width - designRect.width) / 2}px`;
+  design.style.top = `${(previewRect.height - designRect.height) / 2}px`;
+  showToast("🎯 Diseño centrado");
 };
 
-// ==================== INICIALIZACIÓN ====================
 const initDesigner = () => {
   if (document.getElementById('type-0')) {
     selectShirtType(0);
@@ -434,10 +407,8 @@ const initDesigner = () => {
   }
   loadSavedDesign();
   initDragListeners();
-
   window.addEventListener('resize', () => setTimeout(updateDesignSize, 200));
-
-  console.log("%c✅ Diseñador completo y optimizado para móvil cargado", "color:#facc15; font-weight:bold");
+  console.log("%c✅ Diseñador COMPLETO y corregido cargado", "color:#facc15; font-weight:bold");
 };
 
 window.addEventListener('load', initDesigner);
