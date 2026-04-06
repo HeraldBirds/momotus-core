@@ -6,74 +6,34 @@
   <title>Momotus Core | Camisetas Personalizadas Nicaragua</title>
   <meta name="description" content="Camisetas premium con diseños únicos de Nicaragua. Nicas, Anime, Arte Urbano y más. Envío rápido en todo el país.">
   
+  <!-- === SEGURIDAD NETLIFY - Momotus Core (Abril 2026) === -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: https:; font-src 'self' https://cdnjs.cloudflare.com; connect-src 'self';">
+
   <link rel="preload" href="img/heroes/hero-1.webp" as="image" type="image/webp">
   <link rel="preload" href="img/heroes/hero-tienda.webp" as="image" type="image/webp">
   <link rel="preload" href="img/heroes/hero-comunidad.webp" as="image" type="image/webp">
   <link rel="preload" href="img/products/anime-1.webp" as="image" type="image/webp">
 
-  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
       content: [],
-      theme: {
-        extend: {
-          colors: { momotus: '#facc15' }
-        }
-      }
+      theme: { extend: { colors: { momotus: '#facc15' } } }
     }
   </script>
 
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" 
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
   <link rel="stylesheet" href="css/style.css">
 
   <style>
-    .mockup-3d-container {
-      perspective: 1600px;
-      perspective-origin: 50% 40%;
-    }
-    .mockup-3d {
-      width: 100%;
-      max-width: 520px;
-      aspect-ratio: 1 / 1;
-      min-height: 520px;
-      transition: transform 0.9s cubic-bezier(0.25, 0.1, 0.25, 1);
-      animation: gentleRotate 35s linear infinite;
-      box-shadow: 0 60px 100px -30px rgb(0 0 0 / 0.7), 0 0 0 18px rgba(250, 204, 21, 0.18);
-      border-radius: 40px;
-      background: #1f2937;
-      position: relative;
-      overflow: hidden;
-      transform-style: preserve-3d;
-    }
-    @keyframes gentleRotate {
-      from { transform: rotateY(0deg); }
-      to   { transform: rotateY(360deg); }
-    }
-    .mockup-3d:hover {
-      animation-play-state: paused;
-      transform: scale(1.08) rotateY(18deg) rotateX(8deg);
-    }
-
-    /* Flip 3D */
-    .mockup-3d.flipped {
-      animation-play-state: paused;
-      transform: rotateY(180deg);
-    }
-    #front, #back {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      backface-visibility: hidden;
-      transition: opacity 0.4s ease;
-    }
-    #back {
-      transform: rotateY(180deg);
-      opacity: 0;
-    }
+    .mockup-3d-container { perspective: 1600px; perspective-origin: 50% 40%; }
+    .mockup-3d { width: 100%; max-width: 520px; aspect-ratio: 1 / 1; min-height: 520px; transition: transform 0.9s cubic-bezier(0.25, 0.1, 0.25, 1); animation: gentleRotate 35s linear infinite; box-shadow: 0 60px 100px -30px rgb(0 0 0 / 0.7), 0 0 0 18px rgba(250, 204, 21, 0.18); border-radius: 40px; background: #1f2937; position: relative; overflow: hidden; transform-style: preserve-3d; }
+    @keyframes gentleRotate { from { transform: rotateY(0deg); } to { transform: rotateY(360deg); } }
+    .mockup-3d:hover { animation-play-state: paused; transform: scale(1.08) rotateY(18deg) rotateX(8deg); }
+    .mockup-3d.flipped { animation-play-state: paused; transform: rotateY(180deg); }
+    #front, #back { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; backface-visibility: hidden; transition: opacity 0.4s ease; }
+    #back { transform: rotateY(180deg); opacity: 0; }
     .mockup-3d.flipped #front { opacity: 0; }
     .mockup-3d.flipped #back { opacity: 1; }
   </style>
@@ -106,7 +66,7 @@
     <div class="absolute bottom-10 left-1/2 -translate-x-1/2 flex gap-3 z-20" id="carousel-indicators"></div>
   </section>
 
-  <!-- MOCKUP 3D - ACTUALIZADO CON ANIME-1 -->
+  <!-- MOCKUP 3D -->
   <section class="py-20 bg-zinc-900 border-t border-b border-zinc-800 overflow-hidden">
     <div class="max-w-7xl mx-auto px-6">
       <div class="text-center mb-12">
@@ -216,7 +176,6 @@
     </div>
   </footer>
 
-  <!-- SCRIPT ESPECÍFICO DE INDEX -->
   <script>
     let currentSlide = 0;
     const heroImages = [

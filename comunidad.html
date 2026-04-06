@@ -6,6 +6,9 @@
   <title>Comunidad - Momotus Core</title>
   <meta name="description" content="Conoce las historias de +380 nicaragüenses que ya visten Momotus Core. Testimonios reales y únete a la comunidad más nica de Nicaragua.">
   
+  <!-- === SEGURIDAD NETLIFY - Momotus Core (Abril 2026) === -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: https:; font-src 'self' https://cdnjs.cloudflare.com; connect-src 'self';">
+
   <!-- Tailwind CDN optimizado -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -21,7 +24,8 @@
     }
   </script>
 
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" 
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body class="bg-zinc-950 text-white">

@@ -1,0 +1,28 @@
+# =============================================
+# _headers - SEGURIDAD MOMOTUS CORE
+# Netlify - Abril 2026
+# =============================================
+
+/*
+  # === Content Security Policy (CSP) - Muy estricto ===
+  Content-Security-Policy: default-src 'self'; 
+    script-src 'self' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com 'unsafe-inline'; 
+    style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; 
+    img-src 'self' data: https: blob:; 
+    font-src 'self' https://cdnjs.cloudflare.com; 
+    connect-src 'self';
+
+  # === Seguridad HTTPS y protección contra ataques ===
+  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+
+  # === Evita que carguen tu página dentro de iframes (anti-clickjacking) ===
+  X-Frame-Options: DENY
+
+  # === Evita ataques MIME-type sniffing ===
+  X-Content-Type-Options: nosniff
+
+  # === Política de referrer más segura ===
+  Referrer-Policy: strict-origin-when-cross-origin
+
+  # === Desactiva características peligrosas del navegador ===
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), interest-cohort=()
