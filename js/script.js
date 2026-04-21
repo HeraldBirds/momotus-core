@@ -254,8 +254,8 @@ const addToCartWithSize = (id, size) => {
 
 // ==================== PRODUCTOS - ORGANIZADOS POR CATEGORÍA ====================
 const products = [
-  // NICAS (4)
-  { id: 1, name: "Nica Power", price: 420, category: "nica", img: "img/products/nica-1.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:12, M:25, L:18, XL:8, XXL:5} },
+  // Aves Nicas (4)
+  { id: 1, name: "Agelaius phoeniceus", price: 420, category: "nica", img: "img/products/nica-1.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:12, M:25, L:18, XL:8, XXL:5} },
   { id: 2, name: "Asio clamator", price: 480, category: "nica", img: "img/products/nica-2.webp", sizes: ["M","L","XL","XXL"], stock: {S:8, M:15, L:12, XL:9, XXL:4} },
   { id: 3, name: "Nicaragua Forever", price: 470, category: "nica", img: "img/products/nica-3.webp", sizes: ["S","M","L","XL"], stock: {S:20, M:14, L:10, XL:7, XXL:3} },
   { id: 4, name: "Bandera Nica Pride", price: 450, category: "nica", img: "img/products/nica-4.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:10, M:22, L:15, XL:6, XXL:8} },
