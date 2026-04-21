@@ -1,5 +1,5 @@
 // js/script.js - Momotus Core - VERSIÓN FINAL ACTUALIZADA (21 Abril 2026)
-// Categoría "nica" → "fauna" + ID duplicado corregido
+// Carrito MEJORADO + Categoría Fauna Nica + IDs corregidos
 
 let cart = [];
 let wishlist = [];
@@ -21,7 +21,7 @@ const showToast = (message) => {
   setTimeout(() => toast.classList.add('hidden'), 3200);
 };
 
-// ==================== CARRITO Y WISHLIST ====================
+// ==================== CARRITO MEJORADO ====================
 const saveCart = () => localStorage.setItem('momotusCart', JSON.stringify(cart));
 const loadCart = () => {
   const saved = localStorage.getItem('momotusCart');
@@ -29,6 +29,178 @@ const loadCart = () => {
   updateCartCount();
 };
 
+const updateCartCount = () => {
+  const countEl = document.getElementById('cart-count');
+  if (countEl) {
+    const totalItems = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
+    countEl.textContent = totalItems;
+  }
+};
+
+const changeQuantity = (index, delta) => {
+  const item = cart[index];
+  if (!item) return;
+  let newQty = (item.quantity || 1) + delta;
+  if (newQty < 1) newQty = 1;
+  item.quantity = newQty;
+  saveCart();
+  toggleCartModal();
+};
+
+const removeFromCart = (index) => {
+  cart.splice(index, 1);
+  saveCart();
+  updateCartCount();
+  toggleCartModal();
+};
+
+const clearCart = () => {
+  if (confirm("¿Estás seguro de que quieres vaciar todo el carrito?")) {
+    cart = [];
+    saveCart();
+    updateCartCount();
+    toggleCartModal();
+    showToast("🗑️ Carrito vaciado");
+  }
+};
+
+// ==================== RENDER CARRITO (MEJORADO) ====================
+const renderCartModal = () => {
+  const modalHTML = `
+    <div id="cart-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[9999]">
+      <div class="bg-zinc-900 rounded-3xl max-w-lg w-full mx-4 max-h-[90vh] overflow-hidden flex flex-col">
+        <div class="px-8 py-6 border-b border-zinc-700 flex items-center justify-between">
+          <h3 class="text-2xl font-bold flex items-center gap-3">
+            <i class="fa-solid fa-shopping-cart text-yellow-400"></i>
+            Tu Carrito
+          </h3>
+          <button onclick="toggleCartModal()" class="text-3xl text-zinc-400 hover:text-white transition">×</button>
+        </div>
+
+        <div id="cart-items" class="flex-1 p-6 overflow-y-auto space-y-6"></div>
+
+        <div class="p-6 border-t border-zinc-700">
+          <div id="cart-total-container" class="flex justify-between items-baseline mb-6"></div>
+          
+          <div class="flex gap-3">
+            <button onclick="clearCart()" 
+                    class="flex-1 border border-red-400/70 hover:bg-red-400/10 text-red-400 font-medium py-4 rounded-3xl transition">
+              Vaciar carrito
+            </button>
+            <button onclick="toggleCartModal()" 
+                    class="flex-1 border border-zinc-600 hover:bg-zinc-800 py-4 rounded-3xl font-medium transition">
+              Seguir comprando
+            </button>
+          </div>
+          
+          <button onclick="checkout()" 
+                  class="mt-4 w-full bg-yellow-400 hover:bg-yellow-300 text-black font-bold py-6 rounded-3xl text-lg transition flex items-center justify-center gap-3">
+            <i class="fa-brands fa-whatsapp text-2xl"></i>
+            Finalizar por WhatsApp
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const placeholder = document.getElementById('cart-modal-placeholder');
+  if (placeholder) placeholder.innerHTML = modalHTML;
+};
+
+const toggleCartModal = () => {
+  const modal = document.getElementById('cart-modal');
+  if (!modal) return;
+
+  const container = document.getElementById('cart-items');
+  const totalContainer = document.getElementById('cart-total-container');
+  container.innerHTML = '';
+
+  if (cart.length === 0) {
+    container.innerHTML = `
+      <div class="flex flex-col items-center justify-center py-16 text-center">
+        <i class="fa-solid fa-shopping-bag text-7xl text-zinc-600 mb-6"></i>
+        <h4 class="text-2xl font-semibold mb-2">Tu carrito está vacío</h4>
+        <p class="text-zinc-400 mb-8 max-w-[240px]">¡Aún no has elegido ninguna camiseta! Explora los diseños más nicas.</p>
+        <button onclick="toggleCartModal(); window.location.href='tienda.html'" 
+                class="bg-yellow-400 text-black font-bold px-10 py-4 rounded-3xl flex items-center gap-3 hover:scale-105 transition">
+          <i class="fa-solid fa-shirt"></i>
+          Ir a la tienda
+        </button>
+      </div>
+    `;
+    totalContainer.innerHTML = '';
+    modal.classList.remove('hidden');
+    return;
+  }
+
+  let total = 0;
+
+  cart.forEach((item, index) => {
+    const qty = item.quantity || 1;
+    const subtotal = item.price * qty;
+    total += subtotal;
+
+    const itemHTML = `
+      <div class="flex gap-4 bg-zinc-800/50 rounded-3xl p-4">
+        <img src="${item.img}" class="w-20 h-20 object-cover rounded-2xl" alt="${item.name}">
+        
+        <div class="flex-1">
+          <div class="flex justify-between">
+            <h4 class="font-bold text-base leading-tight">${item.name}</h4>
+            <button onclick="removeFromCart(${index});" class="text-red-400 hover:text-red-500 text-xl leading-none">×</button>
+          </div>
+          
+          <p class="text-zinc-400 text-sm mt-1">Talla: <span class="font-medium">${item.size}</span></p>
+          
+          <div class="flex items-center justify-between mt-4">
+            <div class="flex items-center border border-zinc-600 rounded-3xl">
+              <button onclick="changeQuantity(${index}, -1)" class="w-8 h-8 flex items-center justify-center text-xl hover:bg-zinc-700 rounded-l-3xl transition">-</button>
+              <span class="px-4 font-semibold">${qty}</span>
+              <button onclick="changeQuantity(${index}, 1)" class="w-8 h-8 flex items-center justify-center text-xl hover:bg-zinc-700 rounded-r-3xl transition">+</button>
+            </div>
+            
+            <div class="text-right">
+              <p class="text-xs text-zinc-400">C$ ${item.price} × ${qty}</p>
+              <p class="font-bold text-yellow-400 text-xl">C$ ${subtotal}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    container.innerHTML += itemHTML;
+  });
+
+  totalContainer.innerHTML = `
+    <span class="text-xl font-medium">Total</span>
+    <span class="text-3xl font-black text-yellow-400">C$ ${total}</span>
+  `;
+
+  modal.classList.remove('hidden');
+};
+
+const checkout = () => {
+  if (cart.length === 0) return;
+  
+  let text = "¡Hola Momotus Core! 👋%0A%0AQuiero comprar las siguientes camisetas:%0A%0A";
+  
+  cart.forEach(item => {
+    const qty = item.quantity || 1;
+    text += `• ${item.name}%0A   Talla: ${item.size} × ${qty} = C$ ${item.price * qty}%0A%0A`;
+  });
+  
+  text += `%0ATotal: C$ ${cart.reduce((sum, item) => sum + item.price * (item.quantity || 1), 0)}%0A%0A`;
+  text += "Por favor, confirma mi pedido. ¡Gracias! 🇳🇮";
+
+  window.open(`https://wa.me/50555010044?text=${text}`, '_blank');
+  
+  cart = [];
+  saveCart();
+  updateCartCount();
+  toggleCartModal();
+  showToast("✅ Pedido enviado por WhatsApp");
+};
+
+// ==================== WISHLIST ====================
 const saveWishlist = () => localStorage.setItem('momotusWishlist', JSON.stringify(wishlist));
 const loadWishlist = () => {
   const saved = localStorage.getItem('momotusWishlist');
@@ -93,96 +265,6 @@ const renderCommonNavbar = () => {
 const toggleMobileMenu = () => {
   const menu = document.getElementById('mobile-menu');
   if (menu) menu.classList.toggle('hidden');
-};
-
-// ==================== CARRITO MODAL ====================
-const renderCartModal = () => {
-  const modalHTML = `
-    <div id="cart-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[9999]">
-      <div class="bg-zinc-900 rounded-3xl max-w-lg w-full mx-4 max-h-[90vh] overflow-hidden">
-        <div class="px-8 py-6 border-b border-zinc-700 flex items-center justify-between">
-          <h3 class="text-2xl font-bold">Tu Carrito</h3>
-          <button onclick="toggleCartModal()" class="text-3xl text-zinc-400 hover:text-white">×</button>
-        </div>
-        <div id="cart-items" class="p-8 max-h-[60vh] overflow-y-auto space-y-8"></div>
-        <div class="p-8 border-t border-zinc-700">
-          <div class="flex justify-between text-xl mb-6">
-            <span class="font-medium">Total</span>
-            <span id="cart-total" class="font-bold text-yellow-400"></span>
-          </div>
-          <button onclick="checkout()" class="w-full bg-yellow-400 text-black font-bold py-6 rounded-3xl text-lg hover:bg-yellow-300 transition">Ir a pagar por WhatsApp</button>
-        </div>
-      </div>
-    </div>
-  `;
-  const placeholder = document.getElementById('cart-modal-placeholder');
-  if (placeholder) placeholder.innerHTML = modalHTML;
-};
-
-const toggleCartModal = () => {
-  const modal = document.getElementById('cart-modal');
-  if (!modal) return;
-  const container = document.getElementById('cart-items');
-  const totalEl = document.getElementById('cart-total');
-  container.innerHTML = '';
-
-  if (cart.length === 0) {
-    container.innerHTML = `<p class="text-center text-zinc-400 py-12">Tu carrito está vacío</p>`;
-    totalEl.textContent = 'C$ 0';
-    modal.classList.remove('hidden');
-    return;
-  }
-
-  let total = 0;
-  cart.forEach((item, index) => {
-    const itemTotal = item.price * (item.quantity || 1);
-    total += itemTotal;
-    const div = document.createElement('div');
-    div.className = 'flex gap-4';
-    div.innerHTML = `
-      <img src="${item.img}" width="80" height="80" class="w-20 h-20 object-cover rounded-2xl" alt="${item.name}">
-      <div class="flex-1">
-        <p class="font-bold">${item.name}</p>
-        <p class="text-zinc-400 text-sm">Talla: ${item.size} × ${item.quantity || 1}</p>
-        <p class="text-yellow-400 font-semibold">C$ ${itemTotal}</p>
-      </div>
-      <button onclick="removeFromCart(${index});" class="text-red-400 hover:text-red-500 text-xl">×</button>
-    `;
-    container.appendChild(div);
-  });
-
-  totalEl.textContent = `C$ ${total}`;
-  modal.classList.remove('hidden');
-};
-
-const removeFromCart = (index) => {
-  cart.splice(index, 1);
-  saveCart();
-  updateCartCount();
-  toggleCartModal();
-};
-
-const updateCartCount = () => {
-  const countEl = document.getElementById('cart-count');
-  if (countEl) {
-    const totalItems = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
-    countEl.textContent = totalItems;
-  }
-};
-
-const checkout = () => {
-  if (cart.length === 0) return;
-  let text = "¡Hola Momotus! Quiero comprar:%0A";
-  cart.forEach(item => {
-    text += `• ${item.name} - Talla ${item.size} × ${item.quantity || 1}%0A`;
-  });
-  text += `%0ATotal: C$ ${cart.reduce((sum, item) => sum + item.price * (item.quantity || 1), 0)}`;
-  window.open(`https://wa.me/50555010044?text=${text}`, '_blank');
-  cart = [];
-  saveCart();
-  updateCartCount();
-  toggleCartModal();
-  showToast("✅ Pedido enviado por WhatsApp");
 };
 
 // ==================== QUICK VIEW ====================
@@ -252,7 +334,7 @@ const addToCartWithSize = (id, size) => {
   showToast(`✅ ${product.name} - Talla ${size} agregado`);
 };
 
-// ==================== PRODUCTOS - ACTUALIZADOS ====================
+// ==================== PRODUCTOS ====================
 const products = [
   // Fauna Nica (4)
   { id: 1, name: "Agelaius phoeniceus", price: 420, category: "fauna", img: "img/products/nica-1.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:12, M:25, L:18, XL:8, XXL:5} },
@@ -295,8 +377,6 @@ const products = [
   { id: 30, name: "Fire & Gold", price: 590, category: "unica", img: "img/products/unica-5.webp", sizes: ["M","L","XL"], stock: {S:7, M:15, L:11, XL:9, XXL:4} },
   { id: 31, name: "Legendary Nica", price: 670, category: "unica", img: "img/products/unica-6.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:8, M:12, L:14, XL:6, XXL:5} }
 ];
-
-const getStockColor = (stock) => stock > 8 ? 'text-green-400' : stock > 3 ? 'text-yellow-400' : 'text-red-400';
 
 // ==================== TESTIMONIALS ====================
 const testimonials = [
@@ -400,5 +480,5 @@ window.onload = () => {
     filterProducts();
   }
 
-  console.log("%c🚀 Momotus Core - script.js COMPLETO (Fauna Nica + IDs corregidos)", "color:#facc15; font-weight:bold; font-size:14px");
+  console.log("%c🚀 Momotus Core - script.js COMPLETO (Carrito MEJORADO + Fauna Nica)", "color:#facc15; font-weight:bold; font-size:14px");
 };
