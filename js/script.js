@@ -1,5 +1,5 @@
-// js/script.js - Momotus Core - VERSIÓN FINAL ACTUALIZADA (05 Abril 2026)
-// Imágenes organizadas por categoría: nica-1, anime-1, game-1, etc.
+// js/script.js - Momotus Core - VERSIÓN FINAL ACTUALIZADA (21 Abril 2026)
+// Categoría "nica" → "fauna" + ID duplicado corregido
 
 let cart = [];
 let wishlist = [];
@@ -252,13 +252,13 @@ const addToCartWithSize = (id, size) => {
   showToast(`✅ ${product.name} - Talla ${size} agregado`);
 };
 
-// ==================== PRODUCTOS - ORGANIZADOS POR CATEGORÍA ====================
+// ==================== PRODUCTOS - ACTUALIZADOS ====================
 const products = [
-  // Aves Nicas (4)
-  { id: 1, name: "Agelaius phoeniceus", price: 420, category: "nica", img: "img/products/nica-1.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:12, M:25, L:18, XL:8, XXL:5} },
-  { id: 2, name: "Asio clamator", price: 480, category: "nica", img: "img/products/nica-2.webp", sizes: ["M","L","XL","XXL"], stock: {S:8, M:15, L:12, XL:9, XXL:4} },
-  { id: 3, name: "Nicaragua Forever", price: 470, category: "nica", img: "img/products/nica-3.webp", sizes: ["S","M","L","XL"], stock: {S:20, M:14, L:10, XL:7, XXL:3} },
-  { id: 4, name: "Bandera Nica Pride", price: 450, category: "nica", img: "img/products/nica-4.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:10, M:22, L:15, XL:6, XXL:8} },
+  // Fauna Nica (4)
+  { id: 1, name: "Agelaius phoeniceus", price: 420, category: "fauna", img: "img/products/nica-1.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:12, M:25, L:18, XL:8, XXL:5} },
+  { id: 2, name: "Asio clamator", price: 480, category: "fauna", img: "img/products/nica-2.webp", sizes: ["M","L","XL","XXL"], stock: {S:8, M:15, L:12, XL:9, XXL:4} },
+  { id: 3, name: "Nicaragua Forever", price: 470, category: "fauna", img: "img/products/nica-3.webp", sizes: ["S","M","L","XL"], stock: {S:20, M:14, L:10, XL:7, XXL:3} },
+  { id: 4, name: "Bandera Nica Pride", price: 450, category: "fauna", img: "img/products/nica-4.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:10, M:22, L:15, XL:6, XXL:8} },
 
   // ANIME (10)
   { id: 5, name: "Sasuke Uchiha Edition", price: 550, category: "anime", img: "img/products/anime-1.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:15, M:20, L:12, XL:8, XXL:5} },
@@ -272,7 +272,7 @@ const products = [
   { id: 13, name: "Death Note 2.1", price: 450, category: "anime", img: "img/products/anime-9.webp", sizes: ["S","M","L","XL"], stock: {S:12, M:15, L:10, XL:8, XXL:6} },
   { id: 14, name: "Mob Psycho 100", price: 550, category: "anime", img: "img/products/anime-10.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:14, M:21, L:12, XL:9, XXL:5} },
 
-  // URBANO (4)
+  // URBANO (5)
   { id: 15, name: "Trueno AE86", price: 400, category: "urbano", img: "img/products/urbano-1.webp", sizes: ["M","L","XL"], stock: {S:11, M:8, L:17, XL:6, XXL:3} },
   { id: 16, name: "Cyber Style", price: 400, category: "urbano", img: "img/products/urbano-2.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:15, M:19, L:12, XL:10, XXL:5} },
   { id: 17, name: "Iron Maiden", price: 450, category: "urbano", img: "img/products/urbano-3.webp", sizes: ["S","M","L","XL"], stock: {S:10, M:14, L:9, XL:7, XXL:4} },
@@ -280,20 +280,20 @@ const products = [
   { id: 19, name: "NFC", price: 450, category: "urbano", img: "img/products/urbano-5.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:13, M:16, L:11, XL:8, XXL:6} },
 
   // GAMES (6)
-  { id: 19, name: "Hollow Knight", price: 500, category: "games", img: "img/products/game-1.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:10, M:16, L:13, XL:9, XXL:5} },
-  { id: 20, name: "Silent Hill F", price: 550, category: "games", img: "img/products/game-2.webp", sizes: ["M","L","XL"], stock: {S:8, M:12, L:15, XL:7, XXL:4} },
-  { id: 21, name: "Kratos Edition", price: 550, category: "games", img: "img/products/game-3.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:14, M:18, L:10, XL:6, XXL:5} },
-  { id: 22, name: "Raccoonn City", price: 500, category: "games", img: "img/products/game-4.webp", sizes: ["S","M","L","XL"], stock: {S:9, M:15, L:12, XL:8, XXL:3} },
-  { id: 23, name: "Minecraft Nicaragua", price: 465, category: "games", img: "img/products/game-5.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:11, M:17, L:14, XL:9, XXL:6} },
-  { id: 24, name: "Zelda Legend Nica", price: 530, category: "games", img: "img/products/game-6.webp", sizes: ["M","L","XL"], stock: {S:7, M:13, L:16, XL:10, XXL:4} },
+  { id: 20, name: "Hollow Knight", price: 500, category: "games", img: "img/products/game-1.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:10, M:16, L:13, XL:9, XXL:5} },
+  { id: 21, name: "Silent Hill F", price: 550, category: "games", img: "img/products/game-2.webp", sizes: ["M","L","XL"], stock: {S:8, M:12, L:15, XL:7, XXL:4} },
+  { id: 22, name: "Kratos Edition", price: 550, category: "games", img: "img/products/game-3.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:14, M:18, L:10, XL:6, XXL:5} },
+  { id: 23, name: "Raccoonn City", price: 500, category: "games", img: "img/products/game-4.webp", sizes: ["S","M","L","XL"], stock: {S:9, M:15, L:12, XL:8, XXL:3} },
+  { id: 24, name: "Minecraft Nicaragua", price: 465, category: "games", img: "img/products/game-5.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:11, M:17, L:14, XL:9, XXL:6} },
+  { id: 25, name: "Zelda Legend Nica", price: 530, category: "games", img: "img/products/game-6.webp", sizes: ["M","L","XL"], stock: {S:7, M:13, L:16, XL:10, XXL:4} },
 
   // ÚNICAS (6)
-  { id: 25, name: "Limited Edition 001", price: 650, category: "unica", img: "img/products/unica-1.webp", sizes: ["L","XL","XXL"], stock: {S:5, M:8, L:15, XL:4, XXL:9} },
-  { id: 26, name: "Limited Edition 002", price: 500, category: "unica", img: "img/products/unica-2.webp", sizes: ["M","L","XL","XXL"], stock: {S:6, M:11, L:20, XL:7, XXL:13} },
-  { id: 27, name: "Eclipse Nica", price: 620, category: "unica", img: "img/products/unica-3.webp", sizes: ["S","M","L","XL"], stock: {S:9, M:14, L:8, XL:5, XXL:3} },
-  { id: 28, name: "Midnight Warrior", price: 580, category: "unica", img: "img/products/unica-4.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:12, M:10, L:16, XL:8, XXL:6} },
-  { id: 29, name: "Fire & Gold", price: 590, category: "unica", img: "img/products/unica-5.webp", sizes: ["M","L","XL"], stock: {S:7, M:15, L:11, XL:9, XXL:4} },
-  { id: 30, name: "Legendary Nica", price: 670, category: "unica", img: "img/products/unica-6.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:8, M:12, L:14, XL:6, XXL:5} }
+  { id: 26, name: "Limited Edition 001", price: 650, category: "unica", img: "img/products/unica-1.webp", sizes: ["L","XL","XXL"], stock: {S:5, M:8, L:15, XL:4, XXL:9} },
+  { id: 27, name: "Limited Edition 002", price: 500, category: "unica", img: "img/products/unica-2.webp", sizes: ["M","L","XL","XXL"], stock: {S:6, M:11, L:20, XL:7, XXL:13} },
+  { id: 28, name: "Eclipse Nica", price: 620, category: "unica", img: "img/products/unica-3.webp", sizes: ["S","M","L","XL"], stock: {S:9, M:14, L:8, XL:5, XXL:3} },
+  { id: 29, name: "Midnight Warrior", price: 580, category: "unica", img: "img/products/unica-4.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:12, M:10, L:16, XL:8, XXL:6} },
+  { id: 30, name: "Fire & Gold", price: 590, category: "unica", img: "img/products/unica-5.webp", sizes: ["M","L","XL"], stock: {S:7, M:15, L:11, XL:9, XXL:4} },
+  { id: 31, name: "Legendary Nica", price: 670, category: "unica", img: "img/products/unica-6.webp", sizes: ["S","M","L","XL","XXL"], stock: {S:8, M:12, L:14, XL:6, XXL:5} }
 ];
 
 const getStockColor = (stock) => stock > 8 ? 'text-green-400' : stock > 3 ? 'text-yellow-400' : 'text-red-400';
@@ -400,5 +400,5 @@ window.onload = () => {
     filterProducts();
   }
 
-  console.log("%c🚀 Momotus Core - script.js COMPLETO Y ACTUALIZADO (imágenes por categoría)", "color:#facc15; font-weight:bold; font-size:14px");
+  console.log("%c🚀 Momotus Core - script.js COMPLETO (Fauna Nica + IDs corregidos)", "color:#facc15; font-weight:bold; font-size:14px");
 };
