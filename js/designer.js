@@ -40,6 +40,8 @@ const colors = [
 ];
 
 const designerSizes = ['S', 'M', 'L'];
+const minDesignScale = 0.05;
+const maxDesignScale = 3;
 const clampNumber = (value, min, max, fallback) => {
   const number = Number(value);
   return Number.isFinite(number) ? Math.max(min, Math.min(max, number)) : fallback;
@@ -138,9 +140,9 @@ const selectColor = (colorKey, el) => {
 // ==================== ESCALADO (+ / -) ====================
 window.scaleDesign = (side, delta) => {
   if (side === 0) {
-    currentScaleFront = Math.max(0.3, Math.min(3, currentScaleFront + delta));
+    currentScaleFront = Math.max(minDesignScale, Math.min(maxDesignScale, currentScaleFront + delta));
   } else if (side === 1) {
-    currentScaleBack = Math.max(0.3, Math.min(3, currentScaleBack + delta));
+    currentScaleBack = Math.max(minDesignScale, Math.min(maxDesignScale, currentScaleBack + delta));
   } else return;
   updateDesignSize();
   saveCurrentDesign();
@@ -389,8 +391,8 @@ const loadSavedDesign = () => {
   currentSize = designerSizes.includes(data.size) ? data.size : 'M';
   designFront = isSafeDesignSource(data.frontDesign) ? data.frontDesign : null;
   designBack = isSafeDesignSource(data.backDesign) ? data.backDesign : null;
-  currentScaleFront = clampNumber(data.scaleFront, 0.3, 3, 1);
-  currentScaleBack = clampNumber(data.scaleBack, 0.3, 3, 1);
+  currentScaleFront = clampNumber(data.scaleFront, minDesignScale, maxDesignScale, 1);
+  currentScaleBack = clampNumber(data.scaleBack, minDesignScale, maxDesignScale, 1);
   currentPositionFront = normalizePosition(data.positionFront);
   currentPositionBack = normalizePosition(data.positionBack);
   currentRotationFront = clampNumber(data.rotationFront, -360, 360, 0);
