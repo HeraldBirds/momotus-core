@@ -8,6 +8,8 @@ let designFront = null;
 let designBack = null;
 let currentScaleFront = 1;
 let currentScaleBack = 1;
+let currentPositionFront = { x: 50, y: 50 };
+let currentPositionBack = { x: 50, y: 50 };
 let currentTab = 0; // 0 = Frente, 1 = Espalda
 
 const shirtTypes = ['regular', 'slim', 'oversized'];
@@ -37,6 +39,24 @@ const getDesignStyle = (colorKey) => {
     : `mix-blend-mode: multiply; filter: brightness(1.08) contrast(1.18) saturate(1.25) opacity(0.95);`;
 };
 
+const applyDesignAppearance = (designImg) => {
+  if (!designImg) return;
+  designImg.style.mixBlendMode = 'multiply';
+  designImg.style.filter = currentColor === 'white'
+    ? 'brightness(0.95) contrast(1.25) saturate(1.1) opacity(0.92)'
+    : 'brightness(1.08) contrast(1.18) saturate(1.25) opacity(0.95)';
+};
+
+const applyDesignLayout = (designImg, side) => {
+  if (!designImg) return;
+  const scale = side === 0 ? currentScaleFront : currentScaleBack;
+  const position = side === 0 ? currentPositionFront : currentPositionBack;
+  designImg.style.left = `${position.x}%`;
+  designImg.style.top = `${position.y}%`;
+  designImg.style.transform = `translate(-50%, -50%) scale(${scale})`;
+  designImg.style.transformOrigin = 'center center';
+};
+
 // ==================== ACTUALIZAR TAMAÑO (SOLO ESCALA DEL DISEÑO) ====================
 const updateDesignSize = () => {
   ['design-preview', 'design-preview-back'].forEach((id, index) => {
@@ -45,9 +65,7 @@ const updateDesignSize = () => {
 
     const designImg = preview.querySelector('img');
     if (designImg) {
-      const scale = index === 0 ? currentScaleFront : currentScaleBack;
-      designImg.style.transform = `scale(${scale})`;
-      designImg.style.transformOrigin = 'center center';
+      applyDesignLayout(designImg, index);
     }
   });
 };
@@ -77,6 +95,7 @@ const selectShirtType = (index) => {
   currentShirtType = index;
   document.querySelectorAll('.shirt-type-btn').forEach((btn, i) => btn.classList.toggle('active', i === index));
   updateMockups();
+  saveCurrentDesign();
 };
 
 const selectColor = (colorKey, el) => {
@@ -84,6 +103,8 @@ const selectColor = (colorKey, el) => {
   if (el) el.classList.add('active');
   currentColor = colorKey;
   updateMockups();
+  document.querySelectorAll('#design-preview img, #design-preview-back img').forEach(applyDesignAppearance);
+  saveCurrentDesign();
 };
 
 // ==================== ESCALADO (+ / -) ====================
@@ -94,6 +115,7 @@ window.scaleDesign = (side, delta) => {
     currentScaleBack = Math.max(0.3, Math.min(3, currentScaleBack + delta));
   }
   updateDesignSize();
+  saveCurrentDesign();
 };
 
 // ==================== DRAG & DROP ====================
@@ -116,8 +138,8 @@ const startDrag = (e) => {
   const rect = currentDraggingDesign.getBoundingClientRect();
   const clientX = e.clientX || (e.touches && e.touches[0].clientX);
   const clientY = e.clientY || (e.touches && e.touches[0].clientY);
-  offsetX = clientX - rect.left;
-  offsetY = clientY - rect.top;
+  offsetX = clientX - (rect.left + rect.width / 2);
+  offsetY = clientY - (rect.top + rect.height / 2);
   currentDraggingDesign.style.transition = 'none';
   e.preventDefault();
 };
@@ -129,19 +151,20 @@ const initDragListeners = () => {
     const previewRect = preview.getBoundingClientRect();
     const clientX = e.clientX || (e.touches && e.touches[0].clientX);
     const clientY = e.clientY || (e.touches && e.touches[0].clientY);
-    let newX = clientX - previewRect.left - offsetX;
-    let newY = clientY - previewRect.top - offsetY;
-
-    newX = Math.max(-currentDraggingDesign.offsetWidth * 0.9, Math.min(newX, previewRect.width - currentDraggingDesign.offsetWidth * 0.1));
-    newY = Math.max(-currentDraggingDesign.offsetHeight * 0.9, Math.min(newY, previewRect.height - currentDraggingDesign.offsetHeight * 0.1));
-
-    currentDraggingDesign.style.left = `${newX}px`;
-    currentDraggingDesign.style.top = `${newY}px`;
+    const x = Math.max(0, Math.min(100, ((clientX - previewRect.left - offsetX) / previewRect.width) * 100));
+    const y = Math.max(0, Math.min(100, ((clientY - previewRect.top - offsetY) / previewRect.height) * 100));
+    const side = currentDraggingDesign.id === 'draggable-design-back' ? 1 : 0;
+    if (side === 0) currentPositionFront = { x, y };
+    else currentPositionBack = { x, y };
+    applyDesignLayout(currentDraggingDesign, side);
     e.preventDefault();
   };
 
   const endHandler = () => {
-    if (currentDraggingDesign) currentDraggingDesign.style.transition = 'all 0.2s ease';
+    if (currentDraggingDesign) {
+      currentDraggingDesign.style.transition = 'all 0.2s ease';
+      saveCurrentDesign();
+    }
     isDragging = false;
     currentDraggingDesign = null;
   };
@@ -169,6 +192,7 @@ const handleDesignUpload = (e, side) => {
     preview.innerHTML = `<img src="${src}" id="${id}" class="max-w-full max-h-full object-contain rounded-3xl" style="${style}">`;
     preview.classList.add('design-loaded');
     makeDraggable(document.getElementById(id));
+    applyDesignLayout(document.getElementById(id), side);
 
     if (side === 0) designFront = src;
     else designBack = src;
@@ -184,6 +208,8 @@ const resetDesign = () => {
   designBack = null;
   currentScaleFront = 1;
   currentScaleBack = 1;
+  currentPositionFront = { x: 50, y: 50 };
+  currentPositionBack = { x: 50, y: 50 };
   ['design-preview', 'design-preview-back'].forEach(id => {
     const preview = document.getElementById(id);
     if (preview) {
@@ -203,15 +229,29 @@ const saveCurrentDesign = () => {
     frontDesign: designFront,
     backDesign: designBack,
     scaleFront: currentScaleFront,
-    scaleBack: currentScaleBack
+    scaleBack: currentScaleBack,
+    positionFront: currentPositionFront,
+    positionBack: currentPositionBack
   };
-  localStorage.setItem('momotusCurrentDesign', JSON.stringify(data));
+  try {
+    localStorage.setItem('momotusCurrentDesign', JSON.stringify(data));
+  } catch (error) {
+    console.warn('No fue posible guardar el diseño en este dispositivo.', error);
+    showToast('⚠️ No se pudo guardar: prueba con imágenes más pequeñas');
+  }
 };
 
 const loadSavedDesign = () => {
   const saved = localStorage.getItem('momotusCurrentDesign');
   if (!saved) return;
-  const data = JSON.parse(saved);
+  let data;
+  try {
+    data = JSON.parse(saved);
+  } catch (error) {
+    console.warn('El diseño guardado estaba dañado y fue eliminado.', error);
+    localStorage.removeItem('momotusCurrentDesign');
+    return;
+  }
   currentShirtType = data.shirtType || 0;
   currentColor = data.color || 'black';
   currentSize = data.size || 'M';
@@ -219,6 +259,8 @@ const loadSavedDesign = () => {
   designBack = data.backDesign;
   currentScaleFront = data.scaleFront || 1;
   currentScaleBack = data.scaleBack || 1;
+  currentPositionFront = data.positionFront || { x: 50, y: 50 };
+  currentPositionBack = data.positionBack || { x: 50, y: 50 };
 
   document.querySelectorAll('.shirt-type-btn').forEach((btn, i) => btn.classList.toggle('active', i === currentShirtType));
 
@@ -232,12 +274,14 @@ const loadSavedDesign = () => {
     preview.innerHTML = `<img src="${designFront}" id="draggable-design-front" class="max-w-full max-h-full object-contain rounded-3xl" style="${getDesignStyle(currentColor)}">`;
     preview.classList.add('design-loaded');
     makeDraggable(document.getElementById('draggable-design-front'));
+    applyDesignLayout(document.getElementById('draggable-design-front'), 0);
   }
   if (designBack) {
     const preview = document.getElementById('design-preview-back');
     preview.innerHTML = `<img src="${designBack}" id="draggable-design-back" class="max-w-full max-h-full object-contain rounded-3xl" style="${getDesignStyle(currentColor)}">`;
     preview.classList.add('design-loaded');
     makeDraggable(document.getElementById('draggable-design-back'));
+    applyDesignLayout(document.getElementById('draggable-design-back'), 1);
   }
   updateMockups();
 };
@@ -295,9 +339,10 @@ const centerDesign = (side) => {
   const preview = document.getElementById(previewId);
   const design = preview ? preview.querySelector('img') : null;
   if (!design) return showToast("❌ No hay diseño para centrar");
-  design.style.left = '50%';
-  design.style.top = '50%';
-  design.style.transform = `translate(-50%, -50%) scale(${side === 0 ? currentScaleFront : currentScaleBack})`;
+  if (side === 0) currentPositionFront = { x: 50, y: 50 };
+  else currentPositionBack = { x: 50, y: 50 };
+  applyDesignLayout(design, side);
+  saveCurrentDesign();
   showToast("🎯 Diseño centrado correctamente");
 };
 
@@ -320,11 +365,11 @@ const sendToEmail = () => {
 
 const initDesigner = () => {
   if (document.getElementById('type-0')) {
-    selectShirtType(0);
     renderSizeButtonsDesigner();
     renderColorButtons();
   }
   loadSavedDesign();
+  updateMockups();
   initDragListeners();
   window.addEventListener('resize', () => setTimeout(updateDesignSize, 200));
   console.log("%c✅ Diseñador COMPLETO y sin errores - Margen 90%/88% mantenido", "color:#facc15; font-weight:bold");

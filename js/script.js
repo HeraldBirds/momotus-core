@@ -5,6 +5,19 @@ let cart = [];
 let wishlist = [];
 let currentCategory = 'all';
 let currentSearchTerm = '';
+let currentMinPrice = 0;
+let currentMaxPrice = Number.POSITIVE_INFINITY;
+
+const readStoredJSON = (key, fallback) => {
+  try {
+    const value = localStorage.getItem(key);
+    return value ? JSON.parse(value) : fallback;
+  } catch (error) {
+    console.warn(`No se pudo recuperar ${key}; se usará un estado limpio.`, error);
+    localStorage.removeItem(key);
+    return fallback;
+  }
+};
 
 // ==================== TOAST ====================
 const showToast = (message) => {
@@ -16,16 +29,24 @@ const showToast = (message) => {
     toast.innerHTML = `<i class="fa-solid fa-check-circle text-green-400 text-2xl"></i><span id="toast-text" class="font-medium"></span>`;
     document.body.appendChild(toast);
   }
-  document.getElementById('toast-text').innerHTML = message;
+  document.getElementById('toast-text').textContent = message;
   toast.classList.remove('hidden');
   setTimeout(() => toast.classList.add('hidden'), 3200);
 };
 
 // ==================== CARRITO MEJORADO ====================
-const saveCart = () => localStorage.setItem('momotusCart', JSON.stringify(cart));
+const saveCart = () => localStorage.setItem('momotusCart', JSON.stringify(
+  cart.map(({ id, size, quantity }) => ({ id, size, quantity }))
+));
 const loadCart = () => {
-  const saved = localStorage.getItem('momotusCart');
-  if (saved) cart = JSON.parse(saved);
+  const savedCart = readStoredJSON('momotusCart', []);
+  cart = Array.isArray(savedCart) ? savedCart.map(item => {
+    const product = products.find(candidate => candidate.id === Number(item.id));
+    const size = String(item.size || '');
+    if (!product || !product.sizes.includes(size)) return null;
+    return { ...product, size, quantity: Math.max(1, Math.min(99, Number(item.quantity) || 1)) };
+  }).filter(Boolean) : [];
+  saveCart();
   updateCartCount();
 };
 
@@ -181,30 +202,29 @@ const toggleCartModal = () => {
 const checkout = () => {
   if (cart.length === 0) return;
   
-  let text = "¡Hola Momotus Core! 👋%0A%0AQuiero comprar las siguientes camisetas:%0A%0A";
+  let text = "¡Hola Momotus Core! 👋\n\nQuiero comprar las siguientes camisetas:\n\n";
   
   cart.forEach(item => {
     const qty = item.quantity || 1;
-    text += `• ${item.name}%0A   Talla: ${item.size} × ${qty} = C$ ${item.price * qty}%0A%0A`;
+    text += `• ${item.name}\n   Talla: ${item.size} × ${qty} = C$ ${item.price * qty}\n\n`;
   });
   
-  text += `%0ATotal: C$ ${cart.reduce((sum, item) => sum + item.price * (item.quantity || 1), 0)}%0A%0A`;
+  text += `\nTotal: C$ ${cart.reduce((sum, item) => sum + item.price * (item.quantity || 1), 0)}\n\n`;
   text += "Por favor, confirma mi pedido. ¡Gracias! 🇳🇮";
 
-  window.open(`https://wa.me/50555010044?text=${text}`, '_blank');
-  
-  cart = [];
-  saveCart();
-  updateCartCount();
-  toggleCartModal();
-  showToast("✅ Pedido enviado por WhatsApp");
+  const whatsappWindow = window.open(`https://wa.me/50555010044?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
+  if (!whatsappWindow) return showToast("❌ Permite las ventanas emergentes para abrir WhatsApp");
+  showToast("✅ WhatsApp abierto; tu carrito se conserva");
 };
 
 // ==================== WISHLIST ====================
 const saveWishlist = () => localStorage.setItem('momotusWishlist', JSON.stringify(wishlist));
 const loadWishlist = () => {
-  const saved = localStorage.getItem('momotusWishlist');
-  if (saved) wishlist = JSON.parse(saved);
+  const savedWishlist = readStoredJSON('momotusWishlist', []);
+  wishlist = Array.isArray(savedWishlist)
+    ? savedWishlist.map(item => products.find(product => product.id === Number(item.id))).filter(Boolean)
+    : [];
+  saveWishlist();
 };
 
 const isInWishlist = (id) => wishlist.some(item => item.id === id);
@@ -446,9 +466,10 @@ const filterCategory = (cat) => {
 };
 
 const filterProducts = () => {
-  let filtered = products;
+  let filtered = [...products];
   if (currentCategory !== 'all') filtered = filtered.filter(p => p.category === currentCategory);
   if (currentSearchTerm) filtered = filtered.filter(p => p.name.toLowerCase().includes(currentSearchTerm));
+  filtered = filtered.filter(p => p.price >= currentMinPrice && p.price <= currentMaxPrice);
   renderProducts(filtered);
   const countEl = document.getElementById('count-number');
   if (countEl) countEl.textContent = filtered.length;
@@ -456,9 +477,10 @@ const filterProducts = () => {
 
 const sortProducts = () => {
   const sortValue = document.getElementById('sort-select').value;
-  let filtered = products;
+  let filtered = [...products];
   if (currentCategory !== 'all') filtered = filtered.filter(p => p.category === currentCategory);
   if (currentSearchTerm) filtered = filtered.filter(p => p.name.toLowerCase().includes(currentSearchTerm));
+  filtered = filtered.filter(p => p.price >= currentMinPrice && p.price <= currentMaxPrice);
 
   if (sortValue === 'price-low') filtered.sort((a, b) => a.price - b.price);
   else if (sortValue === 'price-high') filtered.sort((a, b) => b.price - a.price);

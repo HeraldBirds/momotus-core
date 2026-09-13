@@ -292,6 +292,7 @@
       if (typeof makeDraggable === 'function') makeDraggable(document.getElementById(id));
       if (side === 0) designFront = currentPreviewSrc;
       else designBack = currentPreviewSrc;
+      if (typeof applyDesignLayout === 'function') applyDesignLayout(document.getElementById(id), side);
       hidePreviewModal();
       if (typeof showToast === 'function') showToast("✅ Diseño aplicado correctamente");
       if (typeof saveCurrentDesign === 'function') saveCurrentDesign();
