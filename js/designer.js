@@ -15,7 +15,8 @@ let currentRotationBack = 0;
 let lastStorageWarningAt = 0;
 let currentTab = 0; // 0 = Frente, 1 = Espalda
 
-const shirtTypes = ['regular', 'slim', 'oversized'];
+const shirtTypes = ['regular', 'sudadera', 'hoodie', 'crop-top'];
+const shirtTypeNames = ['Regular / Unisex', 'Sudaderas', 'Hoodie', 'Crop-top'];
 const colorMap = { black: 'negro', white: 'blanco', red: 'rojo', blue: 'azul', emerald: 'verde', violet: 'violeta', amber: 'amarillo', pink: 'rosa' };
 
 const getMockupPath = (typeIndex, colorKey, isBack = false) => {
@@ -557,7 +558,7 @@ window.createDesignPreview = async (shouldDownload = true) => {
 };
 
 const sendToWhatsApp = async () => {
-  const typeName = ['Regular / Unisex', 'Slim Fit', 'Oversized'][currentShirtType];
+  const typeName = shirtTypeNames[currentShirtType];
   const colorName = colorMap[currentColor] || currentColor;
   const quote = getQuoteDetails();
   const text = `¡Hola Momotus Core! 👋\n\nAcabo de diseñar mi camiseta:\n• Nombre: ${quote.name}\n• Ciudad: ${quote.city}\n• Cantidad: ${quote.quantity}\n• Tipo: ${typeName}\n• Talla: ${currentSize}\n• Color: ${colorName.charAt(0).toUpperCase() + colorName.slice(1)}\n• Frente: ${designFront ? 'Sí' : 'No'}\n• Espalda: ${designBack ? 'Sí' : 'No'}\n• Observaciones: ${quote.notes}\n\nAdjuntaré la vista previa descargada.\nGracias! 🇳🇮`;
@@ -574,7 +575,7 @@ const sendToWhatsApp = async () => {
 };
 
 const sendToEmail = () => {
-  const typeName = ['Regular / Unisex', 'Slim Fit', 'Oversized'][currentShirtType];
+  const typeName = shirtTypeNames[currentShirtType];
   const colorName = colorMap[currentColor] || currentColor;
   const quote = getQuoteDetails();
   const subject = "Cotización - Camiseta Personalizada Momotus Core";
