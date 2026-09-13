@@ -37,7 +37,7 @@ const colors = [
   { key: 'pink', class: 'bg-pink-500', name: 'Rosa' }
 ];
 
-const designerSizes = ['S', 'M', 'L', 'XL', 'XXL'];
+const designerSizes = ['S', 'M', 'L'];
 const clampNumber = (value, min, max, fallback) => {
   const number = Number(value);
   return Number.isFinite(number) ? Math.max(min, Math.min(max, number)) : fallback;
