@@ -95,7 +95,7 @@ const renderCartModal = () => {
             <i class="fa-solid fa-shopping-cart text-yellow-400"></i>
             Tu Carrito
           </h3>
-          <button onclick="toggleCartModal()" class="text-3xl text-zinc-400 hover:text-white transition">×</button>
+          <button onclick="toggleCartModal()" aria-label="Cerrar carrito" class="text-3xl text-zinc-400 hover:text-white transition">×</button>
         </div>
 
         <div id="cart-items" class="flex-1 p-6 overflow-y-auto space-y-6"></div>
@@ -168,7 +168,7 @@ const toggleCartModal = () => {
         <div class="flex-1">
           <div class="flex justify-between">
             <h4 class="font-bold text-base leading-tight">${item.name}</h4>
-            <button onclick="removeFromCart(${index});" class="text-red-400 hover:text-red-500 text-xl leading-none">×</button>
+            <button onclick="removeFromCart(${index});" aria-label="Eliminar ${item.name} del carrito" class="text-red-400 hover:text-red-500 text-xl leading-none">×</button>
           </div>
           
           <p class="text-zinc-400 text-sm mt-1">Talla: <span class="font-medium">${item.size}</span></p>
@@ -260,12 +260,12 @@ const renderCommonNavbar = () => {
           <a href="comunidad.html" class="${currentPage === 'comunidad.html' ? 'text-yellow-400 font-bold' : 'hover:text-yellow-400 transition'}">Comunidad</a>
         </div>
         <div class="flex items-center gap-6">
-          <button onclick="toggleCartModal()" class="relative text-2xl hover:text-yellow-400 transition">
+          <button onclick="toggleCartModal()" aria-label="Abrir carrito" class="relative text-2xl hover:text-yellow-400 transition">
             <i class="fa-solid fa-shopping-cart"></i>
             <span id="cart-count" class="absolute -top-1 -right-1 bg-yellow-400 text-black text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center">0</span>
           </button>
-          <a href="https://wa.me/50555010044" target="_blank" class="text-3xl text-green-400 hover:scale-110 transition"><i class="fa-brands fa-whatsapp"></i></a>
-          <button onclick="toggleMobileMenu()" class="md:hidden text-3xl"><i class="fa-solid fa-bars"></i></button>
+          <a href="https://wa.me/50555010044" target="_blank" rel="noopener noreferrer" aria-label="Contactar por WhatsApp" class="text-3xl text-green-400 hover:scale-110 transition"><i class="fa-brands fa-whatsapp"></i></a>
+          <button onclick="toggleMobileMenu()" aria-label="Abrir menú" class="md:hidden text-3xl"><i class="fa-solid fa-bars"></i></button>
         </div>
       </div>
       <div id="mobile-menu" class="hidden md:hidden bg-black border-t border-zinc-800 py-4">
@@ -430,6 +430,23 @@ const renderTestimonials = () => {
 };
 
 // ==================== TIENDA - RENDER Y FILTROS ====================
+const featuredProductIds = [2, 1, 13, 14];
+
+const getFilteredProducts = () => {
+  let filtered = [...products];
+  if (currentCategory !== 'all') filtered = filtered.filter(p => p.category === currentCategory);
+  if (currentSearchTerm) filtered = filtered.filter(p => p.name.toLowerCase().includes(currentSearchTerm));
+  return filtered.filter(p => p.price >= currentMinPrice && p.price <= currentMaxPrice);
+};
+
+const updateFeaturedProductsVisibility = () => {
+  const section = document.getElementById('featured-products-section');
+  const showFeatured = currentCategory === 'all' && !currentSearchTerm
+    && currentMinPrice === 0 && currentMaxPrice === Number.POSITIVE_INFINITY;
+  if (section) section.classList.toggle('hidden', !showFeatured);
+  return showFeatured;
+};
+
 const renderProducts = (filteredProducts) => {
   const grid = document.getElementById('products-grid');
   if (!grid) return;
@@ -466,27 +483,29 @@ const filterCategory = (cat) => {
 };
 
 const filterProducts = () => {
-  let filtered = [...products];
-  if (currentCategory !== 'all') filtered = filtered.filter(p => p.category === currentCategory);
-  if (currentSearchTerm) filtered = filtered.filter(p => p.name.toLowerCase().includes(currentSearchTerm));
-  filtered = filtered.filter(p => p.price >= currentMinPrice && p.price <= currentMaxPrice);
-  renderProducts(filtered);
+  const filtered = getFilteredProducts();
+  const showFeatured = updateFeaturedProductsVisibility();
+  const productsForGrid = showFeatured
+    ? filtered.filter(product => !featuredProductIds.includes(product.id))
+    : filtered;
+  renderProducts(productsForGrid);
   const countEl = document.getElementById('count-number');
   if (countEl) countEl.textContent = filtered.length;
 };
 
 const sortProducts = () => {
   const sortValue = document.getElementById('sort-select').value;
-  let filtered = [...products];
-  if (currentCategory !== 'all') filtered = filtered.filter(p => p.category === currentCategory);
-  if (currentSearchTerm) filtered = filtered.filter(p => p.name.toLowerCase().includes(currentSearchTerm));
-  filtered = filtered.filter(p => p.price >= currentMinPrice && p.price <= currentMaxPrice);
+  let filtered = getFilteredProducts();
+  const showFeatured = updateFeaturedProductsVisibility();
+  if (showFeatured) filtered = filtered.filter(product => !featuredProductIds.includes(product.id));
 
   if (sortValue === 'price-low') filtered.sort((a, b) => a.price - b.price);
   else if (sortValue === 'price-high') filtered.sort((a, b) => b.price - a.price);
   else if (sortValue === 'name') filtered.sort((a, b) => a.name.localeCompare(b.name));
 
   renderProducts(filtered);
+  const countEl = document.getElementById('count-number');
+  if (countEl) countEl.textContent = getFilteredProducts().length;
 };
 
 // ==================== INICIALIZACIÓN ====================
@@ -498,7 +517,6 @@ window.onload = () => {
   renderTestimonials();
 
   if (document.getElementById('products-grid')) {
-    renderProducts(products);
     filterProducts();
   }
 
