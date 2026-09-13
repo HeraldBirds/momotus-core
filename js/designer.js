@@ -10,6 +10,9 @@ let currentScaleFront = 1;
 let currentScaleBack = 1;
 let currentPositionFront = { x: 50, y: 50 };
 let currentPositionBack = { x: 50, y: 50 };
+let currentRotationFront = 0;
+let currentRotationBack = 0;
+let lastStorageWarningAt = 0;
 let currentTab = 0; // 0 = Frente, 1 = Espalda
 
 const shirtTypes = ['regular', 'slim', 'oversized'];
@@ -72,9 +75,10 @@ const applyDesignLayout = (designImg, side) => {
   if (!designImg) return;
   const scale = side === 0 ? currentScaleFront : currentScaleBack;
   const position = side === 0 ? currentPositionFront : currentPositionBack;
+  const rotation = side === 0 ? currentRotationFront : currentRotationBack;
   designImg.style.left = `${position.x}%`;
   designImg.style.top = `${position.y}%`;
-  designImg.style.transform = `translate(-50%, -50%) scale(${scale})`;
+  designImg.style.transform = `translate(-50%, -50%) scale(${scale}) rotate(${rotation}deg)`;
   designImg.style.transformOrigin = 'center center';
 };
 
@@ -137,9 +141,37 @@ window.scaleDesign = (side, delta) => {
   } else return;
   updateDesignSize();
   saveCurrentDesign();
+  updateBoundaryWarning(side);
 };
 
 window.scaleActiveDesign = (delta) => window.scaleDesign(currentTab, delta);
+
+window.rotateActiveDesign = (degrees) => {
+  if (currentTab === 0) currentRotationFront = (currentRotationFront + degrees) % 360;
+  else currentRotationBack = (currentRotationBack + degrees) % 360;
+  updateDesignSize();
+  saveCurrentDesign();
+  updateBoundaryWarning(currentTab);
+};
+
+const updateBoundaryWarning = (side) => {
+  const preview = document.getElementById(side === 0 ? 'design-preview' : 'design-preview-back');
+  const image = preview?.querySelector('img');
+  const warning = document.getElementById('design-boundary-warning');
+  if (!warning) return;
+  if (!image || !preview) {
+    warning.classList.add('hidden');
+    return;
+  }
+  const imageRect = image.getBoundingClientRect();
+  const previewRect = preview.getBoundingClientRect();
+  const outside = imageRect.left < previewRect.left || imageRect.right > previewRect.right
+    || imageRect.top < previewRect.top || imageRect.bottom > previewRect.bottom;
+  warning.textContent = outside
+    ? `⚠️ Parte del diseño ${side === 0 ? 'frontal' : 'trasero'} está fuera del área imprimible.`
+    : '';
+  warning.classList.toggle('hidden', !outside);
+};
 
 // ==================== DRAG & DROP ====================
 let isDragging = false;
@@ -187,6 +219,7 @@ const initDragListeners = () => {
     if (currentDraggingDesign) {
       currentDraggingDesign.style.transition = 'all 0.2s ease';
       saveCurrentDesign();
+      updateBoundaryWarning(currentDraggingDesign.id === 'draggable-design-back' ? 1 : 0);
     }
     isDragging = false;
     currentDraggingDesign = null;
@@ -220,10 +253,51 @@ const handleDesignUpload = (e, side) => {
     if (side === 0) designFront = src;
     else designBack = src;
 
+    const uploadedImage = document.getElementById(id);
+    if (uploadedImage.complete) updateImageQuality(uploadedImage, side);
+    else uploadedImage.addEventListener('load', () => updateImageQuality(uploadedImage, side), { once: true });
+
     showToast(side === 0 ? "✅ Diseño Frente cargado" : "✅ Diseño Espalda cargado");
     saveCurrentDesign();
   };
   reader.readAsDataURL(file);
+};
+
+const updateImageQuality = (image, side) => {
+  const status = document.getElementById(side === 0 ? 'quality-front' : 'quality-back');
+  if (!status || !image) return;
+  const shortestSide = Math.min(image.naturalWidth || 0, image.naturalHeight || 0);
+  const quality = shortestSide >= 1200
+    ? { text: `Alta (${image.naturalWidth}×${image.naturalHeight}px)`, className: 'text-emerald-400' }
+    : shortestSide >= 600
+      ? { text: `Media (${image.naturalWidth}×${image.naturalHeight}px)`, className: 'text-yellow-400' }
+      : { text: `Baja (${image.naturalWidth}×${image.naturalHeight}px)`, className: 'text-red-400' };
+  status.textContent = `Calidad: ${quality.text}`;
+  status.className = `mt-2 text-xs ${quality.className}`;
+};
+
+window.removeActiveDesign = () => {
+  const side = currentTab;
+  const preview = document.getElementById(side === 0 ? 'design-preview' : 'design-preview-back');
+  if (side === 0) {
+    designFront = null;
+    currentScaleFront = 1;
+    currentPositionFront = { x: 50, y: 50 };
+    currentRotationFront = 0;
+  } else {
+    designBack = null;
+    currentScaleBack = 1;
+    currentPositionBack = { x: 50, y: 50 };
+    currentRotationBack = 0;
+  }
+  if (preview) {
+    preview.classList.remove('design-loaded');
+    preview.innerHTML = `<span class="text-yellow-400 text-center text-base font-medium pointer-events-none">Arrastra tu diseño aquí</span>`;
+  }
+  const quality = document.getElementById(side === 0 ? 'quality-front' : 'quality-back');
+  if (quality) quality.textContent = 'Calidad: sin imagen';
+  saveCurrentDesign();
+  showToast(side === 0 ? 'Diseño frontal eliminado' : 'Diseño trasero eliminado');
 };
 
 const resetDesign = () => {
@@ -233,6 +307,8 @@ const resetDesign = () => {
   currentScaleBack = 1;
   currentPositionFront = { x: 50, y: 50 };
   currentPositionBack = { x: 50, y: 50 };
+  currentRotationFront = 0;
+  currentRotationBack = 0;
   ['design-preview', 'design-preview-back'].forEach(id => {
     const preview = document.getElementById(id);
     if (preview) {
@@ -240,7 +316,18 @@ const resetDesign = () => {
       preview.innerHTML = `<span class="text-yellow-400 text-center text-base font-medium pointer-events-none">Arrastra tu diseño aquí</span>`;
     }
   });
-  localStorage.removeItem('momotusCurrentDesign');
+  try {
+    localStorage.removeItem('momotusCurrentDesign');
+  } catch (error) {
+    console.warn('No se pudo limpiar el diseño guardado.', error);
+  }
+  ['quality-front', 'quality-back'].forEach(id => {
+    const status = document.getElementById(id);
+    if (status) {
+      status.textContent = 'Calidad: sin imagen';
+      status.className = 'mt-2 text-xs text-zinc-500';
+    }
+  });
   showToast("Diseño reseteado");
 };
 
@@ -254,14 +341,19 @@ const saveCurrentDesign = () => {
     scaleFront: currentScaleFront,
     scaleBack: currentScaleBack,
     positionFront: currentPositionFront,
-    positionBack: currentPositionBack
+    positionBack: currentPositionBack,
+    rotationFront: currentRotationFront,
+    rotationBack: currentRotationBack
   };
   try {
     localStorage.setItem('momotusCurrentDesign', JSON.stringify(data));
     return true;
   } catch (error) {
     console.warn('No fue posible guardar el diseño en este dispositivo.', error);
-    showToast('⚠️ No se pudo guardar: prueba con imágenes más pequeñas');
+    if (Date.now() - lastStorageWarningAt > 5000) {
+      showToast('⚠️ No se pudo guardar: prueba con imágenes más pequeñas');
+      lastStorageWarningAt = Date.now();
+    }
     return false;
   }
 };
@@ -280,7 +372,11 @@ const loadSavedDesign = () => {
     data = JSON.parse(saved);
   } catch (error) {
     console.warn('El diseño guardado estaba dañado y fue eliminado.', error);
-    localStorage.removeItem('momotusCurrentDesign');
+    try {
+      localStorage.removeItem('momotusCurrentDesign');
+    } catch (storageError) {
+      console.warn('No se pudo limpiar el diseño dañado.', storageError);
+    }
     return;
   }
   currentShirtType = Number.isInteger(Number(data.shirtType))
@@ -294,6 +390,8 @@ const loadSavedDesign = () => {
   currentScaleBack = clampNumber(data.scaleBack, 0.3, 3, 1);
   currentPositionFront = normalizePosition(data.positionFront);
   currentPositionBack = normalizePosition(data.positionBack);
+  currentRotationFront = clampNumber(data.rotationFront, -360, 360, 0);
+  currentRotationBack = clampNumber(data.rotationBack, -360, 360, 0);
 
   document.querySelectorAll('.shirt-type-btn').forEach((btn, i) => btn.classList.toggle('active', i === currentShirtType));
 
@@ -309,6 +407,9 @@ const loadSavedDesign = () => {
     preview.classList.add('design-loaded');
     makeDraggable(document.getElementById('draggable-design-front'));
     applyDesignLayout(document.getElementById('draggable-design-front'), 0);
+    const frontImage = document.getElementById('draggable-design-front');
+    if (frontImage.complete) updateImageQuality(frontImage, 0);
+    else frontImage.addEventListener('load', event => updateImageQuality(event.currentTarget, 0), { once: true });
   }
   if (designBack) {
     const preview = document.getElementById('design-preview-back');
@@ -316,6 +417,9 @@ const loadSavedDesign = () => {
     preview.classList.add('design-loaded');
     makeDraggable(document.getElementById('draggable-design-back'));
     applyDesignLayout(document.getElementById('draggable-design-back'), 1);
+    const backImage = document.getElementById('draggable-design-back');
+    if (backImage.complete) updateImageQuality(backImage, 1);
+    else backImage.addEventListener('load', event => updateImageQuality(event.currentTarget, 1), { once: true });
   }
   updateMockups();
 };
@@ -376,22 +480,105 @@ const centerDesign = (side) => {
   else currentPositionBack = { x: 50, y: 50 };
   applyDesignLayout(design, side);
   saveCurrentDesign();
+  updateBoundaryWarning(side);
   showToast("🎯 Diseño centrado correctamente");
 };
 
-const sendToWhatsApp = () => {
+const getQuoteDetails = () => ({
+  name: document.getElementById('quote-name')?.value.trim() || 'No indicado',
+  city: document.getElementById('quote-city')?.value.trim() || 'No indicada',
+  quantity: Math.max(1, Math.min(99, Number(document.getElementById('quote-quantity')?.value) || 1)),
+  notes: document.getElementById('quote-notes')?.value.trim() || 'Sin observaciones'
+});
+
+const waitForImages = async (container) => {
+  const images = Array.from(container.querySelectorAll('img'));
+  await Promise.all(images.map(image => image.complete
+    ? Promise.resolve()
+    : new Promise(resolve => {
+        image.addEventListener('load', resolve, { once: true });
+        image.addEventListener('error', resolve, { once: true });
+      })));
+};
+
+const captureMockupSide = async (side) => {
+  const target = document.getElementById(side === 0 ? 'mockup-frente' : 'mockup-espalda');
+  const preview = document.getElementById(side === 0 ? 'design-preview' : 'design-preview-back');
+  if (!target || !preview || typeof html2canvas !== 'function') throw new Error('Captura no disponible');
+  const wasHidden = target.classList.contains('hidden');
+  const previousPreviewStyle = preview.getAttribute('style');
+  target.classList.remove('hidden');
+  preview.style.setProperty('border-color', 'transparent', 'important');
+  preview.style.setProperty('background', 'transparent', 'important');
+  try {
+    await waitForImages(target);
+    return await html2canvas(target, {
+      backgroundColor: '#111827',
+      scale: 2,
+      useCORS: true,
+      logging: false
+    });
+  } finally {
+    if (wasHidden) target.classList.add('hidden');
+    if (previousPreviewStyle === null) preview.removeAttribute('style');
+    else preview.setAttribute('style', previousPreviewStyle);
+    updateDesignSize();
+  }
+};
+
+window.createDesignPreview = async (shouldDownload = true) => {
+  const originalTab = currentTab;
+  const frontCanvas = await captureMockupSide(0);
+  const backCanvas = await captureMockupSide(1);
+  const gap = 32;
+  const labelHeight = 64;
+  const result = document.createElement('canvas');
+  result.width = frontCanvas.width + backCanvas.width + gap * 3;
+  result.height = Math.max(frontCanvas.height, backCanvas.height) + labelHeight + gap * 2;
+  const context = result.getContext('2d');
+  context.fillStyle = '#111827';
+  context.fillRect(0, 0, result.width, result.height);
+  context.fillStyle = '#facc15';
+  context.font = 'bold 34px system-ui, sans-serif';
+  context.textAlign = 'center';
+  context.fillText('FRENTE', gap + frontCanvas.width / 2, 44);
+  context.fillText('ESPALDA', gap * 2 + frontCanvas.width + backCanvas.width / 2, 44);
+  context.drawImage(frontCanvas, gap, labelHeight);
+  context.drawImage(backCanvas, gap * 2 + frontCanvas.width, labelHeight);
+  switchMockup(originalTab);
+  if (shouldDownload) {
+    const link = document.createElement('a');
+    link.download = `momotus-diseno-${Date.now()}.png`;
+    link.href = result.toDataURL('image/png', 1);
+    link.click();
+    showToast('✅ Vista previa descargada; adjúntala en tu mensaje');
+  }
+  return result;
+};
+
+const sendToWhatsApp = async () => {
   const typeName = ['Regular / Unisex', 'Slim Fit', 'Oversized'][currentShirtType];
   const colorName = colorMap[currentColor] || currentColor;
-  const text = `¡Hola Momotus Core! 👋\n\nAcabo de diseñar mi camiseta:\n• Tipo: ${typeName}\n• Talla: ${currentSize}\n• Color: ${colorName.charAt(0).toUpperCase() + colorName.slice(1)}\n• Frente: ${designFront ? 'Sí' : 'No'}\n• Espalda: ${designBack ? 'Sí' : 'No'}\n\nRevisa la captura que adjunto.\nGracias! 🇳🇮`;
-  window.open(`https://wa.me/50555010044?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
-  showToast("📱 WhatsApp abierto");
+  const quote = getQuoteDetails();
+  const text = `¡Hola Momotus Core! 👋\n\nAcabo de diseñar mi camiseta:\n• Nombre: ${quote.name}\n• Ciudad: ${quote.city}\n• Cantidad: ${quote.quantity}\n• Tipo: ${typeName}\n• Talla: ${currentSize}\n• Color: ${colorName.charAt(0).toUpperCase() + colorName.slice(1)}\n• Frente: ${designFront ? 'Sí' : 'No'}\n• Espalda: ${designBack ? 'Sí' : 'No'}\n• Observaciones: ${quote.notes}\n\nAdjuntaré la vista previa descargada.\nGracias! 🇳🇮`;
+  const whatsappWindow = window.open('', '_blank');
+  if (whatsappWindow) whatsappWindow.opener = null;
+  try {
+    await window.createDesignPreview(true);
+  } catch (error) {
+    console.warn('No se pudo generar la vista previa automáticamente.', error);
+    showToast('⚠️ No se pudo descargar la vista previa; puedes enviar una captura manual');
+  }
+  if (whatsappWindow) whatsappWindow.location.href = `https://wa.me/50555010044?text=${encodeURIComponent(text)}`;
+  else showToast('❌ Permite ventanas emergentes para abrir WhatsApp');
 };
 
 const sendToEmail = () => {
   const typeName = ['Regular / Unisex', 'Slim Fit', 'Oversized'][currentShirtType];
   const colorName = colorMap[currentColor] || currentColor;
+  const quote = getQuoteDetails();
   const subject = "Cotización - Camiseta Personalizada Momotus Core";
-  const body = `Hola,\n\nQuiero cotizar:\n- Tipo: ${typeName}\n- Talla: ${currentSize}\n- Color: ${colorName}\n- Frente: ${designFront ? 'Sí' : 'No'}\n- Espalda: ${designBack ? 'Sí' : 'No'}\n\nGracias!`;
+  const body = `Hola,\n\nQuiero cotizar:\n- Nombre: ${quote.name}\n- Ciudad: ${quote.city}\n- Cantidad: ${quote.quantity}\n- Tipo: ${typeName}\n- Talla: ${currentSize}\n- Color: ${colorName}\n- Frente: ${designFront ? 'Sí' : 'No'}\n- Espalda: ${designBack ? 'Sí' : 'No'}\n- Observaciones: ${quote.notes}\n\nGracias!`;
   window.location.href = `mailto:momotuscore@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   showToast("✉️ Email abierto");
 };
@@ -404,6 +591,17 @@ const initDesigner = () => {
   loadSavedDesign();
   updateMockups();
   initDragListeners();
+  document.querySelectorAll('.ready-designs img').forEach((image, index) => {
+    image.tabIndex = 0;
+    image.setAttribute('role', 'button');
+    image.setAttribute('aria-label', `Abrir diseño listo ${index + 1}`);
+    image.addEventListener('keydown', event => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        showPreviewModal(image.src);
+      }
+    });
+  });
   window.addEventListener('resize', () => setTimeout(updateDesignSize, 200));
   console.log("%c✅ Diseñador COMPLETO y sin errores - Margen 90%/88% mantenido", "color:#facc15; font-weight:bold");
 };

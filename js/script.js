@@ -335,7 +335,7 @@ const toggleMobileMenu = () => {
 };
 
 // ==================== QUICK VIEW ====================
-const showQuickView = (id) => {
+const showQuickView = (id, updateURL = true) => {
   const product = products.find(p => p.id === id);
   if (!product) return;
   const inWishlist = isInWishlist(id);
@@ -351,11 +351,11 @@ const showQuickView = (id) => {
   });
 
   const modalHTML = `
-    <div id="quickview-modal" class="fixed inset-0 bg-black/80 flex items-center justify-center z-[10000]">
+    <div id="quickview-modal" role="dialog" aria-modal="true" aria-labelledby="quickview-title" class="fixed inset-0 bg-black/80 flex items-center justify-center z-[10000]">
       <div class="bg-zinc-900 rounded-3xl max-w-2xl w-full mx-4 overflow-hidden">
         <div class="px-8 py-6 border-b border-zinc-700 flex justify-between items-center">
-          <h3 class="text-2xl font-bold">${product.name}</h3>
-          <button onclick="closeQuickView()" class="text-4xl text-zinc-400 hover:text-white">×</button>
+          <h3 id="quickview-title" class="text-2xl font-bold">${product.name}</h3>
+          <button onclick="closeQuickView()" aria-label="Cerrar vista del producto" class="text-4xl text-zinc-400 hover:text-white">×</button>
         </div>
         <div class="p-8 flex flex-col md:flex-row gap-8">
           <img src="${product.img}" width="400" height="400" class="w-full md:w-1/2 aspect-square object-cover rounded-3xl" alt="${product.name}">
@@ -373,6 +373,9 @@ const showQuickView = (id) => {
                 <i class="fa-solid fa-heart ${inWishlist ? 'text-red-500' : 'text-zinc-400'}"></i> ${inWishlist ? 'Quitar de favoritos' : 'Añadir a favoritos'}
               </button>
             </div>
+            <button onclick="shareProduct(${product.id})" class="mt-4 w-full border border-yellow-400 text-yellow-400 hover:bg-yellow-400 hover:text-black py-3 rounded-3xl font-medium transition">
+              <i class="fa-solid fa-share-nodes"></i> Compartir producto
+            </button>
           </div>
         </div>
       </div>
@@ -381,11 +384,39 @@ const showQuickView = (id) => {
   const existing = document.getElementById('quickview-modal');
   if (existing) existing.remove();
   document.body.insertAdjacentHTML('beforeend', modalHTML);
+  document.querySelector('#quickview-modal button')?.focus();
+  if (updateURL && document.getElementById('products-grid')) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('producto', product.id);
+    history.replaceState(null, '', url);
+  }
 };
 
-const closeQuickView = () => {
+const closeQuickView = (updateURL = true) => {
   const modal = document.getElementById('quickview-modal');
   if (modal) modal.remove();
+  if (updateURL && document.getElementById('products-grid')) {
+    const url = new URL(window.location.href);
+    url.searchParams.delete('producto');
+    history.replaceState(null, '', url);
+  }
+};
+
+const shareProduct = async (id) => {
+  const product = products.find(item => item.id === id);
+  if (!product) return;
+  const url = new URL('tienda.html', window.location.href);
+  url.searchParams.set('producto', id);
+  const shareData = { title: product.name, text: `${product.name} - Momotus Core`, url: url.href };
+  try {
+    if (navigator.share) await navigator.share(shareData);
+    else {
+      await navigator.clipboard.writeText(url.href);
+      showToast('🔗 Enlace del producto copiado');
+    }
+  } catch (error) {
+    if (error?.name !== 'AbortError') showToast('❌ No se pudo compartir el producto');
+  }
 };
 
 const addToCartWithSize = (id, size) => {
@@ -525,9 +556,9 @@ const renderProducts = (filteredProducts) => {
     card.className = 'product-card bg-zinc-900 rounded-3xl overflow-hidden group relative';
     card.innerHTML = `
       <div class="relative">
-        <img src="${product.img}" width="320" height="320" loading="lazy" onclick="showQuickView(${product.id})" class="w-full aspect-square object-cover transition group-hover:scale-105 cursor-pointer">
+        <img src="${product.img}" width="320" height="320" loading="lazy" alt="${product.name}" onclick="showQuickView(${product.id})" class="w-full aspect-square object-cover transition group-hover:scale-105 cursor-pointer">
         <span class="absolute top-4 left-4 bg-black/70 text-white text-xs font-medium px-3 py-1 rounded-full">${product.category.toUpperCase()}</span>
-        <button onclick="event.stopImmediatePropagation(); ${inWishlist ? `removeFromWishlist(${product.id})` : `addToWishlist(${product.id})`}" class="absolute top-4 right-4 text-2xl ${inWishlist ? 'text-red-500' : 'text-white/70 hover:text-red-500'} transition">
+        <button onclick="event.stopImmediatePropagation(); ${inWishlist ? `removeFromWishlist(${product.id})` : `addToWishlist(${product.id})`}" aria-label="${inWishlist ? 'Quitar' : 'Añadir'} ${product.name} de favoritos" class="absolute top-4 right-4 text-2xl ${inWishlist ? 'text-red-500' : 'text-white/70 hover:text-red-500'} transition">
           <i class="fa-solid fa-heart"></i>
         </button>
       </div>
@@ -543,7 +574,19 @@ const renderProducts = (filteredProducts) => {
 const filterCategory = (cat) => {
   currentCategory = cat;
   document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.toggle('active', btn.id === `filter-${cat}`));
+  updateStoreURL();
   filterProducts();
+};
+
+const updateStoreURL = () => {
+  if (!document.getElementById('products-grid')) return;
+  const url = new URL(window.location.href);
+  currentCategory === 'all' ? url.searchParams.delete('categoria') : url.searchParams.set('categoria', currentCategory);
+  currentSearchTerm ? url.searchParams.set('buscar', currentSearchTerm) : url.searchParams.delete('buscar');
+  const sortValue = document.getElementById('sort-select')?.value || 'default';
+  sortValue === 'default' ? url.searchParams.delete('orden') : url.searchParams.set('orden', sortValue);
+  url.searchParams.delete('producto');
+  history.replaceState(null, '', url);
 };
 
 const filterProducts = () => {
@@ -558,6 +601,7 @@ const filterProducts = () => {
 };
 
 const sortProducts = () => {
+  updateStoreURL();
   filterProducts();
 };
 
@@ -570,8 +614,27 @@ window.onload = () => {
   renderTestimonials();
 
   if (document.getElementById('products-grid')) {
+    const params = new URLSearchParams(window.location.search);
+    const category = params.get('categoria');
+    if (['fauna', 'anime', 'urbano', 'games', 'unica'].includes(category)) currentCategory = category;
+    currentSearchTerm = (params.get('buscar') || '').toLowerCase().trim();
+    const sortValue = params.get('orden');
+    if (['price-low', 'price-high', 'name'].includes(sortValue)) document.getElementById('sort-select').value = sortValue;
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) searchInput.value = currentSearchTerm;
+    document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.toggle('active', btn.id === `filter-${currentCategory}`));
     filterProducts();
+    const productId = Number(params.get('producto'));
+    if (Number.isInteger(productId)) showQuickView(productId, false);
   }
+
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape') {
+      closeQuickView();
+      const cartModal = document.getElementById('cart-modal');
+      if (cartModal) cartModal.classList.add('hidden');
+    }
+  });
 
   console.log("%c🚀 Momotus Core - script.js COMPLETO (Carrito MEJORADO + Fauna Nica)", "color:#facc15; font-weight:bold; font-size:14px");
 };

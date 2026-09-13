@@ -5,6 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Comunidad - Momotus Core</title>
   <meta name="description" content="Conoce las historias de +380 nicaragüenses que ya visten Momotus Core. Testimonios reales y únete a la comunidad más nica de Nicaragua.">
+  <meta name="theme-color" content="#09090b">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Comunidad Momotus Core">
+  <meta property="og:description" content="Conoce a la comunidad Momotus Core y comparte tu camiseta.">
+  <meta property="og:image" content="img/heroes/hero-comunidad.webp">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" href="img/icons/icon-nica.webp" type="image/webp">
   
   <!-- === SEGURIDAD NETLIFY - Momotus Core (Abril 2026) === -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: https:; font-src 'self' https://cdnjs.cloudflare.com; connect-src 'self';">
@@ -110,8 +117,8 @@
   <!-- Script extra para el botón de compartir -->
   <script>
     function compartirWhatsApp() {
-      const text = "¡Hola Momotus! Quiero compartir mi foto con mi camiseta Momotus Core 🇳🇮%0A%0A";
-      window.open(`https://wa.me/50555010044?text=${text}`, '_blank');
+      const text = "¡Hola Momotus! Quiero compartir mi foto con mi camiseta Momotus Core 🇳🇮";
+      window.open(`https://wa.me/50555010044?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
       showToast("✅ WhatsApp abierto - ¡Envía tu foto!");
     }
   </script>

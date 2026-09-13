@@ -5,6 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Tienda - Momotus Core | Camisetas Nicaragua</title>
   <meta name="description" content="Tienda oficial Momotus Core. Camisetas premium con diseños únicos de Nicaragua: Fauna Nica, Anime, Arte Urbano y más. Envío rápido en todo el país.">
+  <meta name="theme-color" content="#09090b">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Tienda Momotus Core">
+  <meta property="og:description" content="Explora camisetas premium con diseños únicos y ediciones limitadas.">
+  <meta property="og:image" content="img/heroes/hero-tienda.webp">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" href="img/icons/icon-nica.webp" type="image/webp">
   
   <!-- === SEGURIDAD NETLIFY - Momotus Core (Abril 2026) === -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: https:; font-src 'self' https://cdnjs.cloudflare.com; connect-src 'self';">
@@ -149,9 +156,9 @@
         card.className = 'product-card bg-zinc-900 rounded-3xl overflow-hidden group relative';
         card.innerHTML = `
           <div class="relative">
-            <img src="${product.img}" onclick="showQuickView(${product.id})" class="w-full aspect-square object-cover transition group-hover:scale-105 cursor-pointer">
+            <img src="${product.img}" width="320" height="320" loading="lazy" alt="${product.name}" onclick="showQuickView(${product.id})" class="w-full aspect-square object-cover transition group-hover:scale-105 cursor-pointer">
             <span class="absolute top-4 left-4 bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full">🔥</span>
-            <button onclick="event.stopImmediatePropagation(); toggleWishlist(${product.id});" class="absolute top-4 right-4 text-2xl ${inWishlist ? 'text-red-500' : 'text-white/70 hover:text-red-500'} transition">
+            <button onclick="event.stopImmediatePropagation(); toggleWishlist(${product.id});" aria-label="${inWishlist ? 'Quitar' : 'Añadir'} ${product.name} de favoritos" class="absolute top-4 right-4 text-2xl ${inWishlist ? 'text-red-500' : 'text-white/70 hover:text-red-500'} transition">
               <i class="fa-solid fa-heart"></i>
             </button>
           </div>
@@ -176,6 +183,7 @@
       document.getElementById('search-input').value = '';
       document.getElementById('sort-select').value = 'default';
       document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.id === 'filter-all'));
+      updateStoreURL();
       filterProducts();
     }
 
@@ -186,6 +194,7 @@
       if (searchInput) {
         searchInput.addEventListener('input', () => {
           currentSearchTerm = searchInput.value.toLowerCase().trim();
+          updateStoreURL();
           filterProducts();
         });
       }
