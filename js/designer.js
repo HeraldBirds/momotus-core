@@ -18,6 +18,8 @@ let currentTab = 0; // 0 = Frente, 1 = Espalda
 const shirtTypes = ['regular', 'sudadera', 'hoodie', 'crop-top'];
 const shirtTypeNames = ['Regular / Unisex', 'Sudaderas', 'Hoodie', 'Crop-top'];
 const colorMap = { black: 'negro', white: 'blanco', red: 'rojo', blue: 'azul', emerald: 'verde', violet: 'violeta', amber: 'amarillo', pink: 'rosa' };
+const whatsappNumber = '50555010044';
+const contactEmail = 'momotuscore@gmail.com';
 
 const getMockupPath = (typeIndex, colorKey, isBack = false) => {
   const typeName = shirtTypes[typeIndex];
@@ -557,12 +559,13 @@ window.createDesignPreview = async (shouldDownload = true) => {
   return result;
 };
 
-const sendToWhatsApp = async () => {
+window.sendToWhatsApp = async () => {
   const typeName = shirtTypeNames[currentShirtType];
   const colorName = colorMap[currentColor] || currentColor;
   const quote = getQuoteDetails();
   const text = `¡Hola Momotus Core! 👋\n\nAcabo de diseñar mi camiseta:\n• Nombre: ${quote.name}\n• Ciudad: ${quote.city}\n• Cantidad: ${quote.quantity}\n• Tipo: ${typeName}\n• Talla: ${currentSize}\n• Color: ${colorName.charAt(0).toUpperCase() + colorName.slice(1)}\n• Frente: ${designFront ? 'Sí' : 'No'}\n• Espalda: ${designBack ? 'Sí' : 'No'}\n• Observaciones: ${quote.notes}\n\nAdjuntaré la vista previa descargada.\nGracias! 🇳🇮`;
-  const whatsappWindow = window.open('', '_blank');
+  const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(text)}`;
+  const whatsappWindow = window.open(whatsappUrl, '_blank');
   if (whatsappWindow) whatsappWindow.opener = null;
   try {
     await window.createDesignPreview(true);
@@ -570,17 +573,19 @@ const sendToWhatsApp = async () => {
     console.warn('No se pudo generar la vista previa automáticamente.', error);
     showToast('⚠️ No se pudo descargar la vista previa; puedes enviar una captura manual');
   }
-  if (whatsappWindow) whatsappWindow.location.href = `https://wa.me/50555010044?text=${encodeURIComponent(text)}`;
-  else showToast('❌ Permite ventanas emergentes para abrir WhatsApp');
+  if (!whatsappWindow) {
+    showToast('ℹ️ WhatsApp se abrirá en esta misma pestaña');
+    window.location.assign(whatsappUrl);
+  }
 };
 
-const sendToEmail = () => {
+window.sendToEmail = () => {
   const typeName = shirtTypeNames[currentShirtType];
   const colorName = colorMap[currentColor] || currentColor;
   const quote = getQuoteDetails();
   const subject = "Cotización - Camiseta Personalizada Momotus Core";
   const body = `Hola,\n\nQuiero cotizar:\n- Nombre: ${quote.name}\n- Ciudad: ${quote.city}\n- Cantidad: ${quote.quantity}\n- Tipo: ${typeName}\n- Talla: ${currentSize}\n- Color: ${colorName}\n- Frente: ${designFront ? 'Sí' : 'No'}\n- Espalda: ${designBack ? 'Sí' : 'No'}\n- Observaciones: ${quote.notes}\n\nGracias!`;
-  window.location.href = `mailto:momotuscore@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  window.location.href = `mailto:${contactEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   showToast("✉️ Email abierto");
 };
 
