@@ -103,11 +103,11 @@
 
             <!-- Botones de tamaño -->
             <div class="flex items-center justify-center gap-6 mt-8 mb-8">
-              <button onclick="scaleDesign(0, -0.1)" class="resize-btn bg-zinc-800 hover:bg-zinc-700 text-white border border-yellow-400/30">
+              <button onclick="scaleActiveDesign(-0.1)" class="resize-btn bg-zinc-800 hover:bg-zinc-700 text-white border border-yellow-400/30">
                 <i class="fa-solid fa-minus"></i>
               </button>
               <div class="text-zinc-400 font-semibold text-lg px-6">Ajustar tamaño del diseño</div>
-              <button onclick="scaleDesign(0, 0.1)" class="resize-btn bg-yellow-400 hover:bg-yellow-300 text-black">
+              <button onclick="scaleActiveDesign(0.1)" class="resize-btn bg-yellow-400 hover:bg-yellow-300 text-black">
                 <i class="fa-solid fa-plus"></i>
               </button>
             </div>
@@ -292,6 +292,7 @@
       if (typeof makeDraggable === 'function') makeDraggable(document.getElementById(id));
       if (side === 0) designFront = currentPreviewSrc;
       else designBack = currentPreviewSrc;
+      if (typeof applyDesignLayout === 'function') applyDesignLayout(document.getElementById(id), side);
       hidePreviewModal();
       if (typeof showToast === 'function') showToast("✅ Diseño aplicado correctamente");
       if (typeof saveCurrentDesign === 'function') saveCurrentDesign();
