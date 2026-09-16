@@ -19,7 +19,7 @@
     { id: 2, name: 'Asio clamator', price: 550, category: 'fauna', img: 'img/products/nica-2.webp', sizes: ['M','L'], stock: {M:15, L:12}, featured: true },
     { id: 3, name: 'Strix virgata', price: 550, category: 'fauna', img: 'img/products/nica-3.webp', sizes: ['S','M','L'], stock: {S:20, M:14, L:10} },
     { id: 4, name: 'Bandera Nica Pride', price: 550, category: 'unica', img: 'img/products/nica-4.webp', sizes: ['S','M','L'], stock: {S:10, M:22, L:15} },
-    { id: 5, name: 'Sasuke Uchiha Edition', price: 550, category: 'anime', img: 'img/products/anime-1.webp', sizes: ['S','M','L'], stock: {S:15, M:20, L:12} },
+    { id: 5, name: 'Kurama Edition', price: 550, category: 'anime', img: 'img/products/anime-1.webp', sizes: ['S','M','L'], stock: {S:15, M:20, L:12} },
     { id: 6, name: 'Kento Nanami', price: 550, category: 'anime', img: 'img/products/anime-2.webp', sizes: ['M','L'], stock: {M:18, L:14} },
     { id: 7, name: 'Satoru Gojō', price: 550, category: 'anime', img: 'img/products/anime-3.webp', sizes: ['S','M','L'], stock: {S:11, M:19, L:13} },
     { id: 8, name: 'Maki Zenin', price: 500, category: 'anime', img: 'img/products/anime-4.webp', sizes: ['S','M','L'], stock: {S:14, M:22, L:16} },
