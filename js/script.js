@@ -10,6 +10,11 @@ let currentMaxPrice = Number.POSITIVE_INFINITY;
 let showWishlistOnly = false;
 let quickViewProductId = null;
 let quickViewSelectedSize = null;
+const products = window.MomotusCatalog?.products;
+
+if (!Array.isArray(products)) {
+  throw new Error('No fue posible cargar js/products.js antes de js/script.js');
+}
 
 const categoryLabels = {
   fauna: 'Fauna Nica',
@@ -67,6 +72,39 @@ const showToast = (message) => {
   document.getElementById('toast-text').textContent = message;
   toast.classList.remove('hidden');
   setTimeout(() => toast.classList.add('hidden'), 3200);
+};
+
+const fallbackImage = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+  <svg xmlns="http://www.w3.org/2000/svg" width="640" height="640" viewBox="0 0 640 640">
+    <rect width="640" height="640" fill="#18181b"/>
+    <path d="M245 220h150l55 70-48 42-28-31v159H266V301l-28 31-48-42z" fill="#facc15" opacity=".9"/>
+    <text x="320" y="520" text-anchor="middle" fill="#e4e4e7" font-family="Arial,sans-serif" font-size="26">Imagen próximamente</text>
+  </svg>`)}`;
+
+document.addEventListener('error', event => {
+  const image = event.target;
+  if (!(image instanceof HTMLImageElement) || image.dataset.fallbackApplied === 'true') return;
+  image.dataset.fallbackApplied = 'true';
+  image.src = fallbackImage;
+  image.alt = image.alt ? `${image.alt} — imagen no disponible` : 'Imagen no disponible';
+}, true);
+
+let lastModalTrigger = null;
+const activateModal = modal => {
+  if (!modal) return;
+  lastModalTrigger = document.activeElement;
+  modal.classList.remove('hidden');
+  document.body.classList.add('overflow-hidden');
+  requestAnimationFrame(() => modal.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')?.focus());
+};
+
+const deactivateModal = (modal, remove = false) => {
+  if (!modal) return;
+  if (remove) modal.remove();
+  else modal.classList.add('hidden');
+  if (!document.querySelector('[role="dialog"]:not(.hidden)')) document.body.classList.remove('overflow-hidden');
+  if (lastModalTrigger instanceof HTMLElement) lastModalTrigger.focus();
+  lastModalTrigger = null;
 };
 
 // ==================== CARRITO MEJORADO ====================
@@ -144,10 +182,10 @@ const clearCart = () => {
 // ==================== RENDER CARRITO (MEJORADO) ====================
 const renderCartModal = () => {
   const modalHTML = `
-    <div id="cart-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[9999]">
+    <div id="cart-modal" role="dialog" aria-modal="true" aria-labelledby="cart-modal-title" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[9999]">
       <div class="bg-zinc-900 rounded-3xl max-w-lg w-full mx-4 max-h-[90vh] overflow-hidden flex flex-col">
         <div class="px-8 py-6 border-b border-zinc-700 flex items-center justify-between">
-          <h3 class="text-2xl font-bold flex items-center gap-3">
+          <h3 id="cart-modal-title" class="text-2xl font-bold flex items-center gap-3">
             <i class="fa-solid fa-shopping-cart text-yellow-400"></i>
             Tu Carrito
           </h3>
@@ -198,6 +236,10 @@ const renderCartModal = () => {
 const toggleCartModal = () => {
   const modal = document.getElementById('cart-modal');
   if (!modal) return;
+  if (!modal.classList.contains('hidden')) {
+    deactivateModal(modal);
+    return;
+  }
 
   const container = document.getElementById('cart-items');
   const totalContainer = document.getElementById('cart-total-container');
@@ -217,7 +259,7 @@ const toggleCartModal = () => {
       </div>
     `;
     totalContainer.innerHTML = '';
-    modal.classList.remove('hidden');
+    activateModal(modal);
     return;
   }
 
@@ -263,7 +305,7 @@ const toggleCartModal = () => {
     <span class="text-3xl font-black text-yellow-400">C$ ${total}</span>
   `;
 
-  modal.classList.remove('hidden');
+  activateModal(modal);
 };
 
 const createOrderCode = () => {
@@ -283,6 +325,19 @@ const createOrderCode = () => {
 const checkout = () => {
   if (cart.length === 0) return;
 
+  const nameInput = document.getElementById('checkout-name');
+  const cityInput = document.getElementById('checkout-city');
+  if (!nameInput?.value.trim()) {
+    showToast('Escribí tu nombre para continuar');
+    nameInput?.focus();
+    return;
+  }
+  if (!cityInput?.value.trim()) {
+    showToast('Indicá tu ciudad o departamento');
+    cityInput?.focus();
+    return;
+  }
+
   const previousCart = JSON.stringify(cart.map(({ id, size, quantity }) => ({ id, size, quantity })));
   cart = validateCartItems(cart);
   const validatedCart = JSON.stringify(cart.map(({ id, size, quantity }) => ({ id, size, quantity })));
@@ -295,8 +350,8 @@ const checkout = () => {
   }
   
   const orderCode = createOrderCode();
-  const customerName = document.getElementById('checkout-name')?.value.trim() || 'No indicado';
-  const customerCity = document.getElementById('checkout-city')?.value.trim() || 'No indicada';
+  const customerName = nameInput.value.trim();
+  const customerCity = cityInput.value.trim();
   let text = `¡Hola Momotus Core! 👋\n\nQuiero confirmar este pedido:\n• Código: ${orderCode}\n• Nombre: ${customerName}\n• Ciudad o departamento: ${customerCity}\n\nProductos:\n\n`;
   
   cart.forEach(item => {
@@ -474,7 +529,7 @@ const showQuickView = (id, updateURL = true) => {
   const existing = document.getElementById('quickview-modal');
   if (existing) existing.remove();
   document.body.insertAdjacentHTML('beforeend', modalHTML);
-  document.querySelector('#quickview-modal button')?.focus();
+  activateModal(document.getElementById('quickview-modal'));
   if (updateURL && document.getElementById('products-grid')) {
     const url = new URL(window.location.href);
     url.searchParams.set('producto', product.id);
@@ -506,7 +561,7 @@ const addSelectedQuickViewProduct = () => {
 
 const closeQuickView = (updateURL = true) => {
   const modal = document.getElementById('quickview-modal');
-  if (modal) modal.remove();
+  if (modal) deactivateModal(modal, true);
   quickViewProductId = null;
   quickViewSelectedSize = null;
   if (updateURL && document.getElementById('products-grid')) {
@@ -549,79 +604,22 @@ const addToCartWithSize = (id, size) => {
   showToast(`✅ ${product.name} - Talla ${size} agregado`);
 };
 
-// ==================== PRODUCTOS ====================
-const products = [
-  // Fauna Nica (3)
-  { id: 1, name: "Agelaius phoeniceus", price: 550, category: "fauna", img: "img/products/nica-1.webp", sizes: ["S","M","L"], stock: {S:12, M:25, L:18} },
-  { id: 2, name: "Asio clamator", price: 550, category: "fauna", img: "img/products/nica-2.webp", sizes: ["M","L"], stock: {M:15, L:12} },
-  { id: 3, name: "Strix virgata", price: 550, category: "fauna", img: "img/products/nica-3.webp", sizes: ["S","M","L"], stock: {S:20, M:14, L:10} },
-  { id: 4, name: "Bandera Nica Pride", price: 550, category: "unica", img: "img/products/nica-4.webp", sizes: ["S","M","L"], stock: {S:10, M:22, L:15} },
-
-  // ANIME (10)
-  { id: 5, name: "Sasuke Uchiha Edition", price: 550, category: "anime", img: "img/products/anime-1.webp", sizes: ["S","M","L"], stock: {S:15, M:20, L:12} },
-  { id: 6, name: "Kento Nanami", price: 550, category: "anime", img: "img/products/anime-2.webp", sizes: ["M","L"], stock: {M:18, L:14} },
-  { id: 7, name: "Satoru Gojō", price: 550, category: "anime", img: "img/products/anime-3.webp", sizes: ["S","M","L"], stock: {S:11, M:19, L:13} },
-  { id: 8, name: "Maki Zenin", price: 500, category: "anime", img: "img/products/anime-4.webp", sizes: ["S","M","L"], stock: {S:14, M:22, L:16} },
-  { id: 9, name: "Mewtwo", price: 450, category: "anime", img: "img/products/anime-5.webp", sizes: ["S","M","L"], stock: {S:18, M:12, L:15} },
-  { id: 10, name: "Itachi Uchiha", price: 450, category: "anime", img: "img/products/anime-6.webp", sizes: ["S","M","L"], stock: {S:13, M:17, L:11} },
-  { id: 11, name: "Hellsing", price: 500, category: "anime", img: "img/products/anime-7.webp", sizes: ["M","L"], stock: {M:20, L:14} },
-  { id: 12, name: "Death Note", price: 450, category: "anime", img: "img/products/anime-8.webp", sizes: ["S","M","L"], stock: {S:16, M:13, L:19} },
-  { id: 13, name: "Death Note 2.1", price: 450, category: "anime", img: "img/products/anime-9.webp", sizes: ["S","M","L"], stock: {S:12, M:15, L:10} },
-  { id: 14, name: "Mob Psycho 100", price: 550, category: "anime", img: "img/products/anime-10.webp", sizes: ["S","M","L"], stock: {S:14, M:21, L:12} },
-
-  // URBANO (5)
-  { id: 15, name: "Trueno AE86", price: 400, category: "urbano", img: "img/products/urbano-1.webp", sizes: ["M","L"], stock: {M:8, L:17} },
-  { id: 16, name: "Cyber Style", price: 400, category: "urbano", img: "img/products/urbano-2.webp", sizes: ["S","M","L"], stock: {S:15, M:19, L:12} },
-  { id: 17, name: "Iron Maiden", price: 450, category: "urbano", img: "img/products/urbano-3.webp", sizes: ["S","M","L"], stock: {S:10, M:14, L:9} },
-  { id: 18, name: "Ghostface", price: 450, category: "urbano", img: "img/products/urbano-4.webp", sizes: ["S","M","L"], stock: {S:13, M:16, L:11} },
-  { id: 19, name: "NFC", price: 450, category: "urbano", img: "img/products/urbano-5.webp", sizes: ["S","M","L"], stock: {S:13, M:16, L:11} },
-
-  // GAMES (6)
-  { id: 20, name: "Hollow Knight", price: 500, category: "games", img: "img/products/game-1.webp", sizes: ["S","M","L"], stock: {S:10, M:16, L:13} },
-  { id: 21, name: "Silent Hill F", price: 550, category: "games", img: "img/products/game-2.webp", sizes: ["M","L"], stock: {M:12, L:15} },
-  { id: 22, name: "Kratos Edition", price: 550, category: "games", img: "img/products/game-3.webp", sizes: ["S","M","L"], stock: {S:14, M:18, L:10} },
-  { id: 23, name: "Raccoon City", price: 500, category: "games", img: "img/products/game-4.webp", sizes: ["S","M","L"], stock: {S:9, M:15, L:12} },
-  { id: 24, name: "Minecraft Nicaragua", price: 465, category: "games", img: "img/products/game-5.webp", sizes: ["S","M","L"], stock: {S:11, M:17, L:14} },
-  { id: 25, name: "Zelda Legend Nica", price: 530, category: "games", img: "img/products/game-6.webp", sizes: ["M","L"], stock: {M:13, L:16} },
-
-  // ÚNICAS (7, incluye Bandera Nica Pride)
-  { id: 26, name: "Limited Edition 001", price: 650, category: "unica", img: "img/products/unica-1.webp", sizes: ["L"], stock: {L:15} },
-  { id: 27, name: "Limited Edition 002", price: 500, category: "unica", img: "img/products/unica-2.webp", sizes: ["M","L"], stock: {M:11, L:20} },
-  { id: 28, name: "Eclipse Nica", price: 620, category: "unica", img: "img/products/unica-3.webp", sizes: ["S","M","L"], stock: {S:9, M:14, L:8} },
-  { id: 29, name: "Midnight Warrior", price: 580, category: "unica", img: "img/products/unica-4.webp", sizes: ["S","M","L"], stock: {S:12, M:10, L:16} },
-  { id: 30, name: "Fire & Gold", price: 590, category: "unica", img: "img/products/unica-5.webp", sizes: ["M","L"], stock: {M:15, L:11} },
-  { id: 31, name: "Legendary Nica", price: 670, category: "unica", img: "img/products/unica-6.webp", sizes: ["S","M","L"], stock: {S:8, M:12, L:14} }
-];
-
-// ==================== TESTIMONIALS ====================
-const testimonials = [
-  { name: "Carlos Mendoza", location: "Managua", text: "La mejor camiseta que he tenido. El diseño se ve increíble y la calidad es premium.", stars: "★★★★★" },
-  { name: "María José Ruiz", location: "León", text: "Me encantó el proceso de diseño. Subí mi foto y quedó perfecta. ¡Recomendadísima!", stars: "★★★★★" },
-  { name: "José Daniel Ortega", location: "Granada", text: "Envío súper rápido y el mockup 3D me ayudó a ver exactamente cómo quedaría.", stars: "★★★★☆" }
-];
-
+// ==================== TESTIMONIOS / COMUNIDAD ====================
 const renderTestimonials = () => {
   const homeContainer = document.getElementById('testimonials-home');
-  if (homeContainer) homeContainer.innerHTML = testimonials.map(t => `
-    <div class="bg-zinc-900 rounded-3xl p-6">
-      <div class="flex items-center gap-3 mb-4">
-        <div class="w-10 h-10 bg-yellow-400 rounded-2xl flex items-center justify-center text-2xl">👕</div>
-        <div><p class="font-bold">${t.name}</p><p class="text-sm text-zinc-400">${t.location}</p></div>
-      </div>
-      <p class="text-zinc-300 mb-6 leading-relaxed">"${t.text}"</p>
-      <div class="text-yellow-400 text-2xl">${t.stars}</div>
-    </div>`).join('');
+  if (homeContainer) homeContainer.innerHTML = `
+    <div class="md:col-span-3 bg-zinc-900 border border-zinc-800 rounded-3xl p-8 text-center">
+      <i class="fa-solid fa-camera text-4xl text-yellow-400 mb-4" aria-hidden="true"></i>
+      <h4 class="text-2xl font-bold mb-3">Compartí tu creación Momotus</h4>
+      <p class="text-zinc-400 max-w-2xl mx-auto">Mandanos una foto de tu prenda. Solo publicaremos imágenes u opiniones con tu autorización.</p>
+    </div>`;
 
   const communityContainer = document.getElementById('testimonials-container');
-  if (communityContainer) communityContainer.innerHTML = testimonials.map(t => `
-    <div class="bg-zinc-800 rounded-3xl p-8">
-      <div class="flex items-center gap-3 mb-4">
-        <div class="w-10 h-10 bg-yellow-400 rounded-2xl flex items-center justify-center text-2xl">👕</div>
-        <div><p class="font-bold">${t.name}</p><p class="text-sm text-zinc-400">${t.location}</p></div>
-      </div>
-      <p class="text-zinc-300 mb-6 leading-relaxed">"${t.text}"</p>
-      <div class="text-yellow-400 text-2xl">${t.stars}</div>
-    </div>`).join('');
+  if (communityContainer) communityContainer.innerHTML = `
+    <div class="md:col-span-3 bg-zinc-800 rounded-3xl p-8 text-center">
+      <h3 class="text-2xl font-bold mb-3">Este espacio es para trabajos reales</h3>
+      <p class="text-zinc-300">Las fotos y opiniones se agregarán únicamente después de recibir el permiso de cada cliente.</p>
+    </div>`;
 };
 
 // ==================== TIENDA - RENDER Y FILTROS ====================
@@ -733,6 +731,43 @@ const sortProducts = () => {
   filterProducts();
 };
 
+const injectStoreStructuredData = () => {
+  if (!document.getElementById('products-grid') || document.getElementById('store-products-schema')) return;
+  const baseUrl = new URL('tienda.html', window.location.href);
+  const schema = {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: 'Catálogo Momotus Core',
+    itemListElement: products.map((product, index) => {
+      const productUrl = new URL(baseUrl.href);
+      productUrl.searchParams.set('producto', product.id);
+      const available = product.sizes.some(size => Number(product.stock[size]) > 0);
+      return {
+        '@type': 'ListItem',
+        position: index + 1,
+        item: {
+          '@type': 'Product',
+          name: product.name,
+          image: new URL(product.img, window.location.href).href,
+          category: categoryLabels[product.category] || product.category,
+          url: productUrl.href,
+          offers: {
+            '@type': 'Offer',
+            priceCurrency: 'NIO',
+            price: product.price,
+            availability: available ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock'
+          }
+        }
+      };
+    })
+  };
+  const element = document.createElement('script');
+  element.id = 'store-products-schema';
+  element.type = 'application/ld+json';
+  element.textContent = JSON.stringify(schema);
+  document.head.appendChild(element);
+};
+
 // ==================== INICIALIZACIÓN ====================
 window.onload = () => {
   loadCart();
@@ -759,15 +794,33 @@ window.onload = () => {
     updateWishlistFilterButton();
     updatePriceFilterButtons();
     filterProducts();
+    injectStoreStructuredData();
     const productId = Number(params.get('producto'));
     if (Number.isInteger(productId)) showQuickView(productId, false);
   }
 
   document.addEventListener('keydown', event => {
     if (event.key === 'Escape') {
-      closeQuickView();
+      if (document.getElementById('quickview-modal')) closeQuickView();
       const cartModal = document.getElementById('cart-modal');
-      if (cartModal) cartModal.classList.add('hidden');
+      if (cartModal && !cartModal.classList.contains('hidden')) deactivateModal(cartModal);
+      return;
+    }
+    if (event.key === 'Tab') {
+      const openModals = Array.from(document.querySelectorAll('[role="dialog"]:not(.hidden)'));
+      const modal = openModals.at(-1);
+      if (!modal) return;
+      const focusable = Array.from(modal.querySelectorAll('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'));
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable.at(-1);
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
     }
   });
 

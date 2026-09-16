@@ -295,7 +295,7 @@ const initDragListeners = () => {
 const handleDesignUpload = (e, side) => {
   const file = e.target.files[0];
   if (!file) return;
-  if (!file.type.startsWith('image/')) return showToast("❌ Solo imágenes");
+  if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) return showToast('Usá una imagen PNG, JPG o WebP');
   if (file.size > 5 * 1024 * 1024) return showToast("❌ Máximo 5 MB");
 
   const reader = new FileReader();
@@ -562,8 +562,16 @@ const renderColorButtons = () => {
   });
 };
 
-const mostrarModalEliminarFondo = () => document.getElementById('modal-eliminar-fondo').classList.remove('hidden');
-const cerrarModalEliminarFondo = () => document.getElementById('modal-eliminar-fondo').classList.add('hidden');
+const mostrarModalEliminarFondo = () => {
+  const modal = document.getElementById('modal-eliminar-fondo');
+  if (typeof activateModal === 'function') activateModal(modal);
+  else modal.classList.remove('hidden');
+};
+const cerrarModalEliminarFondo = () => {
+  const modal = document.getElementById('modal-eliminar-fondo');
+  if (typeof deactivateModal === 'function') deactivateModal(modal);
+  else modal.classList.add('hidden');
+};
 const abrirRemoveBg = () => {
   cerrarModalEliminarFondo();
   window.open('https://remove.bg', '_blank', 'noopener,noreferrer');
@@ -589,6 +597,27 @@ const getQuoteDetails = () => ({
   quantity: Math.max(1, Math.min(99, Number(document.getElementById('quote-quantity')?.value) || 1)),
   notes: document.getElementById('quote-notes')?.value.trim() || 'Sin observaciones'
 });
+
+const validateQuoteRequest = () => {
+  const nameInput = document.getElementById('quote-name');
+  const cityInput = document.getElementById('quote-city');
+  if (!nameInput?.value.trim()) {
+    showToast('Escribí tu nombre para solicitar la cotización');
+    nameInput?.focus();
+    return false;
+  }
+  if (!cityInput?.value.trim()) {
+    showToast('Indicá tu ciudad o departamento');
+    cityInput?.focus();
+    return false;
+  }
+  if (!designFront && !designBack) {
+    showToast('Subí por lo menos un diseño antes de cotizar');
+    document.getElementById('design-upload-front')?.nextElementSibling?.focus();
+    return false;
+  }
+  return true;
+};
 
 const createQuoteCode = () => {
   const date = new Date();
@@ -660,6 +689,10 @@ const captureMockupSide = async (side) => {
 };
 
 window.createDesignPreview = async (shouldDownload = true, fileLabel = '') => {
+  if (shouldDownload && !designFront && !designBack) {
+    showToast('Subí por lo menos un diseño para generar la vista previa');
+    return null;
+  }
   const originalTab = currentTab;
   const frontCanvas = await captureMockupSide(0);
   const backCanvas = await captureMockupSide(1);
@@ -691,6 +724,7 @@ window.createDesignPreview = async (shouldDownload = true, fileLabel = '') => {
 };
 
 window.sendToWhatsApp = async () => {
+  if (!validateQuoteRequest()) return;
   const typeName = shirtTypeNames[currentShirtType];
   const colorName = colorMap[currentColor] || currentColor;
   const quote = getQuoteDetails();
@@ -712,6 +746,7 @@ window.sendToWhatsApp = async () => {
 };
 
 window.sendToEmail = () => {
+  if (!validateQuoteRequest()) return;
   const typeName = shirtTypeNames[currentShirtType];
   const colorName = colorMap[currentColor] || currentColor;
   const quote = getQuoteDetails();

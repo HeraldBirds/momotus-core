@@ -214,7 +214,7 @@
           <div class="designer-uploads grid grid-cols-2 gap-4">
             <div>
               <p class="font-medium mb-3">Diseño Frente</p>
-              <input type="file" id="design-upload-front" accept="image/*" class="hidden" onchange="handleDesignUpload(event, 0)">
+              <input type="file" id="design-upload-front" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp" class="hidden" onchange="handleDesignUpload(event, 0)">
               <button onclick="document.getElementById('design-upload-front').click()" class="w-full bg-yellow-400 hover:bg-yellow-300 text-black font-bold py-6 rounded-3xl flex items-center justify-center gap-3">
                 <i class="fa-solid fa-upload"></i> Frente
               </button>
@@ -222,7 +222,7 @@
             </div>
             <div>
               <p class="font-medium mb-3">Diseño Espalda</p>
-              <input type="file" id="design-upload-back" accept="image/*" class="hidden" onchange="handleDesignUpload(event, 1)">
+              <input type="file" id="design-upload-back" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp" class="hidden" onchange="handleDesignUpload(event, 1)">
               <button onclick="document.getElementById('design-upload-back').click()" class="w-full bg-yellow-400 hover:bg-yellow-300 text-black font-bold py-6 rounded-3xl flex items-center justify-center gap-3">
                 <i class="fa-solid fa-upload"></i> Espalda
               </button>
@@ -280,6 +280,27 @@
         </div>
       </div>
 
+      <section class="grid md:grid-cols-2 gap-6 mt-16" aria-label="Recomendaciones para tu pedido">
+        <article class="bg-zinc-900 border border-zinc-800 rounded-3xl p-7">
+          <h3 class="text-2xl font-bold mb-4 flex items-center gap-3"><i class="fa-solid fa-file-image text-yellow-400" aria-hidden="true"></i> Prepará bien tu diseño</h3>
+          <ul class="space-y-3 text-zinc-300 list-disc pl-5">
+            <li>Usá archivos PNG, JPG o WebP de hasta 5 MB.</li>
+            <li>Para un acabado más limpio, preferí PNG con fondo transparente.</li>
+            <li>Evitá capturas borrosas o imágenes demasiado pequeñas.</li>
+            <li>La vista previa es una referencia; revisaremos el archivo antes de producir.</li>
+          </ul>
+        </article>
+        <article class="bg-zinc-900 border border-zinc-800 rounded-3xl p-7">
+          <h3 class="text-2xl font-bold mb-4 flex items-center gap-3"><i class="fa-solid fa-soap text-yellow-400" aria-hidden="true"></i> Cuidá tu estampado DTF</h3>
+          <ul class="space-y-3 text-zinc-300 list-disc pl-5">
+            <li>Lavá la prenda al revés.</li>
+            <li>Usá agua fría o temperatura moderada.</li>
+            <li>Evitá aplicar calor directamente sobre el diseño.</li>
+            <li>No planchés encima del estampado.</li>
+          </ul>
+        </article>
+      </section>
+
       <!-- GALERÍA -->
       <div class="gallery-section mt-20">
         <div class="flex items-center justify-between mb-6">
@@ -327,9 +348,9 @@
     </div>
   </div>
 
-  <div id="modal-eliminar-fondo" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[10000]">
+  <div id="modal-eliminar-fondo" role="dialog" aria-modal="true" aria-labelledby="remove-bg-title" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[10000]">
     <div class="bg-zinc-900 rounded-3xl max-w-md w-full mx-4 p-8 text-center">
-      <h3 class="text-2xl font-bold mb-4">🪄 Eliminar fondo automáticamente</h3>
+      <h3 id="remove-bg-title" class="text-2xl font-bold mb-4">🪄 Eliminar fondo automáticamente</h3>
       <p class="text-zinc-400 mb-6">1. Abre remove.bg<br>2. Sube tu imagen<br>3. Descarga PNG transparente<br>4. Súbela aquí</p>
       <button onclick="abrirRemoveBg()" class="w-full bg-yellow-400 text-black font-bold py-6 rounded-3xl text-xl mb-6 flex items-center justify-center gap-3 hover:bg-yellow-300 transition">
         <i class="fa-solid fa-magic"></i> ABRIR REMOVE.BG
@@ -340,6 +361,7 @@
 
   <div id="cart-modal-placeholder"></div>
 
+  <script src="js/products.js"></script>
   <script src="js/script.js"></script>
   <script src="js/designer.js"></script>
 
@@ -350,10 +372,13 @@
       const modal = document.getElementById('preview-modal');
       const img = document.getElementById('preview-image');
       img.src = src;
-      modal.classList.remove('hidden');
+      if (typeof activateModal === 'function') activateModal(modal);
+      else modal.classList.remove('hidden');
     }
     function hidePreviewModal() {
-      document.getElementById('preview-modal').classList.add('hidden');
+      const modal = document.getElementById('preview-modal');
+      if (typeof deactivateModal === 'function') deactivateModal(modal);
+      else modal.classList.add('hidden');
     }
     function applyFromPreview(side) {
       const preview = side === 0 ? document.getElementById('design-preview') : document.getElementById('design-preview-back');
