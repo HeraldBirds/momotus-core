@@ -30,6 +30,23 @@
         crossorigin="anonymous" referrerpolicy="no-referrer" />
   <link rel="stylesheet" href="css/style.css">
 
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    "name": "Momotus Core",
+    "description": "Personalización de camisetas, hoodies, sudaderas y crop-tops con impresión DTF en Nicaragua.",
+    "email": "momotuscore@gmail.com",
+    "telephone": "+505 5501 0044",
+    "address": {
+      "@type": "PostalAddress",
+      "addressLocality": "Managua",
+      "addressCountry": "NI"
+    },
+    "areaServed": "Nicaragua"
+  }
+  </script>
+
 </head>
 <body class="bg-zinc-950 text-white">
 
@@ -82,6 +99,79 @@
     </div>
   </nav>
 
+  <!-- CÓMO FUNCIONA -->
+  <section class="py-16 bg-black" aria-labelledby="process-title">
+    <div class="max-w-7xl mx-auto px-6">
+      <div class="text-center max-w-2xl mx-auto mb-12">
+        <span class="text-yellow-400 font-bold tracking-wide">FÁCIL Y AL GRANO</span>
+        <h2 id="process-title" class="text-3xl md:text-5xl font-black mt-3">DE TU IDEA A TU PRENDA</h2>
+        <p class="text-zinc-400 text-lg mt-4">Armá tu diseño en tres pasos y mandanos la cotización por WhatsApp.</p>
+      </div>
+      <ol class="grid md:grid-cols-3 gap-6 process-grid">
+        <li class="process-card">
+          <span class="process-number">1</span>
+          <i class="fa-solid fa-shirt text-3xl text-yellow-400" aria-hidden="true"></i>
+          <h3 class="text-xl font-bold">Escogé tu prenda</h3>
+          <p class="text-zinc-400">Elegí camiseta, hoodie, sudadera o crop-top, además del color y la talla.</p>
+        </li>
+        <li class="process-card">
+          <span class="process-number">2</span>
+          <i class="fa-solid fa-cloud-arrow-up text-3xl text-yellow-400" aria-hidden="true"></i>
+          <h3 class="text-xl font-bold">Subí tu diseño</h3>
+          <p class="text-zinc-400">Acomodalo al frente o la espalda y mirá cómo queda en tiempo real.</p>
+        </li>
+        <li class="process-card">
+          <span class="process-number">3</span>
+          <i class="fa-brands fa-whatsapp text-3xl text-yellow-400" aria-hidden="true"></i>
+          <h3 class="text-xl font-bold">Pedí tu cotización</h3>
+          <p class="text-zinc-400">Descargá la vista previa y envianos todos los datos del pedido.</p>
+        </li>
+      </ol>
+      <div class="text-center mt-10">
+        <a href="disena.html" class="inline-flex items-center gap-3 bg-yellow-400 hover:bg-yellow-300 text-black font-bold px-9 py-5 rounded-3xl transition">
+          Empezá a diseñar <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRENDAS DISPONIBLES -->
+  <section class="py-16 bg-zinc-950 border-y border-zinc-800" aria-labelledby="garments-title">
+    <div class="max-w-7xl mx-auto px-6">
+      <div class="text-center mb-12">
+        <span class="text-yellow-400 font-bold tracking-wide">ESCOGÉ LA TUYA</span>
+        <h2 id="garments-title" class="text-3xl md:text-5xl font-black mt-3">CUATRO PRENDAS PARA TU IDEA</h2>
+        <p class="text-zinc-400 text-lg mt-4">Entrá al diseñador con la prenda que querés personalizar.</p>
+      </div>
+      <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <a href="disena.html?prenda=regular" class="garment-card">
+          <i class="fa-solid fa-shirt garment-icon" aria-hidden="true"></i>
+          <h3>Camisetas</h3>
+          <p>Una opción cómoda y versátil para cualquier diseño.</p>
+          <span>Personalizá la tuya <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span>
+        </a>
+        <a href="disena.html?prenda=hoodie" class="garment-card">
+          <i class="fa-solid fa-vest garment-icon" aria-hidden="true"></i>
+          <h3>Hoodies</h3>
+          <p>Para llevar tu diseño con un estilo relajado y bien tuani.</p>
+          <span>Personalizá el tuyo <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span>
+        </a>
+        <a href="disena.html?prenda=sudadera" class="garment-card">
+          <i class="fa-solid fa-shirt garment-icon" aria-hidden="true"></i>
+          <h3>Sudaderas</h3>
+          <p>Tu idea con una prenda cómoda para los días más frescos.</p>
+          <span>Personalizá la tuya <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span>
+        </a>
+        <a href="disena.html?prenda=crop-top" class="garment-card">
+          <i class="fa-solid fa-shirt garment-icon" aria-hidden="true"></i>
+          <h3>Crop-tops</h3>
+          <p>Un corte diferente para que tu diseño destaque con todo.</p>
+          <span>Personalizá el tuyo <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span>
+        </a>
+      </div>
+    </div>
+  </section>
+
   <!-- MOCKUP 3D -->
   <section class="py-20 bg-zinc-900 border-t border-b border-zinc-800 overflow-hidden">
     <div class="max-w-7xl mx-auto px-6">
@@ -122,7 +212,7 @@
 
   <!-- BENEFICIOS -->
   <section class="py-16 bg-zinc-950">
-    <div class="max-w-7xl mx-auto px-6 grid md:grid-cols-3 gap-8">
+    <div class="max-w-7xl mx-auto px-6 grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
       <div class="benefit-card text-center">
         <div class="icon-wrapper w-20 h-20 mx-auto mb-6 bg-yellow-400/10 rounded-3xl flex items-center justify-center text-5xl"><i class="fa-solid fa-print"></i></div>
         <h4 class="font-bold text-xl mb-2">Impresión DTF de calidad</h4>
@@ -137,6 +227,43 @@
         <div class="icon-wrapper w-20 h-20 mx-auto mb-6 bg-yellow-400/10 rounded-3xl flex items-center justify-center text-5xl"><i class="fa-solid fa-medal"></i></div>
         <h4 class="font-bold text-xl mb-2">Hecho a tu gusto</h4>
         <p class="text-zinc-400">Vos ponés la idea, escogés la prenda y nosotros la hacemos realidad.</p>
+      </div>
+      <div class="benefit-card text-center">
+        <div class="icon-wrapper w-20 h-20 mx-auto mb-6 bg-yellow-400/10 rounded-3xl flex items-center justify-center text-5xl"><i class="fa-solid fa-palette"></i></div>
+        <h4 class="font-bold text-xl mb-2">Para prendas claras y oscuras</h4>
+        <p class="text-zinc-400">La impresión DTF permite conservar el color y el detalle en distintos tonos.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- PREGUNTAS FRECUENTES -->
+  <section class="py-16 bg-zinc-900 border-y border-zinc-800" aria-labelledby="faq-title">
+    <div class="max-w-4xl mx-auto px-6">
+      <div class="text-center mb-10">
+        <span class="text-yellow-400 font-bold tracking-wide">ANTES DE COTIZAR</span>
+        <h2 id="faq-title" class="text-3xl md:text-5xl font-black mt-3">PREGUNTAS FRECUENTES</h2>
+      </div>
+      <div class="space-y-4 faq-list">
+        <details>
+          <summary>¿Qué formato puede tener mi diseño?</summary>
+          <p>Podés subir PNG, JPG o WebP. Para un mejor acabado, usá una imagen nítida; si tiene fondo transparente, mucho mejor.</p>
+        </details>
+        <details>
+          <summary>¿Puedo personalizar frente y espalda?</summary>
+          <p>Sí. En el diseñador podés cargar, mover, girar y ajustar cada lado por separado.</p>
+        </details>
+        <details>
+          <summary>¿Cómo sé cuánto cuesta?</summary>
+          <p>El precio se confirma en la cotización porque depende de la prenda, la cantidad y las características del estampado.</p>
+        </details>
+        <details>
+          <summary>¿Hacen envíos fuera de Managua?</summary>
+          <p>Sí, coordinamos entregas en Nicaragua. Escribinos tu ciudad en la cotización para confirmar la opción disponible.</p>
+        </details>
+        <details>
+          <summary>¿Cómo mando la referencia de mi diseño?</summary>
+          <p>El diseñador genera una vista previa del frente y la espalda. Descargala y adjuntala en el chat de WhatsApp.</p>
+        </details>
       </div>
     </div>
   </section>

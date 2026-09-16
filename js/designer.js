@@ -532,7 +532,9 @@ const renderSizeButtonsDesigner = () => {
   container.innerHTML = '';
   designerSizes.forEach(size => {
     const btn = document.createElement('button');
+    btn.type = 'button';
     btn.textContent = size;
+    btn.setAttribute('aria-label', `Seleccionar talla ${size}`);
     btn.className = `size-btn px-7 py-4 rounded-3xl font-medium border border-zinc-600 hover:border-yellow-400 transition ${size === currentSize ? 'bg-yellow-400 text-black border-yellow-400' : ''}`;
     btn.onclick = () => {
       currentSize = size;
@@ -550,7 +552,10 @@ const renderColorButtons = () => {
   container.innerHTML = '';
   colors.forEach(color => {
     const btn = document.createElement('button');
+    btn.type = 'button';
     btn.onclick = () => selectColor(color.key, btn);
+    btn.setAttribute('aria-label', `Seleccionar color ${color.name}`);
+    btn.title = color.name;
     btn.className = `color-btn w-14 h-14 rounded-2xl shadow-inner border-2 border-transparent active:scale-95 transition-all ${color.class}`;
     if (color.key === 'black') btn.classList.add('active');
     container.appendChild(btn);
@@ -584,6 +589,40 @@ const getQuoteDetails = () => ({
   quantity: Math.max(1, Math.min(99, Number(document.getElementById('quote-quantity')?.value) || 1)),
   notes: document.getElementById('quote-notes')?.value.trim() || 'Sin observaciones'
 });
+
+const createQuoteCode = () => {
+  const date = new Date();
+  const datePart = [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, '0'),
+    String(date.getDate()).padStart(2, '0')
+  ].join('');
+  let randomPart;
+  if (window.crypto?.getRandomValues) {
+    const values = new Uint32Array(1);
+    window.crypto.getRandomValues(values);
+    randomPart = values[0].toString(36).slice(-4).padStart(4, '0').toUpperCase();
+  } else {
+    randomPart = Math.random().toString(36).slice(2, 6).padEnd(4, '0').toUpperCase();
+  }
+  return `MOM-${datePart}-${randomPart}`;
+};
+
+const formatDesignDetails = side => {
+  const hasDesign = side === 0 ? designFront : designBack;
+  if (!hasDesign) return 'No agregado';
+  const scale = side === 0 ? currentScaleFront : currentScaleBack;
+  const position = side === 0 ? currentPositionFront : currentPositionBack;
+  const rotation = side === 0 ? currentRotationFront : currentRotationBack;
+  return `Sí · Tamaño ${Math.round(scale * 100)}% · Posición ${Math.round(position.x)}%, ${Math.round(position.y)}% · Giro ${Math.round(rotation)}°`;
+};
+
+const applyGarmentFromUrl = () => {
+  const garment = new URLSearchParams(window.location.search).get('prenda');
+  if (!garment) return;
+  const garmentIndex = shirtTypes.indexOf(garment.toLowerCase());
+  if (garmentIndex >= 0) currentShirtType = garmentIndex;
+};
 
 const waitForImages = async (container) => {
   const images = Array.from(container.querySelectorAll('img'));
@@ -620,7 +659,7 @@ const captureMockupSide = async (side) => {
   }
 };
 
-window.createDesignPreview = async (shouldDownload = true) => {
+window.createDesignPreview = async (shouldDownload = true, fileLabel = '') => {
   const originalTab = currentTab;
   const frontCanvas = await captureMockupSide(0);
   const backCanvas = await captureMockupSide(1);
@@ -642,7 +681,8 @@ window.createDesignPreview = async (shouldDownload = true) => {
   switchMockup(originalTab);
   if (shouldDownload) {
     const link = document.createElement('a');
-    link.download = `momotus-diseno-${Date.now()}.png`;
+    const safeLabel = String(fileLabel).replace(/[^a-z0-9-]/gi, '');
+    link.download = safeLabel ? `momotus-${safeLabel}.png` : `momotus-diseno-${Date.now()}.png`;
     link.href = result.toDataURL('image/png', 1);
     link.click();
     showToast('✅ Vista previa descargada; adjúntala en tu mensaje');
@@ -654,12 +694,13 @@ window.sendToWhatsApp = async () => {
   const typeName = shirtTypeNames[currentShirtType];
   const colorName = colorMap[currentColor] || currentColor;
   const quote = getQuoteDetails();
-  const text = `¡Hola Momotus Core! 👋\n\nAcabo de diseñar mi camiseta:\n• Nombre: ${quote.name}\n• Ciudad: ${quote.city}\n• Cantidad: ${quote.quantity}\n• Tipo: ${typeName}\n• Talla: ${currentSize}\n• Color: ${colorName.charAt(0).toUpperCase() + colorName.slice(1)}\n• Frente: ${designFront ? 'Sí' : 'No'}\n• Espalda: ${designBack ? 'Sí' : 'No'}\n• Observaciones: ${quote.notes}\n\nAdjuntaré la vista previa descargada.\nGracias! 🇳🇮`;
+  const quoteCode = createQuoteCode();
+  const text = `¡Hola Momotus Core! 👋\n\nQuiero cotizar esta prenda personalizada:\n• Código: ${quoteCode}\n• Nombre: ${quote.name}\n• Ciudad: ${quote.city}\n• Cantidad: ${quote.quantity}\n• Prenda: ${typeName}\n• Talla: ${currentSize}\n• Color: ${colorName.charAt(0).toUpperCase() + colorName.slice(1)}\n• Frente: ${formatDesignDetails(0)}\n• Espalda: ${formatDesignDetails(1)}\n• Observaciones: ${quote.notes}\n\nAdjuntaré la vista previa descargada para que la revisen.\n¡Gracias! 🇳🇮`;
   const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(text)}`;
   const whatsappWindow = window.open(whatsappUrl, '_blank');
   if (whatsappWindow) whatsappWindow.opener = null;
   try {
-    await window.createDesignPreview(true);
+    await window.createDesignPreview(true, quoteCode);
   } catch (error) {
     console.warn('No se pudo generar la vista previa automáticamente.', error);
     showToast('⚠️ No se pudo descargar la vista previa; puedes enviar una captura manual');
@@ -674,18 +715,24 @@ window.sendToEmail = () => {
   const typeName = shirtTypeNames[currentShirtType];
   const colorName = colorMap[currentColor] || currentColor;
   const quote = getQuoteDetails();
-  const subject = "Cotización - Camiseta Personalizada Momotus Core";
-  const body = `Hola,\n\nQuiero cotizar:\n- Nombre: ${quote.name}\n- Ciudad: ${quote.city}\n- Cantidad: ${quote.quantity}\n- Tipo: ${typeName}\n- Talla: ${currentSize}\n- Color: ${colorName}\n- Frente: ${designFront ? 'Sí' : 'No'}\n- Espalda: ${designBack ? 'Sí' : 'No'}\n- Observaciones: ${quote.notes}\n\nGracias!`;
+  const quoteCode = createQuoteCode();
+  const subject = `Cotización ${quoteCode} - Prenda personalizada Momotus Core`;
+  const body = `Hola,\n\nQuiero cotizar esta prenda personalizada:\n- Código: ${quoteCode}\n- Nombre: ${quote.name}\n- Ciudad: ${quote.city}\n- Cantidad: ${quote.quantity}\n- Prenda: ${typeName}\n- Talla: ${currentSize}\n- Color: ${colorName}\n- Frente: ${formatDesignDetails(0)}\n- Espalda: ${formatDesignDetails(1)}\n- Observaciones: ${quote.notes}\n\nAdjuntaré la vista previa para que la revisen.\n\n¡Gracias!`;
   window.location.href = `mailto:${contactEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   showToast("✉️ Email abierto");
 };
 
 const initDesigner = () => {
+  loadSavedDesign();
+  applyGarmentFromUrl();
   if (document.getElementById('type-0')) {
     renderSizeButtonsDesigner();
     renderColorButtons();
+    document.querySelectorAll('.shirt-type-btn').forEach((btn, i) => btn.classList.toggle('active', i === currentShirtType));
+    Array.from(document.querySelectorAll('.color-btn')).forEach((button, index) => {
+      button.classList.toggle('active', colors[index]?.key === currentColor);
+    });
   }
-  loadSavedDesign();
   updateMockups();
   initDragListeners();
   window.addEventListener('pagehide', flushScheduledDesignSave);

@@ -188,6 +188,112 @@ body {
   background: #27272a;
 }
 
+/* ==================== PROCESO, PRENDAS Y PREGUNTAS ==================== */
+.process-card {
+  position: relative;
+  display: grid;
+  gap: 0.9rem;
+  min-height: 230px;
+  padding: 2rem;
+  border: 1px solid #3f3f46;
+  border-radius: 1.5rem;
+  background: #18181b;
+}
+
+.process-number {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.25rem;
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 9999px;
+  background: #facc15;
+  color: #09090b;
+  font-weight: 900;
+}
+
+.garment-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  min-height: 270px;
+  padding: 2rem;
+  border: 1px solid #3f3f46;
+  border-radius: 1.5rem;
+  background: linear-gradient(145deg, #18181b, #09090b);
+  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.garment-card:hover,
+.garment-card:focus-visible {
+  transform: translateY(-6px);
+  border-color: #facc15;
+  box-shadow: 0 22px 45px -25px rgba(250, 204, 21, 0.55);
+}
+
+.garment-icon {
+  color: #facc15;
+  font-size: 2.75rem;
+}
+
+.garment-card h3 {
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.garment-card p {
+  flex: 1;
+  color: #a1a1aa;
+}
+
+.garment-card span {
+  color: #facc15;
+  font-weight: 700;
+}
+
+.faq-list details {
+  border: 1px solid #3f3f46;
+  border-radius: 1.25rem;
+  background: #18181b;
+  overflow: hidden;
+}
+
+.faq-list summary {
+  position: relative;
+  cursor: pointer;
+  padding: 1.35rem 3.5rem 1.35rem 1.5rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  list-style: none;
+}
+
+.faq-list summary::-webkit-details-marker {
+  display: none;
+}
+
+.faq-list summary::after {
+  content: '+';
+  position: absolute;
+  top: 50%;
+  right: 1.5rem;
+  transform: translateY(-50%);
+  color: #facc15;
+  font-size: 1.75rem;
+  line-height: 1;
+}
+
+.faq-list details[open] summary::after {
+  content: '−';
+}
+
+.faq-list details p {
+  padding: 0 1.5rem 1.4rem;
+  color: #a1a1aa;
+  line-height: 1.65;
+}
+
 .shirt-type-btn.active {
   background-color: #facc15 !important;
   color: #000 !important;
@@ -256,6 +362,12 @@ body {
 
   .mockup-3d:hover {
     transform: none;
+  }
+
+  .process-card,
+  .garment-card {
+    min-height: 0;
+    padding: 1.5rem;
   }
 }
 
