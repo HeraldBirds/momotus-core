@@ -783,10 +783,16 @@ window.onload = () => {
     const category = params.get('categoria');
     if (['fauna', 'anime', 'urbano', 'games', 'unica'].includes(category)) currentCategory = category;
     currentSearchTerm = (params.get('buscar') || '').toLowerCase().trim();
-    const minPrice = Number(params.get('precioMin'));
-    const maxPrice = Number(params.get('precioMax'));
-    if (Number.isFinite(minPrice) && minPrice >= 0) currentMinPrice = minPrice;
-    if (Number.isFinite(maxPrice) && maxPrice >= currentMinPrice) currentMaxPrice = maxPrice;
+    const minPriceParam = params.get('precioMin');
+    const maxPriceParam = params.get('precioMax');
+    if (minPriceParam !== null && minPriceParam.trim() !== '') {
+      const minPrice = Number(minPriceParam);
+      if (Number.isFinite(minPrice) && minPrice >= 0) currentMinPrice = minPrice;
+    }
+    if (maxPriceParam !== null && maxPriceParam.trim() !== '') {
+      const maxPrice = Number(maxPriceParam);
+      if (Number.isFinite(maxPrice) && maxPrice >= currentMinPrice) currentMaxPrice = maxPrice;
+    }
     showWishlistOnly = params.get('favoritos') === '1';
     const sortValue = params.get('orden');
     if (['price-low', 'price-high', 'name'].includes(sortValue)) document.getElementById('sort-select').value = sortValue;
