@@ -190,8 +190,7 @@
       if (!container) return;
       container.innerHTML = '';
 
-      const bestSellerIds = [2, 1, 13, 14];
-      const bestProducts = products.filter(p => bestSellerIds.includes(p.id));
+      const bestProducts = products.filter(product => product.featured === true).slice(0, 4);
 
       bestProducts.forEach(product => {
         const inWishlist = isInWishlist(product.id);

@@ -10,11 +10,13 @@ let currentMaxPrice = Number.POSITIVE_INFINITY;
 let showWishlistOnly = false;
 let quickViewProductId = null;
 let quickViewSelectedSize = null;
-const products = window.MomotusCatalog?.products;
+const catalogProducts = window.MomotusCatalog?.products;
 
-if (!Array.isArray(products)) {
+if (!Array.isArray(catalogProducts)) {
   throw new Error('No fue posible cargar js/products.js antes de js/script.js');
 }
+
+const products = catalogProducts.filter(product => product.published !== false);
 
 const categoryLabels = {
   fauna: 'Fauna Nica',
@@ -623,7 +625,7 @@ const renderTestimonials = () => {
 };
 
 // ==================== TIENDA - RENDER Y FILTROS ====================
-const featuredProductIds = [2, 1, 13, 14];
+const featuredProductIds = products.filter(product => product.featured === true).map(product => product.id);
 
 const getFilteredProducts = () => {
   let filtered = [...products];

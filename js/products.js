@@ -3,9 +3,20 @@
 (() => {
   'use strict';
 
+  /*
+    Para preparar un producto sin publicarlo, agregá:
+      published: false
+
+    Cuando querás mostrarlo, cambiá esa línea por:
+      published: true
+
+    Para mostrarlo también entre los destacados, agregá:
+      featured: true
+  */
+
   const products = [
-    { id: 1, name: 'Agelaius phoeniceus', price: 550, category: 'fauna', img: 'img/products/nica-1.webp', sizes: ['S','M','L'], stock: {S:12, M:25, L:18} },
-    { id: 2, name: 'Asio clamator', price: 550, category: 'fauna', img: 'img/products/nica-2.webp', sizes: ['M','L'], stock: {M:15, L:12} },
+    { id: 1, name: 'Agelaius phoeniceus', price: 550, category: 'fauna', img: 'img/products/nica-1.webp', sizes: ['S','M','L'], stock: {S:12, M:25, L:18}, featured: true },
+    { id: 2, name: 'Asio clamator', price: 550, category: 'fauna', img: 'img/products/nica-2.webp', sizes: ['M','L'], stock: {M:15, L:12}, featured: true },
     { id: 3, name: 'Strix virgata', price: 550, category: 'fauna', img: 'img/products/nica-3.webp', sizes: ['S','M','L'], stock: {S:20, M:14, L:10} },
     { id: 4, name: 'Bandera Nica Pride', price: 550, category: 'unica', img: 'img/products/nica-4.webp', sizes: ['S','M','L'], stock: {S:10, M:22, L:15} },
     { id: 5, name: 'Sasuke Uchiha Edition', price: 550, category: 'anime', img: 'img/products/anime-1.webp', sizes: ['S','M','L'], stock: {S:15, M:20, L:12} },
@@ -16,8 +27,8 @@
     { id: 10, name: 'Itachi Uchiha', price: 450, category: 'anime', img: 'img/products/anime-6.webp', sizes: ['S','M','L'], stock: {S:13, M:17, L:11} },
     { id: 11, name: 'Hellsing', price: 500, category: 'anime', img: 'img/products/anime-7.webp', sizes: ['M','L'], stock: {M:20, L:14} },
     { id: 12, name: 'Death Note', price: 450, category: 'anime', img: 'img/products/anime-8.webp', sizes: ['S','M','L'], stock: {S:16, M:13, L:19} },
-    { id: 13, name: 'Death Note 2.1', price: 450, category: 'anime', img: 'img/products/anime-9.webp', sizes: ['S','M','L'], stock: {S:12, M:15, L:10} },
-    { id: 14, name: 'Mob Psycho 100', price: 550, category: 'anime', img: 'img/products/anime-10.webp', sizes: ['S','M','L'], stock: {S:14, M:21, L:12} },
+    { id: 13, name: 'Death Note 2.1', price: 450, category: 'anime', img: 'img/products/anime-9.webp', sizes: ['S','M','L'], stock: {S:12, M:15, L:10}, featured: true },
+    { id: 14, name: 'Mob Psycho 100', price: 550, category: 'anime', img: 'img/products/anime-10.webp', sizes: ['S','M','L'], stock: {S:14, M:21, L:12}, featured: true },
     { id: 15, name: 'Trueno AE86', price: 400, category: 'urbano', img: 'img/products/urbano-1.webp', sizes: ['M','L'], stock: {M:8, L:17} },
     { id: 16, name: 'Cyber Style', price: 400, category: 'urbano', img: 'img/products/urbano-2.webp', sizes: ['S','M','L'], stock: {S:15, M:19, L:12} },
     { id: 17, name: 'Iron Maiden', price: 450, category: 'urbano', img: 'img/products/urbano-3.webp', sizes: ['S','M','L'], stock: {S:10, M:14, L:9} },
@@ -49,6 +60,8 @@
       if (!/^img\/products\/[a-z0-9-]+\.webp$/i.test(product.img)) throw new Error(`Ruta de imagen inválida en el producto ${product.id}`);
       if (!Array.isArray(product.sizes) || product.sizes.length === 0 || product.sizes.some(size => !validSizes.has(size))) throw new Error(`Tallas inválidas en el producto ${product.id}`);
       if (Object.keys(product.stock).some(size => !product.sizes.includes(size)) || product.sizes.some(size => !Number.isInteger(product.stock[size]) || product.stock[size] < 0)) throw new Error(`Stock inválido en el producto ${product.id}`);
+      if ('published' in product && typeof product.published !== 'boolean') throw new Error(`Estado de publicación inválido en el producto ${product.id}`);
+      if ('featured' in product && typeof product.featured !== 'boolean') throw new Error(`Estado destacado inválido en el producto ${product.id}`);
     });
     return true;
   };
