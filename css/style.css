@@ -151,8 +151,8 @@ body {
 }
 
 .hero-section {
-  height: 100svh;
-  min-height: 620px;
+  height: calc(100svh - var(--navbar-height, 77px));
+  min-height: 540px;
   max-height: 900px;
 }
 
@@ -369,8 +369,8 @@ body {
   }
 
   .hero-section {
-    height: 82svh;
-    min-height: 560px;
+    height: calc(100svh - var(--navbar-height, 77px));
+    min-height: 520px;
     max-height: 680px;
   }
 

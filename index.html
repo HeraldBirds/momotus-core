@@ -330,20 +330,49 @@
     let carouselTimer = null;
     let carouselPausedByUser = false;
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const mobileHeroMedia = window.matchMedia('(max-width: 767px)');
+    const unavailableHeroImages = new Set();
+    let heroImageRequest = 0;
     const heroImages = [
-      { src: "img/heroes/hero-1.webp", title: "PERSONALIZÁ A TU MANERA", subtitle: "Vos ponés el diseño; nosotros lo llevamos a camiseta, hoodie, sudadera o crop-top." },
-      { src: "img/heroes/hero-tienda.webp", title: "DTF CON TODO EL COLOR", subtitle: "Colores vivos, buen detalle y un acabado bien tuani para tus ideas." },
-      { src: "img/heroes/hero-comunidad.webp", title: "CUATRO PRENDAS, UNA MISMA IDEA", subtitle: "Escogé la prenda, el color y la talla; mirá el resultado antes de pedir." },
-      { src: "img/heroes/hero-dtf.webp", title: "TU IDEA, HECHA PRENDA", subtitle: "Personalizá camisetas, hoodies, sudaderas y crop-tops con impresión DTF." }
+      { src: "img/heroes/hero-1.webp", mobileSrc: "img/heroes/hero-1-mobile.webp", title: "PERSONALIZÁ A TU MANERA", subtitle: "Vos ponés el diseño; nosotros lo llevamos a camiseta, hoodie, sudadera o crop-top." },
+      { src: "img/heroes/hero-tienda.webp", mobileSrc: "img/heroes/hero-tienda-mobile.webp", title: "DTF CON TODO EL COLOR", subtitle: "Colores vivos, buen detalle y un acabado bien tuani para tus ideas." },
+      { src: "img/heroes/hero-comunidad.webp", mobileSrc: "img/heroes/hero-comunidad-mobile.webp", title: "CUATRO PRENDAS, UNA MISMA IDEA", subtitle: "Escogé la prenda, el color y la talla; mirá el resultado antes de pedir." },
+      { src: "img/heroes/hero-dtf.webp", mobileSrc: "img/heroes/hero-dtf-mobile.webp", title: "TU IDEA, HECHA PRENDA", subtitle: "Personalizá camisetas, hoodies, sudaderas y crop-tops con impresión DTF." },
+      { src: "img/heroes/hero-prendas.webp", mobileSrc: "img/heroes/hero-prendas-mobile.webp", title: "UNA PRENDA PARA CADA IDEA", subtitle: "Elegí entre camiseta, hoodie, sudadera o crop-top y armala a tu estilo." }
     ];
 
-    function updateHero() {
+    function getPreferredHeroSource(item) {
+      if (mobileHeroMedia.matches && item.mobileSrc && !unavailableHeroImages.has(item.mobileSrc)) {
+        return item.mobileSrc;
+      }
+      return item.src;
+    }
+
+    function updateHeroBackground(item) {
       const bg = document.getElementById('hero-bg');
+      if (!bg) return;
+
+      const preferredSource = getPreferredHeroSource(item);
+      const requestId = ++heroImageRequest;
+      const image = new Image();
+
+      image.onload = () => {
+        if (requestId === heroImageRequest) bg.style.backgroundImage = `url('${preferredSource}')`;
+      };
+      image.onerror = () => {
+        unavailableHeroImages.add(preferredSource);
+        if (requestId === heroImageRequest) bg.style.backgroundImage = `url('${item.src}')`;
+      };
+      image.src = preferredSource;
+    }
+
+    function updateHero() {
       const title = document.getElementById('hero-title');
       const subtitle = document.getElementById('hero-subtitle');
-      bg.style.backgroundImage = `url('${heroImages[currentSlide].src}')`;
-      title.textContent = heroImages[currentSlide].title;
-      subtitle.textContent = heroImages[currentSlide].subtitle;
+      const item = heroImages[currentSlide];
+      updateHeroBackground(item);
+      title.textContent = item.title;
+      subtitle.textContent = item.subtitle;
       updateIndicators();
     }
 
@@ -430,18 +459,31 @@
       const preload = () => heroImages.slice(1).forEach(item => {
         const image = new Image();
         image.decoding = 'async';
-        image.src = item.src;
+        const preferredSource = getPreferredHeroSource(item);
+        image.onerror = () => unavailableHeroImages.add(preferredSource);
+        image.src = preferredSource;
       });
       if ('requestIdleCallback' in window) window.requestIdleCallback(preload, { timeout: 1500 });
       else setTimeout(preload, 300);
     }
 
+    function updateHeroLayout() {
+      const navbar = document.querySelector('#navbar-placeholder nav');
+      const navbarHeight = navbar ? navbar.offsetHeight : 77;
+      document.documentElement.style.setProperty('--navbar-height', `${navbarHeight}px`);
+    }
+
     window.addEventListener('load', () => {
-      updateIndicators();
+      requestAnimationFrame(updateHeroLayout);
+      updateHero();
       preloadHeroImages();
       startCarousel();
       console.log("%c✅ index.html - Mockup 3D con anime-1 cargado correctamente", "color:#facc15; font-weight:bold");
     });
+
+    window.addEventListener('resize', updateHeroLayout, { passive: true });
+    if (mobileHeroMedia.addEventListener) mobileHeroMedia.addEventListener('change', updateHero);
+    else mobileHeroMedia.addListener(updateHero);
 
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) stopCarousel();
