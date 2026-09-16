@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tienda - Momotus Core | Camisetas Nicaragua</title>
-  <meta name="description" content="Tienda oficial Momotus Core. Camisetas premium con diseños únicos de Nicaragua: Fauna Nica, Anime, Arte Urbano y más. Envío rápido en todo el país.">
+  <title>Tienda Momotus Core | Diseños en Nicaragua</title>
+  <meta name="description" content="Explorá los diseños de Momotus Core: Fauna Nica, Anime, Urbano, Games y opciones únicas, con pedidos por WhatsApp en Nicaragua.">
   <meta name="theme-color" content="#09090b">
   <meta property="og:type" content="website">
   <meta property="og:title" content="Tienda Momotus Core">
-  <meta property="og:description" content="Explora camisetas premium con diseños únicos y ediciones limitadas.">
+  <meta property="og:description" content="Escogé tu diseño, revisá las tallas disponibles y mandá tu pedido por WhatsApp.">
   <meta property="og:image" content="img/heroes/hero-tienda.webp">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" href="img/icons/icon-nica.webp" type="image/webp">
@@ -47,14 +47,14 @@
   <div id="navbar-placeholder"></div>
 
   <!-- HERO TIENDA -->
-  <div class="relative h-[620px] bg-cover bg-center flex items-center overflow-hidden" style="background-image: url('img/heroes/hero-tienda.webp');">
+  <div class="store-hero relative h-[620px] bg-cover bg-center flex items-center overflow-hidden" style="background-image: url('img/heroes/hero-tienda.webp');">
     <div class="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/70"></div>
     <div class="max-w-7xl mx-auto px-6 relative z-10 text-center w-full">
-      <h1 class="text-7xl md:text-8xl font-black tracking-[-3px] leading-none text-white mb-4 drop-shadow-2xl">TIENDA MOMOTUS</h1>
-      <p class="text-3xl text-yellow-300 font-light max-w-xl mx-auto">Camisetas personalizadas, Tu estilo empieza aquí.</p>
+      <h1 class="text-5xl md:text-8xl font-black tracking-[-3px] leading-none text-white mb-4 drop-shadow-2xl">TIENDA MOMOTUS</h1>
+      <p class="text-xl md:text-3xl text-yellow-300 font-light max-w-2xl mx-auto">Diseños bien tuani para que escojás el que va con vos.</p>
     </div>
     <div class="absolute bottom-10 left-1/2 -translate-x-1/2 bg-black/70 backdrop-blur-md px-8 py-3 rounded-3xl text-sm font-medium flex items-center gap-2 shadow-2xl animate-pulse">
-      <i class="fa-solid fa-fire text-orange-400"></i> NUEVA COLECCIÓN 2026
+      <i class="fa-solid fa-fire text-orange-400"></i> DISEÑOS LISTOS PARA VOS
     </div>
   </div>
 
@@ -68,7 +68,7 @@
 
         <div class="flex flex-wrap gap-4">
           <div class="relative w-full md:w-80">
-            <input id="search-input" type="text" placeholder="Buscar camisetas..." 
+            <input id="search-input" type="search" placeholder="Buscar diseños..." aria-label="Buscar diseños"
                    class="w-full bg-zinc-800 border border-zinc-700 focus:border-yellow-400 rounded-3xl py-4 px-6 pl-12 outline-none transition">
             <i class="fa-solid fa-magnifying-glass absolute left-6 top-1/2 -translate-y-1/2 text-zinc-400"></i>
           </div>
@@ -87,7 +87,7 @@
       </div>
 
       <!-- FILTROS CON ICONOS PERSONALIZADOS -->
-      <div class="flex flex-wrap gap-3 mb-12 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide">
+      <div class="flex flex-nowrap md:flex-wrap gap-3 mb-5 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide">
         <button onclick="filterCategory('all')" id="filter-all" class="filter-btn active px-8 py-3 rounded-3xl text-sm font-medium transition flex items-center gap-3">
           <img src="img/icons/icon-todos.webp" alt="Todos" class="filter-icon">
           Todos
@@ -114,14 +114,28 @@
         </button>
       </div>
 
+      <div class="store-secondary-filters flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-12">
+        <button id="wishlist-filter" onclick="toggleWishlistFilter()" aria-pressed="false" class="wishlist-filter-btn flex items-center justify-center gap-2 px-6 py-3 rounded-3xl border border-zinc-700 bg-zinc-800 hover:border-red-400 transition">
+          <i class="fa-solid fa-heart text-red-400" aria-hidden="true"></i>
+          Mis favoritos <span id="wishlist-filter-count" class="font-bold">(0)</span>
+        </button>
+        <div class="flex flex-nowrap gap-2 overflow-x-auto pb-1 scrollbar-hide" aria-label="Filtrar por precio">
+          <button id="price-all" onclick="filterPrice(0, Number.POSITIVE_INFINITY, this)" class="price-btn active">Todos los precios</button>
+          <button id="price-low" onclick="filterPrice(0, 450, this)" class="price-btn">Hasta C$450</button>
+          <button id="price-mid" onclick="filterPrice(451, 550, this)" class="price-btn">C$451–C$550</button>
+          <button id="price-high" onclick="filterPrice(551, Number.POSITIVE_INFINITY, this)" class="price-btn">Más de C$550</button>
+        </div>
+      </div>
+
       <!-- MÁS VENDIDOS -->
       <div id="featured-products-section" class="mb-12">
-        <h3 class="text-2xl font-bold mb-4 flex items-center gap-2"><i class="fa-solid fa-fire text-orange-400"></i> Diseños disponibles</h3>
+        <h3 class="text-2xl font-bold mb-4 flex items-center gap-2"><i class="fa-solid fa-fire text-orange-400"></i> Diseños destacados</h3>
         <div id="best-sellers-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6"></div>
       </div>
 
       <!-- GRID PRINCIPAL -->
-      <div id="products-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6"></div>
+      <h3 id="catalog-grid-title" class="text-2xl font-bold mb-5">Todos los diseños</h3>
+      <div id="products-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6" aria-labelledby="catalog-grid-title"></div>
     </div>
   </section>
 
@@ -130,10 +144,11 @@
   <script src="js/script.js"></script>
 
   <script>
-    function filterPrice(min, max) {
+    function filterPrice(min, max, activeButton) {
       currentMinPrice = min;
       currentMaxPrice = max;
-      document.querySelectorAll('.price-btn').forEach(btn => btn.classList.remove('bg-yellow-400', 'text-black'));
+      document.querySelectorAll('.price-btn').forEach(btn => btn.classList.toggle('active', btn === activeButton));
+      updateStoreURL();
       filterProducts();
     }
 
@@ -156,7 +171,7 @@
         card.className = 'product-card bg-zinc-900 rounded-3xl overflow-hidden group relative';
         card.innerHTML = `
           <div class="relative">
-            <img src="${product.img}" width="320" height="320" loading="lazy" alt="${product.name}" onclick="showQuickView(${product.id})" class="w-full aspect-square object-cover transition group-hover:scale-105 cursor-pointer">
+            <img src="${product.img}" width="320" height="320" loading="lazy" decoding="async" alt="${product.name}" onclick="showQuickView(${product.id})" class="w-full aspect-square object-cover transition group-hover:scale-105 cursor-pointer">
             <span class="absolute top-4 left-4 bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full">🔥</span>
             <button onclick="event.stopImmediatePropagation(); toggleWishlist(${product.id});" aria-label="${inWishlist ? 'Quitar' : 'Añadir'} ${product.name} de favoritos" class="absolute top-4 right-4 text-2xl ${inWishlist ? 'text-red-500' : 'text-white/70 hover:text-red-500'} transition">
               <i class="fa-solid fa-heart"></i>
@@ -165,9 +180,9 @@
           <div class="p-5">
             <h3 onclick="showQuickView(${product.id})" class="font-bold text-lg mb-1 cursor-pointer line-clamp-2">${product.name}</h3>
             <p class="text-yellow-400 font-semibold text-2xl">C$ ${product.price}</p>
-            <button onclick="event.stopImmediatePropagation(); addToCartWithSize(${product.id}, '${product.sizes[0]}');" 
+            <button onclick="event.stopImmediatePropagation(); showQuickView(${product.id});" 
                     class="mt-4 w-full bg-yellow-400 hover:bg-yellow-300 text-black font-bold py-3 rounded-3xl text-sm transition">
-              Añadir al carrito
+              Ver tallas
             </button>
           </div>
         `;
@@ -180,9 +195,12 @@
       currentSearchTerm = '';
       currentMinPrice = 0;
       currentMaxPrice = Number.POSITIVE_INFINITY;
+      showWishlistOnly = false;
       document.getElementById('search-input').value = '';
       document.getElementById('sort-select').value = 'default';
       document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.id === 'filter-all'));
+      document.querySelectorAll('.price-btn').forEach(b => b.classList.toggle('active', b.id === 'price-all'));
+      updateWishlistFilterButton();
       updateStoreURL();
       filterProducts();
     }

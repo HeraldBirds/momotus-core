@@ -309,6 +309,36 @@ body {
   font-weight: 600;
 }
 
+.price-btn {
+  flex: 0 0 auto;
+  padding: 0.7rem 1rem;
+  border: 1px solid #3f3f46;
+  border-radius: 9999px;
+  background: #18181b;
+  color: #d4d4d8;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+}
+
+.price-btn:hover,
+.price-btn.active {
+  border-color: #facc15;
+  background: #facc15;
+  color: #09090b;
+}
+
+.wishlist-filter-btn.active {
+  border-color: #fb7185;
+  background: rgba(159, 18, 57, 0.3);
+}
+
+.quick-size-btn.active {
+  border-color: #facc15;
+  background: rgba(250, 204, 21, 0.12);
+  box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.18);
+}
+
 /* Scrollbar bonito */
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
@@ -325,6 +355,19 @@ body {
 }
 
 @media (max-width: 767px) {
+  .store-hero {
+    height: 430px !important;
+    min-height: 430px;
+  }
+
+  .store-hero > div:last-child {
+    bottom: 1.25rem;
+    width: max-content;
+    max-width: calc(100% - 2rem);
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
   .hero-section {
     height: 82svh;
     min-height: 560px;
