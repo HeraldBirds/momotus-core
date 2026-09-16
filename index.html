@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Momotus Core: camisetas premium y diseños personalizados inspirados en Nicaragua.">
+  <meta name="description" content="Momotus Core: camisetas premium, diseños únicos y personalización en línea con envíos a toda Nicaragua.">
   <meta name="theme-color" content="#09090b">
   <meta property="og:type" content="website">
   <meta property="og:title" content="Momotus Core | Camisetas personalizadas">
@@ -12,12 +12,11 @@
   <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" href="img/icons/icon-nica.webp" type="image/webp">
   <title>Momotus Core | Camisetas Personalizadas Nicaragua</title>
-  <meta name="description" content="Camisetas premium con diseños únicos de Nicaragua. Nicas, Anime, Arte Urbano y más. Envío rápido en todo el país.">
   
   <!-- === SEGURIDAD NETLIFY - Momotus Core (Abril 2026) === -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: https:; font-src 'self' https://cdnjs.cloudflare.com; connect-src 'self';">
 
-  <link rel="preload" href="img/heroes/hero-1.webp" as="image" type="image/webp">
+  <link rel="preload" href="img/heroes/hero-1.webp" as="image" type="image/webp" fetchpriority="high">
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -31,54 +30,63 @@
         crossorigin="anonymous" referrerpolicy="no-referrer" />
   <link rel="stylesheet" href="css/style.css">
 
-  <style>
-    .mockup-3d-container { perspective: 1600px; perspective-origin: 50% 40%; }
-    .mockup-3d { width: 100%; max-width: 520px; aspect-ratio: 1 / 1; min-height: 520px; transition: transform 0.9s cubic-bezier(0.25, 0.1, 0.25, 1); animation: gentleRotate 35s linear infinite; box-shadow: 0 60px 100px -30px rgb(0 0 0 / 0.7), 0 0 0 18px rgba(250, 204, 21, 0.18); border-radius: 40px; background: #1f2937; position: relative; overflow: hidden; transform-style: preserve-3d; }
-    @keyframes gentleRotate { from { transform: rotateY(0deg); } to { transform: rotateY(360deg); } }
-    .mockup-3d:hover { animation-play-state: paused; transform: scale(1.08) rotateY(18deg) rotateX(8deg); }
-    .mockup-3d.flipped { animation-play-state: paused; transform: rotateY(180deg); }
-    #front, #back { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; backface-visibility: hidden; transition: opacity 0.4s ease; }
-    #back { transform: rotateY(180deg); opacity: 0; }
-    .mockup-3d.flipped #front { opacity: 0; }
-    .mockup-3d.flipped #back { opacity: 1; }
-  </style>
 </head>
 <body class="bg-zinc-950 text-white">
 
   <div id="navbar-placeholder"></div>
 
   <!-- HERO CAROUSEL -->
-  <section class="relative h-screen overflow-hidden">
+  <section id="inicio" class="hero-section relative overflow-hidden" role="region" aria-roledescription="carrusel" aria-label="Destacados de Momotus Core">
     <div id="hero-bg" class="absolute inset-0 bg-cover bg-center transition-all duration-1000 ease-in-out" 
-         style="background-image: url('img/heroes/hero-1.webp');"></div>
+         style="background-image: url('img/heroes/hero-1.webp');" aria-hidden="true"></div>
     <div class="absolute inset-0 bg-gradient-to-r from-black/70 to-transparent"></div>
     
     <div class="max-w-7xl mx-auto px-6 relative z-10 h-full flex items-center">
-      <div class="max-w-lg">
-        <h2 id="hero-title" class="text-5xl md:text-7xl font-black leading-none mb-4">VIBES MANAGUA</h2>
+      <div class="hero-content max-w-lg">
+        <h1 id="hero-title" class="text-5xl md:text-7xl font-black leading-none mb-4">VIBES MANAGUA</h1>
         <p id="hero-subtitle" class="text-xl md:text-2xl text-zinc-200 mb-8">Momotus: cultura con estilo en diseños</p>
-        <a href="tienda.html" class="inline-block bg-yellow-400 text-black font-bold px-10 py-5 rounded-3xl text-lg hover:bg-yellow-300 btn-hover">Explorar Tienda</a>
+        <div class="hero-actions flex flex-col sm:flex-row gap-3">
+          <a href="tienda.html" class="hero-primary inline-flex items-center justify-center bg-yellow-400 text-black font-bold px-10 py-5 rounded-3xl text-lg hover:bg-yellow-300 btn-hover">Explorar Tienda</a>
+          <a href="disena.html" class="hero-secondary inline-flex items-center justify-center border-2 border-white/80 bg-black/30 text-white font-bold px-10 py-5 rounded-3xl text-lg hover:bg-white hover:text-black transition">Diseña la tuya</a>
+        </div>
       </div>
     </div>
 
-    <button onclick="prevSlide()" aria-label="Slide anterior" class="absolute left-6 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black text-white p-5 rounded-full z-20 transition-all">
-      <i class="fa-solid fa-chevron-left text-3xl"></i>
+    <button onclick="prevSlide()" aria-label="Diapositiva anterior" class="hero-arrow hero-arrow-left absolute left-6 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black text-white rounded-full z-20 transition-all">
+      <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
     </button>
-    <button onclick="nextSlide()" aria-label="Slide siguiente" class="absolute right-6 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black text-white p-5 rounded-full z-20 transition-all">
-      <i class="fa-solid fa-chevron-right text-3xl"></i>
+    <button onclick="nextSlide()" aria-label="Diapositiva siguiente" class="hero-arrow hero-arrow-right absolute right-6 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black text-white rounded-full z-20 transition-all">
+      <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
     </button>
     
-    <div class="absolute bottom-10 left-1/2 -translate-x-1/2 flex gap-3 z-20" id="carousel-indicators"></div>
+    <div class="hero-controls absolute bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-4 z-20">
+      <div class="flex gap-3" id="carousel-indicators" aria-label="Seleccionar diapositiva"></div>
+      <button id="carousel-toggle" onclick="toggleCarouselAutoplay()" class="w-10 h-10 rounded-full bg-black/60 hover:bg-black flex items-center justify-center transition" aria-label="Pausar carrusel" aria-pressed="false">
+        <i id="carousel-toggle-icon" class="fa-solid fa-pause" aria-hidden="true"></i>
+      </button>
+    </div>
   </section>
+
+  <!-- ACCESOS RÁPIDOS A CATEGORÍAS -->
+  <nav class="quick-categories bg-zinc-950 border-y border-zinc-800" aria-label="Categorías de la tienda">
+    <div class="max-w-7xl mx-auto px-4 py-5 flex gap-3 overflow-x-auto scrollbar-hide">
+      <a href="tienda.html" class="category-chip">Todos</a>
+      <a href="tienda.html?categoria=fauna" class="category-chip"><i class="fa-solid fa-feather" aria-hidden="true"></i> Fauna Nica</a>
+      <a href="tienda.html?categoria=anime" class="category-chip"><i class="fa-solid fa-bolt" aria-hidden="true"></i> Anime</a>
+      <a href="tienda.html?categoria=urbano" class="category-chip"><i class="fa-solid fa-city" aria-hidden="true"></i> Urbano</a>
+      <a href="tienda.html?categoria=games" class="category-chip"><i class="fa-solid fa-gamepad" aria-hidden="true"></i> Games</a>
+      <a href="tienda.html?categoria=unica" class="category-chip"><i class="fa-solid fa-gem" aria-hidden="true"></i> Únicas</a>
+    </div>
+  </nav>
 
   <!-- MOCKUP 3D -->
   <section class="py-20 bg-zinc-900 border-t border-b border-zinc-800 overflow-hidden">
     <div class="max-w-7xl mx-auto px-6">
       <div class="text-center mb-12">
         <span class="inline-flex items-center gap-2 bg-orange-500 text-white text-sm font-bold px-6 py-2 rounded-3xl">
-          <i class="fa-solid fa-fire"></i> MÁS VENDIDO 2026
+          <i class="fa-solid fa-star"></i> DISEÑO DESTACADO 2026
         </span>
-        <h2 class="text-5xl md:text-5xl font-black tracking-tighter mt-6">ANIME POWER</h2>
+        <h2 class="text-4xl md:text-5xl font-black tracking-tighter mt-6">SASUKE UCHIHA EDITION</h2>
         <p class="text-xl md:text-2xl text-zinc-400 mt-4 max-w-md mx-auto">
           El poder del anime en tu pecho.<br>
           Diseño premium que representa tu estilo.
@@ -88,23 +96,23 @@
       <div class="flex justify-center mb-12">
         <div class="mockup-3d-container">
           <div id="mockup-3d" class="mockup-3d mx-auto relative">
-            <img id="front" src="img/products/anime-1.webp" width="520" height="520" alt="Anime 1 Frente" loading="eager">
-            <img id="back" src="img/mockups/mockup-regular-negro-espalda.webp" width="520" height="520" alt="Anime 1 Espalda" loading="lazy">
+            <img id="front" src="img/products/anime-1.webp" width="520" height="520" alt="Sasuke Uchiha Edition, vista frontal" loading="lazy" decoding="async">
+            <img id="back" src="img/mockups/mockup-regular-negro-espalda.webp" width="520" height="520" alt="Espalda lisa de camiseta negra" loading="lazy" decoding="async">
           </div>
         </div>
       </div>
 
       <div class="flex flex-wrap justify-center gap-6 text-center">
-        <button onclick="flipMockup()" class="bg-yellow-400 hover:bg-yellow-300 text-black font-bold px-10 py-6 rounded-3xl text-xl flex items-center gap-3 transition shadow-xl">
+        <button id="flip-mockup-button" onclick="flipMockup()" aria-pressed="false" aria-label="Mostrar espalda de la camiseta" class="bg-yellow-400 hover:bg-yellow-300 text-black font-bold px-8 md:px-10 py-5 md:py-6 rounded-3xl text-lg md:text-xl flex items-center gap-3 transition shadow-xl">
           <i class="fa-solid fa-sync"></i> Ver Frente / Espalda
         </button>
-        <a href="tienda.html" onclick="showQuickView(5); return false;" class="border border-white/60 hover:bg-white/10 font-medium px-10 py-6 rounded-3xl text-xl transition">
-          Crear mi propia versión
+        <a href="tienda.html?producto=5" onclick="showQuickView(5); return false;" class="border border-white/60 hover:bg-white/10 font-medium px-10 py-6 rounded-3xl text-xl transition">
+          Ver producto
         </a>
       </div>
 
       <p class="text-center text-zinc-500 text-sm mt-10">
-        +380 nicaragüenses ya lo llevan • Stock limitado
+        Disponible en varias tallas • Consulta existencias al seleccionar
       </p>
     </div>
   </section>
@@ -135,16 +143,21 @@
     <div class="max-w-7xl mx-auto px-6">
       <h3 class="text-3xl font-bold text-center mb-10">Lo que dice la comunidad</h3>
       <div class="grid md:grid-cols-3 gap-8" id="testimonials-home"></div>
+      <div class="text-center mt-10">
+        <a href="comunidad.html" class="inline-flex items-center gap-2 border border-yellow-400 text-yellow-400 hover:bg-yellow-400 hover:text-black px-7 py-4 rounded-3xl font-semibold transition">
+          Ver comunidad <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+        </a>
+      </div>
     </div>
   </section>
 
   <!-- CTA FINAL -->
   <div class="bg-gradient-to-r from-yellow-400 to-amber-500 py-16 text-black text-center">
     <div class="max-w-4xl mx-auto px-6">
-      <h2 class="text-5xl font-black mb-6">¿Estás listo para llevar tu propio estilo y diseño en el pecho?</h2>
+      <h2 class="text-3xl md:text-5xl font-black mb-6">¿Estás listo para llevar tu propio estilo y diseño en el pecho?</h2>
       <div class="flex flex-wrap justify-center gap-6">
-        <a href="tienda.html" class="bg-black text-white px-12 py-6 rounded-3xl font-bold text-xl hover:scale-105 transition">Ir a la Tienda</a>
-        <a href="disena.html" class="border-2 border-black px-12 py-6 rounded-3xl font-bold text-xl hover:bg-black hover:text-white transition">Diseña tu propia camiseta</a>
+        <a href="tienda.html" class="w-full sm:w-auto bg-black text-white px-8 md:px-12 py-5 md:py-6 rounded-3xl font-bold text-lg md:text-xl hover:scale-105 transition">Ir a la Tienda</a>
+        <a href="disena.html" class="w-full sm:w-auto border-2 border-black px-8 md:px-12 py-5 md:py-6 rounded-3xl font-bold text-lg md:text-xl hover:bg-black hover:text-white transition">Diseña tu propia camiseta</a>
       </div>
     </div>
   </div>
@@ -158,7 +171,7 @@
         <div>
           <div class="flex items-center gap-3 mb-4">
             <i class="fa-solid fa-shirt text-4xl text-yellow-400"></i>
-            <h1 class="text-3xl font-bold">Momotus Core</h1>
+            <p class="text-3xl font-bold">Momotus Core</p>
           </div>
           <p class="text-zinc-400">Camisetas personalizadas, hechas para destacar.</p>
         </div>
@@ -171,7 +184,8 @@
         </div>
         <div>
           <h4 class="font-bold mb-4">Contacto</h4>
-          <a href="https://wa.me/50555010044" class="flex items-center gap-2 text-green-400 hover:text-green-300"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>
+          <a href="https://wa.me/50555010044" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 text-green-400 hover:text-green-300 mb-3"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>
+          <a href="mailto:momotuscore@gmail.com" class="flex items-center gap-2 text-zinc-400 hover:text-white"><i class="fa-solid fa-envelope"></i> momotuscore@gmail.com</a>
         </div>
         <div>
           <h4 class="font-bold mb-4">Síguenos</h4>
@@ -183,10 +197,13 @@
 
   <script>
     let currentSlide = 0;
+    let carouselTimer = null;
+    let carouselPausedByUser = false;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
     const heroImages = [
       { src: "img/heroes/hero-1.webp", title: "VIBES MANAGUA", subtitle: "Diseños únicos que representan nuestra cultura" },
       { src: "img/heroes/hero-tienda.webp", title: "COLECCIÓN 2026", subtitle: "Camisetas premium con alma nica" },
-      { src: "img/heroes/hero-comunidad.webp", title: "NICARAGUA VISTE", subtitle: "+380 nicas ya llevan Momotus Core" }
+      { src: "img/heroes/hero-comunidad.webp", title: "NICARAGUA VISTE", subtitle: "Diseños que representan nuestra cultura y comunidad" }
     ];
 
     function updateHero() {
@@ -207,37 +224,97 @@
         dot.className = `w-3 h-3 rounded-full transition-all ${index === currentSlide ? 'bg-yellow-400 scale-125' : 'bg-white/50 hover:bg-white/70'}`;
         dot.setAttribute('aria-label', `Ir a diapositiva ${index + 1}`);
         if (index === currentSlide) dot.setAttribute('aria-current', 'true');
-        dot.onclick = () => { currentSlide = index; updateHero(); };
+        dot.onclick = () => goToSlide(index, true);
         container.appendChild(dot);
       });
     }
 
-    window.prevSlide = () => {
-      currentSlide = (currentSlide - 1 + heroImages.length) % heroImages.length;
+    function updateCarouselControl(isPlaying) {
+      const button = document.getElementById('carousel-toggle');
+      const icon = document.getElementById('carousel-toggle-icon');
+      if (!button || !icon) return;
+      button.setAttribute('aria-label', isPlaying ? 'Pausar carrusel' : 'Reproducir carrusel');
+      button.setAttribute('aria-pressed', String(!isPlaying));
+      icon.className = `fa-solid ${isPlaying ? 'fa-pause' : 'fa-play'}`;
+    }
+
+    function stopCarousel() {
+      if (carouselTimer !== null) {
+        clearInterval(carouselTimer);
+        carouselTimer = null;
+      }
+      updateCarouselControl(false);
+    }
+
+    function startCarousel(force = false) {
+      if (carouselTimer !== null || carouselPausedByUser || document.hidden || (reduceMotion.matches && !force)) {
+        updateCarouselControl(false);
+        return;
+      }
+      carouselTimer = setInterval(() => goToSlide(currentSlide + 1), 7000);
+      updateCarouselControl(true);
+    }
+
+    function restartCarouselAfterInteraction() {
+      if (carouselPausedByUser) return;
+      stopCarousel();
+      startCarousel();
+    }
+
+    function goToSlide(index, userInteraction = false) {
+      currentSlide = (index + heroImages.length) % heroImages.length;
       updateHero();
+      if (userInteraction) restartCarouselAfterInteraction();
+    }
+
+    window.prevSlide = () => {
+      goToSlide(currentSlide - 1, true);
     };
 
     window.nextSlide = () => {
-      currentSlide = (currentSlide + 1) % heroImages.length;
-      updateHero();
+      goToSlide(currentSlide + 1, true);
+    };
+
+    window.toggleCarouselAutoplay = () => {
+      if (carouselTimer !== null) {
+        carouselPausedByUser = true;
+        stopCarousel();
+      } else {
+        carouselPausedByUser = false;
+        startCarousel(true);
+      }
     };
 
     window.flipMockup = () => {
       const mockup = document.getElementById('mockup-3d');
-      mockup.classList.toggle('flipped');
+      const button = document.getElementById('flip-mockup-button');
+      const isFlipped = mockup.classList.toggle('flipped');
+      if (button) {
+        button.setAttribute('aria-pressed', String(isFlipped));
+        button.setAttribute('aria-label', isFlipped ? 'Mostrar frente de la camiseta' : 'Mostrar espalda de la camiseta');
+      }
     };
 
-    function startCarousel() {
-      setInterval(() => {
-        currentSlide = (currentSlide + 1) % heroImages.length;
-        updateHero();
-      }, 5000);
+    function preloadHeroImages() {
+      const preload = () => heroImages.slice(1).forEach(item => {
+        const image = new Image();
+        image.decoding = 'async';
+        image.src = item.src;
+      });
+      if ('requestIdleCallback' in window) window.requestIdleCallback(preload, { timeout: 1500 });
+      else setTimeout(preload, 300);
     }
 
     window.addEventListener('load', () => {
       updateIndicators();
+      preloadHeroImages();
       startCarousel();
       console.log("%c✅ index.html - Mockup 3D con anime-1 cargado correctamente", "color:#facc15; font-weight:bold");
+    });
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) stopCarousel();
+      else startCarousel();
     });
   </script>
 

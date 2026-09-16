@@ -44,13 +44,17 @@ body {
 .mockup-3d {
   width: 100%;
   max-width: 520px;
+  aspect-ratio: 1 / 1;
   min-height: 520px;
-  transition: transform 0.8s cubic-bezier(0.25, 0.1, 0.25, 1);
+  transition: transform 0.9s cubic-bezier(0.25, 0.1, 0.25, 1);
   animation: gentleRotate 35s linear infinite;
   box-shadow: 0 60px 100px -30px rgb(0 0 0 / 0.7),
               0 0 0 18px rgba(250, 204, 21, 0.18);
   border-radius: 40px;
   background: #1f2937;
+  position: relative;
+  overflow: hidden;
+  transform-style: preserve-3d;
 }
 
 @keyframes gentleRotate {
@@ -62,6 +66,29 @@ body {
   animation-play-state: paused;
   transform: scale(1.08) rotateY(18deg) rotateX(8deg);
 }
+
+.mockup-3d.flipped {
+  animation-play-state: paused;
+  transform: rotateY(180deg);
+}
+
+#front, #back {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  backface-visibility: hidden;
+  transition: opacity 0.4s ease;
+}
+
+#back {
+  transform: rotateY(180deg);
+  opacity: 0;
+}
+
+.mockup-3d.flipped #front { opacity: 0; }
+.mockup-3d.flipped #back { opacity: 1; }
 
 /* ==================== DISEÑADOR - VISTA PREVIA FINAL (MEJORADO) ==================== */
 #final-preview-modal img {
@@ -120,7 +147,45 @@ body {
 
 /* ==================== HERO & OTROS ==================== */
 #hero-bg {
-  transition: transform 0.1s ease-out;
+  transition: opacity 0.35s ease, transform 0.8s ease;
+}
+
+.hero-section {
+  height: 100svh;
+  min-height: 620px;
+  max-height: 900px;
+}
+
+.hero-arrow {
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.75rem;
+}
+
+.category-chip {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0.7rem 1.1rem;
+  border: 1px solid #3f3f46;
+  border-radius: 9999px;
+  color: #e4e4e7;
+  background: #18181b;
+  font-weight: 600;
+  transition: border-color 0.2s ease, color 0.2s ease, background-color 0.2s ease;
+}
+
+.category-chip:hover,
+.category-chip:focus-visible {
+  border-color: #facc15;
+  color: #facc15;
+  background: #27272a;
 }
 
 .shirt-type-btn.active {
@@ -151,6 +216,47 @@ body {
 /* Footer */
 .footer {
   background: #111827;
+}
+
+@media (max-width: 767px) {
+  .hero-section {
+    height: 82svh;
+    min-height: 560px;
+    max-height: 680px;
+  }
+
+  .hero-content {
+    padding-right: 1rem;
+  }
+
+  .hero-arrow {
+    width: 44px;
+    height: 44px;
+    font-size: 1.1rem;
+    top: auto !important;
+    bottom: 1rem;
+    transform: none !important;
+  }
+
+  .hero-arrow-left { left: 0.75rem !important; }
+  .hero-arrow-right { right: 0.75rem !important; }
+
+  .hero-controls {
+    bottom: 1.1rem !important;
+  }
+
+  .mockup-3d {
+    max-width: 360px;
+    min-height: 0;
+    border-radius: 28px;
+    animation: none;
+    box-shadow: 0 35px 70px -25px rgb(0 0 0 / 0.75),
+                0 0 0 10px rgba(250, 204, 21, 0.14);
+  }
+
+  .mockup-3d:hover {
+    transform: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -14,6 +14,9 @@ let currentRotationFront = 0;
 let currentRotationBack = 0;
 let lastStorageWarningAt = 0;
 let currentTab = 0; // 0 = Frente, 1 = Espalda
+let designSaveTimer = null;
+let designSaveIdleCallback = null;
+let mockupRequestId = 0;
 
 const shirtTypes = ['regular', 'sudadera', 'hoodie', 'crop-top'];
 const shirtTypeNames = ['Regular / Unisex', 'Sudaderas', 'Hoodie', 'Crop-top'];
@@ -42,6 +45,8 @@ const colors = [
 const designerSizes = ['S', 'M', 'L'];
 const minDesignScale = 0.05;
 const maxDesignScale = 3;
+const mockupLoadCache = new Map();
+const queuedMockupColors = new Set();
 const clampNumber = (value, min, max, fallback) => {
   const number = Number(value);
   return Number.isFinite(number) ? Math.max(min, Math.min(max, number)) : fallback;
@@ -100,28 +105,77 @@ const updateDesignSize = () => {
   });
 };
 
-const updateMockups = () => {
-  const frontImg = document.getElementById('shirt-mockup');
-  const backImg = document.getElementById('shirt-mockup-back');
-  let loaded = 0;
-  const total = (frontImg ? 1 : 0) + (backImg ? 1 : 0);
-  const onLoad = () => { 
-    loaded++; 
-    if (loaded === total) updateDesignSize(); 
+const loadMockupImage = (src, priority = 'auto') => {
+  if (mockupLoadCache.has(src)) return mockupLoadCache.get(src);
+
+  const loadPromise = new Promise(resolve => {
+    const image = new Image();
+    image.decoding = 'async';
+    image.fetchPriority = priority;
+    image.onload = async () => {
+      try {
+        if (typeof image.decode === 'function') await image.decode();
+      } catch (error) {
+        console.debug('El navegador completó la imagen sin decodificación anticipada.', error);
+      }
+      resolve(src);
+    };
+    image.onerror = () => resolve(null);
+    image.src = src;
+  }).then(result => {
+    if (!result) mockupLoadCache.delete(src);
+    return result;
+  });
+
+  mockupLoadCache.set(src, loadPromise);
+  return loadPromise;
+};
+
+const preloadMockupsForColor = colorKey => {
+  if (queuedMockupColors.has(colorKey)) return;
+  queuedMockupColors.add(colorKey);
+
+  const preload = () => {
+    shirtTypes.forEach((type, typeIndex) => {
+      loadMockupImage(getMockupPath(typeIndex, colorKey, false), 'low');
+      loadMockupImage(getMockupPath(typeIndex, colorKey, true), 'low');
+    });
   };
 
-  if (frontImg) { 
-    frontImg.src = getMockupPath(currentShirtType, currentColor, false); 
-    frontImg.onload = onLoad; 
+  if ('requestIdleCallback' in window) {
+    window.requestIdleCallback(preload, { timeout: 1200 });
+  } else {
+    setTimeout(preload, 250);
   }
-  if (backImg) { 
-    backImg.src = getMockupPath(currentShirtType, currentColor, true); 
-    backImg.onload = onLoad; 
-  }
-  setTimeout(updateDesignSize, 100);
+};
+
+const updateMockups = async () => {
+  const frontImg = document.getElementById('shirt-mockup');
+  const backImg = document.getElementById('shirt-mockup-back');
+  if (!frontImg && !backImg) return;
+
+  const requestId = ++mockupRequestId;
+  const selectedType = currentShirtType;
+  const selectedColor = currentColor;
+  const frontPath = getMockupPath(selectedType, selectedColor, false);
+  const backPath = getMockupPath(selectedType, selectedColor, true);
+  const [loadedFront, loadedBack] = await Promise.all([
+    loadMockupImage(frontPath, 'high'),
+    loadMockupImage(backPath, 'high')
+  ]);
+
+  if (requestId !== mockupRequestId || selectedType !== currentShirtType || selectedColor !== currentColor) return;
+
+  if (frontImg && loadedFront) frontImg.src = loadedFront;
+  if (backImg && loadedBack) backImg.src = loadedBack;
+  if (!loadedFront || !loadedBack) console.warn('No se encontró uno de los mockups seleccionados.', { frontPath, backPath });
+
+  requestAnimationFrame(updateDesignSize);
+  preloadMockupsForColor(selectedColor);
 };
 
 const selectShirtType = (index) => {
+  if (!Number.isInteger(index) || index < 0 || index >= shirtTypes.length || index === currentShirtType) return;
   currentShirtType = index;
   document.querySelectorAll('.shirt-type-btn').forEach((btn, i) => btn.classList.toggle('active', i === index));
   updateMockups();
@@ -129,6 +183,7 @@ const selectShirtType = (index) => {
 };
 
 const selectColor = (colorKey, el) => {
+  if (!colors.some(color => color.key === colorKey) || colorKey === currentColor) return;
   document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
   if (el) el.classList.add('active');
   currentColor = colorKey;
@@ -306,6 +361,7 @@ window.removeActiveDesign = () => {
 };
 
 const resetDesign = () => {
+  cancelScheduledDesignSave();
   designFront = null;
   designBack = null;
   currentScaleFront = 1;
@@ -336,8 +392,7 @@ const resetDesign = () => {
   showToast("Diseño reseteado");
 };
 
-const saveCurrentDesign = () => {
-  const data = {
+const getCurrentDesignData = () => ({
     shirtType: currentShirtType,
     color: currentColor,
     size: currentSize,
@@ -349,9 +404,11 @@ const saveCurrentDesign = () => {
     positionBack: currentPositionBack,
     rotationFront: currentRotationFront,
     rotationBack: currentRotationBack
-  };
+});
+
+const saveCurrentDesignNow = () => {
   try {
-    localStorage.setItem('momotusCurrentDesign', JSON.stringify(data));
+    localStorage.setItem('momotusCurrentDesign', JSON.stringify(getCurrentDesignData()));
     return true;
   } catch (error) {
     console.warn('No fue posible guardar el diseño en este dispositivo.', error);
@@ -361,6 +418,39 @@ const saveCurrentDesign = () => {
     }
     return false;
   }
+};
+
+const cancelScheduledDesignSave = () => {
+  if (designSaveTimer !== null) {
+    clearTimeout(designSaveTimer);
+    designSaveTimer = null;
+  }
+  if (designSaveIdleCallback !== null && typeof window.cancelIdleCallback === 'function') {
+    window.cancelIdleCallback(designSaveIdleCallback);
+    designSaveIdleCallback = null;
+  }
+};
+
+const saveCurrentDesign = () => {
+  cancelScheduledDesignSave();
+  designSaveTimer = setTimeout(() => {
+    designSaveTimer = null;
+    if (typeof window.requestIdleCallback === 'function') {
+      designSaveIdleCallback = window.requestIdleCallback(() => {
+        designSaveIdleCallback = null;
+        saveCurrentDesignNow();
+      }, { timeout: 1000 });
+    } else {
+      saveCurrentDesignNow();
+    }
+  }, 250);
+  return true;
+};
+
+const flushScheduledDesignSave = () => {
+  if (designSaveTimer === null && designSaveIdleCallback === null) return;
+  cancelScheduledDesignSave();
+  saveCurrentDesignNow();
 };
 
 const loadSavedDesign = () => {
@@ -404,7 +494,7 @@ const loadSavedDesign = () => {
   const colorBtn = Array.from(document.querySelectorAll('.color-btn')).find(btn =>
     btn.classList.contains(currentColorData.class)
   );
-  if (colorBtn) selectColor(currentColor, colorBtn);
+  document.querySelectorAll('.color-btn').forEach(btn => btn.classList.toggle('active', btn === colorBtn));
 
   if (designFront) {
     const preview = document.getElementById('design-preview');
@@ -426,7 +516,6 @@ const loadSavedDesign = () => {
     if (backImage.complete) updateImageQuality(backImage, 1);
     else backImage.addEventListener('load', event => updateImageQuality(event.currentTarget, 1), { once: true });
   }
-  updateMockups();
 };
 
 const switchMockup = (tab) => {
@@ -599,6 +688,7 @@ const initDesigner = () => {
   loadSavedDesign();
   updateMockups();
   initDragListeners();
+  window.addEventListener('pagehide', flushScheduledDesignSave);
   document.querySelectorAll('.ready-designs img').forEach((image, index) => {
     image.tabIndex = 0;
     image.setAttribute('role', 'button');
