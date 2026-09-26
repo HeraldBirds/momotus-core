@@ -63,7 +63,7 @@
       <div class="flex flex-col md:flex-row justify-between items-end gap-6 mb-8">
         <div>
           <h2 class="text-4xl font-bold">Catálogo completo</h2>
-          <p id="results-count" class="text-zinc-400">Mostrando <span id="count-number" class="text-yellow-400 font-semibold">31</span> diseños</p>
+          <p id="results-count" class="text-zinc-400">Mostrando <span id="count-number" class="text-yellow-400 font-semibold">36</span> productos</p>
         </div>
 
         <div class="flex flex-wrap gap-4">
@@ -75,8 +75,8 @@
 
           <select id="sort-select" onchange="sortProducts()" class="bg-zinc-800 border border-zinc-700 rounded-3xl px-6 py-4 outline-none text-white">
             <option value="default">Ordenar por...</option>
-            <option value="price-low">Camiseta: menor a mayor</option>
-            <option value="price-high">Camiseta: mayor a menor</option>
+            <option value="price-low">Precio: menor a mayor</option>
+            <option value="price-high">Precio: mayor a menor</option>
             <option value="name">Nombre A-Z</option>
           </select>
 
@@ -86,7 +86,31 @@
         </div>
       </div>
 
-      <!-- FILTROS CON ICONOS PERSONALIZADOS -->
+      <!-- PRIMERO: TIPO DE PRENDA -->
+      <div class="flex flex-nowrap md:flex-wrap gap-3 mb-5 overflow-x-auto pb-2 scrollbar-hide" aria-label="Filtrar por prenda">
+        <button onclick="filterGarment('camiseta')" id="garment-camiseta" class="garment-filter-btn active px-7 py-3 rounded-3xl text-sm font-medium transition whitespace-nowrap">
+          <svg class="garment-filter-icon" viewBox="0 0 64 64" aria-hidden="true"><path fill="currentColor" d="M18 11h28l13 14-9 10-8-7v27H22V28l-8 7-9-10z"/><path d="M25 11q7 9 14 0" fill="none" stroke="currentColor" stroke-width="4"/></svg>
+          Camisetas
+        </button>
+        <button onclick="filterGarment('hoodie')" id="garment-hoodie" class="garment-filter-btn px-7 py-3 rounded-3xl text-sm font-medium transition whitespace-nowrap">
+          <svg class="garment-filter-icon" viewBox="0 0 64 64" aria-hidden="true"><path fill="currentColor" d="M18 20h28l13 12-8 10-9-7v21H22V35l-9 7-8-10z"/><path fill="currentColor" d="M23 21q2-16 9-16t9 16l-6 7h-6z"/><path d="M25 48h14" stroke="#18181b" stroke-width="4"/></svg>
+          Hoodies
+        </button>
+        <button onclick="filterGarment('sudadera')" id="garment-sudadera" class="garment-filter-btn px-7 py-3 rounded-3xl text-sm font-medium transition whitespace-nowrap">
+          <svg class="garment-filter-icon" viewBox="0 0 64 64" aria-hidden="true"><path fill="currentColor" d="M19 11h26l17 15-7 11-11-8v27H20V29L9 37 2 26z"/><path d="M26 11q6 8 12 0" fill="none" stroke="#18181b" stroke-width="4"/></svg>
+          Sudaderas
+        </button>
+        <button onclick="filterGarment('crop-top')" id="garment-crop-top" class="garment-filter-btn px-7 py-3 rounded-3xl text-sm font-medium transition whitespace-nowrap">
+          <svg class="garment-filter-icon" viewBox="0 0 64 64" aria-hidden="true"><path fill="currentColor" d="M18 12h28l13 13-9 9-8-7v18H22V27l-8 7-9-9z"/><path d="M25 12q7 9 14 0M22 42h20" fill="none" stroke="#18181b" stroke-width="4"/></svg>
+          Crop-tops
+        </button>
+        <button onclick="filterGarment('all')" id="garment-all" class="garment-filter-btn px-7 py-3 rounded-3xl text-sm font-medium transition whitespace-nowrap">
+          <svg class="garment-filter-icon" viewBox="0 0 64 64" aria-hidden="true"><path fill="currentColor" d="M6 7h21v21H6zm31 0h21v21H37zM6 37h21v21H6zm31 0h21v21H37z"/></svg>
+          Todas las prendas
+        </button>
+      </div>
+
+      <!-- DESPUÉS: CATEGORÍA DEL DISEÑO -->
       <div class="flex flex-nowrap md:flex-wrap gap-3 mb-5 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide">
         <button onclick="filterCategory('all')" id="filter-all" class="filter-btn active px-8 py-3 rounded-3xl text-sm font-medium transition flex items-center gap-3">
           <img src="img/icons/icon-todos.webp" alt="Todos" class="filter-icon">
@@ -120,11 +144,11 @@
           Mis favoritos <span id="wishlist-filter-count" class="font-bold">(0)</span>
         </button>
         <div class="flex flex-nowrap gap-2 overflow-x-auto pb-1 scrollbar-hide" aria-label="Filtrar por precio">
-          <span class="flex items-center text-sm text-zinc-400 whitespace-nowrap mr-1">Precio de camiseta:</span>
-          <button id="price-all" onclick="filterPrice(0, Number.POSITIVE_INFINITY, this)" class="price-btn active">Todos los precios</button>
-          <button id="price-low" onclick="filterPrice(0, 450, this)" class="price-btn">Hasta C$450</button>
-          <button id="price-mid" onclick="filterPrice(451, 550, this)" class="price-btn">C$451–C$550</button>
-          <button id="price-high" onclick="filterPrice(551, Number.POSITIVE_INFINITY, this)" class="price-btn">Más de C$550</button>
+          <span id="price-filter-label" class="flex items-center text-sm text-zinc-400 whitespace-nowrap mr-1">Precio de camiseta:</span>
+          <button id="price-all" onclick="applyPriceFilter('all')" class="price-btn active">Todos los precios</button>
+          <button id="price-low" onclick="applyPriceFilter('low')" class="price-btn">Hasta C$450</button>
+          <button id="price-mid" onclick="applyPriceFilter('mid')" class="price-btn">C$451–C$550</button>
+          <button id="price-high" onclick="applyPriceFilter('high')" class="price-btn">Más de C$550</button>
         </div>
       </div>
 
@@ -135,7 +159,7 @@
       </div>
 
       <!-- GRID PRINCIPAL -->
-      <h3 id="catalog-grid-title" class="text-2xl font-bold mb-5">Todos los diseños</h3>
+      <h3 id="catalog-grid-title" class="text-2xl font-bold mb-5">Todos los productos</h3>
       <div id="products-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6" aria-labelledby="catalog-grid-title"></div>
     </div>
   </section>
@@ -173,14 +197,6 @@
   <script src="js/script.js"></script>
 
   <script>
-    function filterPrice(min, max, activeButton) {
-      currentMinPrice = min;
-      currentMaxPrice = max;
-      document.querySelectorAll('.price-btn').forEach(btn => btn.classList.toggle('active', btn === activeButton));
-      updateStoreURL();
-      filterProducts();
-    }
-
     function toggleWishlist(id) {
       if (isInWishlist(id)) removeFromWishlist(id);
       else addToWishlist(id);
@@ -191,28 +207,27 @@
       if (!container) return;
       container.innerHTML = '';
 
-      const bestProducts = products.filter(product => product.featured === true).slice(0, 4);
+      const bestProducts = getFilteredProducts().filter(product => product.featured === true).slice(0, 4);
 
       bestProducts.forEach(product => {
         const inWishlist = isInWishlist(product.id);
-        const priceRange = getProductPriceRange(product);
         const card = document.createElement('div');
         card.className = 'product-card bg-zinc-900 rounded-3xl overflow-hidden group relative';
         card.innerHTML = `
           <div class="relative">
-            <img src="${product.img}" width="320" height="320" loading="lazy" decoding="async" alt="${product.name}" onclick="showQuickView(${product.id})" class="w-full aspect-square object-cover transition group-hover:scale-105 cursor-pointer">
+            <img src="${product.img}" data-fallback-src="${product.fallbackImg || ''}" data-garment="${product.garment}" width="320" height="320" loading="lazy" decoding="async" alt="${product.name}" onclick="showQuickView(${product.id})" class="w-full aspect-square object-cover transition group-hover:scale-105 cursor-pointer">
             <span class="absolute top-4 left-4 bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full">🔥</span>
             <button onclick="event.stopImmediatePropagation(); toggleWishlist(${product.id});" aria-label="${inWishlist ? 'Quitar' : 'Añadir'} ${product.name} de favoritos" class="absolute top-4 right-4 text-2xl ${inWishlist ? 'text-red-500' : 'text-white/70 hover:text-red-500'} transition">
               <i class="fa-solid fa-heart"></i>
             </button>
           </div>
           <div class="p-5">
-            <h3 onclick="showQuickView(${product.id})" class="font-bold text-lg mb-1 cursor-pointer line-clamp-2">${product.name}</h3>
-            <p class="text-yellow-400 font-semibold text-xl">Camiseta C$ ${product.price}</p>
-            <p class="text-zinc-400 text-sm mt-1">4 prendas · C$ ${priceRange.min}–C$ ${priceRange.max}</p>
+            <h3 onclick="showQuickView(${product.id})" class="font-bold text-lg mb-1 cursor-pointer line-clamp-2">${product.baseName}</h3>
+            <p class="text-yellow-400 font-semibold text-xl">C$ ${product.price}</p>
+            <p class="text-zinc-400 text-sm mt-1">${product.garmentName} · ${categoryLabels[product.category] || product.category}</p>
             <button onclick="event.stopImmediatePropagation(); showQuickView(${product.id});" 
                     class="mt-4 w-full bg-yellow-400 hover:bg-yellow-300 text-black font-bold py-3 rounded-3xl text-sm transition">
-              Ver prendas y tallas
+              Ver tallas
             </button>
           </div>
         `;
@@ -221,6 +236,7 @@
     }
 
     function resetFilters() {
+      currentGarment = 'camiseta';
       currentCategory = 'all';
       currentSearchTerm = '';
       currentMinPrice = 0;
@@ -228,11 +244,13 @@
       showWishlistOnly = false;
       document.getElementById('search-input').value = '';
       document.getElementById('sort-select').value = 'default';
+      document.querySelectorAll('.garment-filter-btn').forEach(b => b.classList.toggle('active', b.id === 'garment-camiseta'));
       document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.id === 'filter-all'));
-      document.querySelectorAll('.price-btn').forEach(b => b.classList.toggle('active', b.id === 'price-all'));
+      updatePriceFilterUI();
       updateWishlistFilterButton();
       updateStoreURL();
       filterProducts();
+      renderBestSellers();
     }
 
     window.addEventListener('load', () => {

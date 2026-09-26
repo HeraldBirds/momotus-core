@@ -3,6 +3,7 @@
 
 let cart = [];
 let wishlist = [];
+let currentGarment = 'camiseta';
 let currentCategory = 'all';
 let currentSearchTerm = '';
 let currentMinPrice = 0;
@@ -10,7 +11,6 @@ let currentMaxPrice = Number.POSITIVE_INFINITY;
 let showWishlistOnly = false;
 let quickViewProductId = null;
 let quickViewSelectedSize = null;
-let quickViewSelectedGarment = 'camiseta';
 const catalogProducts = window.MomotusCatalog?.products;
 
 if (!Array.isArray(catalogProducts)) {
@@ -18,12 +18,40 @@ if (!Array.isArray(catalogProducts)) {
 }
 
 const products = catalogProducts.filter(product => product.published !== false);
-const garmentOrder = ['camiseta', 'hoodie', 'sudadera', 'crop-top'];
-const getProductGarment = (product, garmentKey = 'camiseta') => product?.garments?.[garmentKey] || product?.garments?.camiseta || null;
-const getProductPriceRange = product => {
-  const prices = garmentOrder.map(key => getProductGarment(product, key)?.price).filter(Number.isFinite);
-  return prices.length ? { min: Math.min(...prices), max: Math.max(...prices) } : { min: product.price, max: product.price };
-};
+const garmentOrder = window.MomotusCatalog?.garmentOrder || ['camiseta', 'hoodie', 'sudadera', 'crop-top'];
+const garmentIdOffsets = { camiseta: 0, hoodie: 1000, sudadera: 2000, 'crop-top': 3000 };
+const priceFilterConfigs = Object.freeze({
+  camiseta: Object.freeze({
+    label: 'Precio de camisetas:',
+    low: Object.freeze({ min: 0, max: 450, text: 'Hasta C$450' }),
+    mid: Object.freeze({ min: 451, max: 550, text: 'C$451–C$550' }),
+    high: Object.freeze({ min: 551, max: Number.POSITIVE_INFINITY, text: 'Más de C$550' })
+  }),
+  hoodie: Object.freeze({
+    label: 'Precio de Hoodies:',
+    low: Object.freeze({ min: 800, max: 950, text: 'C$800–C$950' }),
+    mid: Object.freeze({ min: 951, max: 1100, text: 'C$951–C$1,100' }),
+    high: Object.freeze({ min: 1101, max: Number.POSITIVE_INFINITY, text: 'Más de C$1,100' })
+  }),
+  sudadera: Object.freeze({
+    label: 'Precio de sudaderas:',
+    low: Object.freeze({ min: 380, max: 470, text: 'C$380–C$470' }),
+    mid: Object.freeze({ min: 471, max: 570, text: 'C$471–C$570' }),
+    high: Object.freeze({ min: 571, max: Number.POSITIVE_INFINITY, text: 'Más de C$570' })
+  }),
+  'crop-top': Object.freeze({
+    label: 'Precio de crop-tops:',
+    low: Object.freeze({ min: 150, max: 200, text: 'C$150–C$200' }),
+    mid: Object.freeze({ min: 201, max: 250, text: 'C$201–C$250' }),
+    high: Object.freeze({ min: 251, max: Number.POSITIVE_INFINITY, text: 'Más de C$250' })
+  }),
+  all: Object.freeze({
+    label: 'Precio de todas las prendas:',
+    low: Object.freeze({ min: 0, max: 300, text: 'Hasta C$300' }),
+    mid: Object.freeze({ min: 301, max: 700, text: 'C$301–C$700' }),
+    high: Object.freeze({ min: 701, max: Number.POSITIVE_INFINITY, text: 'Más de C$700' })
+  })
+});
 
 const categoryLabels = {
   fauna: 'Fauna Nica',
@@ -83,12 +111,36 @@ const showToast = (message) => {
   setTimeout(() => toast.classList.add('hidden'), 3200);
 };
 
-const fallbackImage = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
-  <svg xmlns="http://www.w3.org/2000/svg" width="640" height="640" viewBox="0 0 640 640">
-    <rect width="640" height="640" fill="#18181b"/>
-    <path d="M245 220h150l55 70-48 42-28-31v159H266V301l-28 31-48-42z" fill="#facc15" opacity=".9"/>
-    <text x="320" y="520" text-anchor="middle" fill="#e4e4e7" font-family="Arial,sans-serif" font-size="26">Imagen próximamente</text>
-  </svg>`)}`;
+const garmentPlaceholderData = {
+  camiseta: {
+    label: 'CAMISETA',
+    shape: '<path d="M245 205h150l70 70-48 48-43-39v176H266V284l-43 39-48-48z" fill="#facc15"/><path d="M285 205q35 45 70 0" fill="none" stroke="#18181b" stroke-width="15"/>'
+  },
+  hoodie: {
+    label: 'HOODIE',
+    shape: '<path d="M245 235h150l70 65-44 49-46-39v165H265V310l-46 39-44-49z" fill="#facc15"/><path d="M270 245q10-83 50-83t50 83l-35 35h-30z" fill="#facc15" stroke="#18181b" stroke-width="10"/><path d="M285 405h70l18 42H267z" fill="#18181b" opacity=".72"/>'
+  },
+  sudadera: {
+    label: 'SUDADERA',
+    shape: '<path d="M245 205h150l102 83-39 58-65-48v177H247V298l-65 48-39-58z" fill="#facc15"/><path d="M286 205q34 42 68 0" fill="none" stroke="#18181b" stroke-width="15"/><path d="M247 445h146" stroke="#18181b" stroke-width="12" opacity=".7"/>'
+  },
+  'crop-top': {
+    label: 'CROP-TOP',
+    shape: '<path d="M245 215h150l70 68-46 46-44-39v112H265V290l-44 39-46-46z" fill="#facc15"/><path d="M285 215q35 43 70 0" fill="none" stroke="#18181b" stroke-width="15"/><path d="M265 380h110" stroke="#18181b" stroke-width="12" opacity=".7"/>'
+  }
+};
+
+const getGarmentPlaceholder = garmentKey => {
+  const placeholder = garmentPlaceholderData[garmentKey] || garmentPlaceholderData.camiseta;
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="640" height="640" viewBox="0 0 640 640">
+      <rect width="640" height="640" fill="#18181b"/>
+      <circle cx="320" cy="320" r="225" fill="#09090b" stroke="#3f3f46" stroke-width="3"/>
+      ${placeholder.shape}
+      <text x="320" y="525" text-anchor="middle" fill="#facc15" font-family="Arial,sans-serif" font-size="27" font-weight="700">${placeholder.label}</text>
+      <text x="320" y="562" text-anchor="middle" fill="#a1a1aa" font-family="Arial,sans-serif" font-size="20">IMAGEN PRÓXIMAMENTE</text>
+    </svg>`)}`;
+};
 
 document.addEventListener('error', event => {
   const image = event.target;
@@ -100,7 +152,7 @@ document.addEventListener('error', event => {
     return;
   }
   image.dataset.fallbackApplied = 'true';
-  image.src = fallbackImage;
+  image.src = getGarmentPlaceholder(image.dataset.garment);
   image.alt = image.alt ? `${image.alt} — imagen no disponible` : 'Imagen no disponible';
 }, true);
 
@@ -125,31 +177,25 @@ const deactivateModal = (modal, remove = false) => {
 // ==================== CARRITO MEJORADO ====================
 const saveCart = () => writeStoredJSON(
   'momotusCart',
-  cart.map(({ id, garment, size, quantity }) => ({ id, garment, size, quantity }))
+  cart.map(({ id, size, quantity }) => ({ id, size, quantity }))
 );
 
 const validateCartItems = (items) => {
   if (!Array.isArray(items)) return [];
   const groupedItems = new Map();
   items.forEach(item => {
-    const product = products.find(candidate => candidate.id === Number(item.id));
-    const garmentKey = garmentOrder.includes(item.garment) ? item.garment : 'camiseta';
-    const garment = getProductGarment(product, garmentKey);
+    const legacyGarment = garmentOrder.includes(item.garment) ? item.garment : 'camiseta';
+    const storedId = Number(item.id);
+    const migratedId = storedId > 0 && storedId < 1000 ? storedId + garmentIdOffsets[legacyGarment] : storedId;
+    const product = products.find(candidate => candidate.id === migratedId);
     const size = String(item.size || '');
-    if (!product || !garment || !garment.sizes.includes(size)) return;
-    const availableStock = Number(garment.stock[size]) || 0;
+    if (!product || !product.sizes.includes(size)) return;
+    const availableStock = Number(product.stock[size]) || 0;
     if (availableStock < 1) return;
-    const key = `${product.id}:${garmentKey}:${size}`;
+    const key = `${product.id}:${size}`;
     const previousQuantity = groupedItems.get(key)?.quantity || 0;
     groupedItems.set(key, {
       ...product,
-      garment: garmentKey,
-      garmentName: garment.name,
-      price: garment.price,
-      img: garment.img,
-      fallbackImg: garment.fallbackImg || product.img,
-      sizes: garment.sizes,
-      stock: garment.stock,
       size,
       quantity: Math.min(availableStock, previousQuantity + Math.max(1, Number(item.quantity) || 1))
     });
@@ -296,7 +342,7 @@ const toggleCartModal = () => {
 
     const itemHTML = `
       <div class="flex gap-4 bg-zinc-800/50 rounded-3xl p-4">
-        <img src="${item.img}" data-fallback-src="${item.fallbackImg || ''}" class="w-20 h-20 object-cover rounded-2xl" alt="${item.name} en ${item.garmentName || 'Camiseta'}">
+        <img src="${item.img}" data-fallback-src="${item.fallbackImg || ''}" data-garment="${item.garment}" class="w-20 h-20 object-cover rounded-2xl" alt="${item.name} en ${item.garmentName || 'Camiseta'}">
         
         <div class="flex-1">
           <div class="flex justify-between">
@@ -363,9 +409,9 @@ const checkout = () => {
     return;
   }
 
-  const previousCart = JSON.stringify(cart.map(({ id, garment, size, quantity }) => ({ id, garment, size, quantity })));
+  const previousCart = JSON.stringify(cart.map(({ id, size, quantity }) => ({ id, size, quantity })));
   cart = validateCartItems(cart);
-  const validatedCart = JSON.stringify(cart.map(({ id, garment, size, quantity }) => ({ id, garment, size, quantity })));
+  const validatedCart = JSON.stringify(cart.map(({ id, size, quantity }) => ({ id, size, quantity })));
   if (previousCart !== validatedCart) {
     saveCart();
     updateCartCount();
@@ -418,15 +464,30 @@ const updateWishlistFilterButton = () => {
   }
 };
 
-const updatePriceFilterButtons = () => {
-  const activeId = currentMinPrice === 0 && currentMaxPrice === 450
-    ? 'price-low'
-    : currentMinPrice === 451 && currentMaxPrice === 550
-      ? 'price-mid'
-      : currentMinPrice === 551 && currentMaxPrice === Number.POSITIVE_INFINITY
-        ? 'price-high'
-        : 'price-all';
+const getCurrentPriceFilterConfig = () => priceFilterConfigs[currentGarment] || priceFilterConfigs.all;
+
+const updatePriceFilterUI = () => {
+  const config = getCurrentPriceFilterConfig();
+  const label = document.getElementById('price-filter-label');
+  if (label) label.textContent = config.label;
+  ['low', 'mid', 'high'].forEach(key => {
+    const button = document.getElementById(`price-${key}`);
+    if (button) button.textContent = config[key].text;
+  });
+  const activeKey = ['low', 'mid', 'high'].find(key => currentMinPrice === config[key].min && currentMaxPrice === config[key].max) || 'all';
+  const activeId = `price-${activeKey}`;
   document.querySelectorAll('.price-btn').forEach(button => button.classList.toggle('active', button.id === activeId));
+};
+
+const applyPriceFilter = key => {
+  const config = getCurrentPriceFilterConfig();
+  const range = key === 'all' ? { min: 0, max: Number.POSITIVE_INFINITY } : config[key];
+  if (!range) return;
+  currentMinPrice = range.min;
+  currentMaxPrice = range.max;
+  updatePriceFilterUI();
+  updateStoreURL();
+  filterProducts();
 };
 
 const toggleWishlistFilter = () => {
@@ -464,11 +525,12 @@ const renderCommonNavbar = () => {
           <i class="fa-solid fa-shirt text-4xl text-yellow-400"></i>
           <h1 class="text-3xl font-bold tracking-tighter">Momotus Core</h1>
         </div>
-        <div class="hidden md:flex items-center gap-8 text-base font-medium">
+        <div class="hidden lg:flex items-center gap-6 text-base font-medium">
           <a href="index.html" class="${currentPage === 'index.html' ? 'text-yellow-400 font-bold' : 'hover:text-yellow-400 transition'}">Inicio</a>
           <a href="tienda.html" class="${currentPage === 'tienda.html' ? 'text-yellow-400 font-bold' : 'hover:text-yellow-400 transition'}">Tienda</a>
           <a href="disena.html" class="${currentPage === 'disena.html' ? 'text-yellow-400 font-bold' : 'hover:text-yellow-400 transition'}">Diseña la Tuya</a>
           <a href="comunidad.html" class="${currentPage === 'comunidad.html' ? 'text-yellow-400 font-bold' : 'hover:text-yellow-400 transition'}">Comunidad</a>
+          <a href="herramientas.html" class="${currentPage === 'herramientas.html' ? 'text-yellow-400 font-bold' : 'hover:text-yellow-400 transition'}">Herramientas</a>
         </div>
         <div class="flex items-center gap-6">
           <button onclick="toggleCartModal()" aria-label="Abrir carrito" class="relative text-2xl hover:text-yellow-400 transition">
@@ -476,15 +538,16 @@ const renderCommonNavbar = () => {
             <span id="cart-count" class="absolute -top-1 -right-1 bg-yellow-400 text-black text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center">0</span>
           </button>
           <a href="https://wa.me/50555010044" target="_blank" rel="noopener noreferrer" aria-label="Contactar por WhatsApp" class="text-3xl text-green-400 hover:scale-110 transition"><i class="fa-brands fa-whatsapp"></i></a>
-          <button onclick="toggleMobileMenu()" aria-label="Abrir menú" class="md:hidden text-3xl"><i class="fa-solid fa-bars"></i></button>
+          <button onclick="toggleMobileMenu()" aria-label="Abrir menú" class="lg:hidden text-3xl"><i class="fa-solid fa-bars"></i></button>
         </div>
       </div>
-      <div id="mobile-menu" class="hidden md:hidden bg-black border-t border-zinc-800 py-4">
+      <div id="mobile-menu" class="hidden lg:hidden bg-black border-t border-zinc-800 py-4">
         <div class="flex flex-col items-center gap-6 text-lg font-medium">
           <a href="index.html" class="hover:text-yellow-400">Inicio</a>
           <a href="tienda.html" class="hover:text-yellow-400">Tienda</a>
           <a href="disena.html" class="hover:text-yellow-400">Diseña la Tuya</a>
           <a href="comunidad.html" class="hover:text-yellow-400">Comunidad</a>
+          <a href="herramientas.html" class="hover:text-yellow-400">Herramientas</a>
         </div>
       </div>
     </nav>
@@ -499,11 +562,9 @@ const toggleMobileMenu = () => {
 };
 
 // ==================== QUICK VIEW ====================
-const renderQuickViewSizes = (product, garmentKey) => {
-  const garment = getProductGarment(product, garmentKey);
-  if (!garment) return '';
-  return garment.sizes.map(size => {
-    const stock = Number(garment.stock[size]) || 0;
+const renderQuickViewSizes = product => {
+  return product.sizes.map(size => {
+    const stock = Number(product.stock[size]) || 0;
     const stockClass = stock > 8 ? 'text-green-400' : stock > 3 ? 'text-yellow-400' : 'text-red-400';
     const stockText = stock > 8 ? 'Disponible' : stock > 0 ? 'Pocas unidades' : 'Agotado';
     return `<button type="button" data-quick-size="${size}" onclick="selectQuickViewSize('${size}')" aria-pressed="false" aria-label="Seleccionar talla ${size}, ${stockText}" class="quick-size-btn px-5 py-3 rounded-2xl border border-zinc-600 hover:border-yellow-400 transition flex flex-col items-center ${stock === 0 ? 'opacity-40 pointer-events-none' : ''}">
@@ -518,18 +579,7 @@ const showQuickView = (id, updateURL = true) => {
   if (!product) return;
   quickViewProductId = product.id;
   quickViewSelectedSize = null;
-  quickViewSelectedGarment = 'camiseta';
   const inWishlist = isInWishlist(id);
-  const initialGarment = getProductGarment(product, quickViewSelectedGarment);
-  if (!initialGarment) return;
-  const garmentsHTML = garmentOrder.map(garmentKey => {
-    const garment = getProductGarment(product, garmentKey);
-    const isSelected = garmentKey === quickViewSelectedGarment;
-    return `<button type="button" data-quick-garment="${garmentKey}" onclick="selectQuickViewGarment('${garmentKey}')" aria-pressed="${isSelected}" class="quick-garment-btn rounded-2xl border px-4 py-3 text-left transition ${isSelected ? 'border-yellow-400 bg-yellow-400 text-black' : 'border-zinc-600 hover:border-yellow-400'}">
-      <span class="block font-bold">${garment.name}</span>
-      <span class="block text-sm">C$ ${garment.price}</span>
-    </button>`;
-  }).join('');
 
   const modalHTML = `
     <div id="quickview-modal" role="dialog" aria-modal="true" aria-labelledby="quickview-title" onclick="if(event.target.id === 'quickview-modal') closeQuickView()" class="fixed inset-0 bg-black/80 flex items-center justify-center z-[10000]">
@@ -539,19 +589,18 @@ const showQuickView = (id, updateURL = true) => {
           <button onclick="closeQuickView()" aria-label="Cerrar vista del producto" class="text-4xl text-zinc-400 hover:text-white">×</button>
         </div>
         <div class="p-8 flex flex-col md:flex-row gap-8">
-          <img id="quickview-product-image" src="${initialGarment.img}" data-fallback-src="${initialGarment.fallbackImg || product.img}" width="400" height="400" decoding="async" class="w-full md:w-1/2 aspect-square object-cover rounded-3xl" alt="${product.name} en ${initialGarment.name}">
+          <img id="quickview-product-image" src="${product.img}" data-fallback-src="${product.fallbackImg || ''}" data-garment="${product.garment}" width="400" height="400" decoding="async" class="w-full md:w-1/2 aspect-square object-cover rounded-3xl" alt="${product.name}">
           <div class="flex-1">
-            <p id="quickview-product-price" class="text-4xl font-bold text-yellow-400 mb-2">C$ ${initialGarment.price}</p>
-            <span class="inline-block bg-black/70 text-white text-xs px-4 py-1 rounded-full mb-6">${categoryLabels[product.category] || product.category}</span>
-            <div class="mb-6">
-              <p class="font-medium mb-3">Prenda</p>
-              <div class="grid grid-cols-2 gap-2">${garmentsHTML}</div>
+            <p id="quickview-product-price" class="text-4xl font-bold text-yellow-400 mb-2">C$ ${product.price}</p>
+            <div class="flex flex-wrap gap-2 mb-6">
+              <span class="inline-block bg-yellow-400 text-black font-bold text-xs px-4 py-1 rounded-full">${product.garmentName}</span>
+              <span class="inline-block bg-black/70 text-white text-xs px-4 py-1 rounded-full">${categoryLabels[product.category] || product.category}</span>
             </div>
             <div class="mb-6">
               <p class="font-medium mb-3">Talla</p>
-              <div id="quickview-sizes" class="flex flex-wrap gap-2">${renderQuickViewSizes(product, quickViewSelectedGarment)}</div>
+              <div id="quickview-sizes" class="flex flex-wrap gap-2">${renderQuickViewSizes(product)}</div>
             </div>
-            <p class="text-zinc-400 mb-6">Escogé la prenda y la talla. La disponibilidad se confirma al finalizar el pedido.</p>
+            <p class="text-zinc-400 mb-6">Escogé tu talla. La disponibilidad se confirma al finalizar el pedido.</p>
             <button id="quickview-add-button" type="button" onclick="addSelectedQuickViewProduct()" disabled class="mb-4 w-full bg-yellow-400 disabled:bg-zinc-700 disabled:text-zinc-400 hover:bg-yellow-300 text-black font-bold py-4 rounded-3xl transition">
               Escogé una talla
             </button>
@@ -580,45 +629,9 @@ const showQuickView = (id, updateURL = true) => {
   }
 };
 
-const selectQuickViewGarment = garmentKey => {
-  const product = products.find(item => item.id === quickViewProductId);
-  const garment = getProductGarment(product, garmentKey);
-  if (!product || !garment || !garmentOrder.includes(garmentKey)) return;
-
-  quickViewSelectedGarment = garmentKey;
-  quickViewSelectedSize = null;
-  document.querySelectorAll('.quick-garment-btn').forEach(button => {
-    const isSelected = button.dataset.quickGarment === garmentKey;
-    button.classList.toggle('border-yellow-400', isSelected);
-    button.classList.toggle('bg-yellow-400', isSelected);
-    button.classList.toggle('text-black', isSelected);
-    button.classList.toggle('border-zinc-600', !isSelected);
-    button.setAttribute('aria-pressed', String(isSelected));
-  });
-
-  const image = document.getElementById('quickview-product-image');
-  if (image) {
-    delete image.dataset.fallbackApplied;
-    delete image.dataset.variantFallbackApplied;
-    image.dataset.fallbackSrc = garment.fallbackImg || product.img;
-    image.src = garment.img;
-    image.alt = `${product.name} en ${garment.name}`;
-  }
-  const price = document.getElementById('quickview-product-price');
-  if (price) price.textContent = `C$ ${garment.price}`;
-  const sizes = document.getElementById('quickview-sizes');
-  if (sizes) sizes.innerHTML = renderQuickViewSizes(product, garmentKey);
-  const addButton = document.getElementById('quickview-add-button');
-  if (addButton) {
-    addButton.disabled = true;
-    addButton.textContent = 'Escogé una talla';
-  }
-};
-
 const selectQuickViewSize = size => {
   const product = products.find(item => item.id === quickViewProductId);
-  const garment = getProductGarment(product, quickViewSelectedGarment);
-  if (!product || !garment || !garment.sizes.includes(size) || Number(garment.stock[size]) < 1) return;
+  if (!product || !product.sizes.includes(size) || Number(product.stock[size]) < 1) return;
   quickViewSelectedSize = size;
   document.querySelectorAll('.quick-size-btn').forEach(button => {
     const isSelected = button.dataset.quickSize === size;
@@ -634,7 +647,7 @@ const selectQuickViewSize = size => {
 
 const addSelectedQuickViewProduct = () => {
   if (!quickViewProductId || !quickViewSelectedSize) return showToast('Escogé una talla primero');
-  addToCartWithSize(quickViewProductId, quickViewSelectedSize, quickViewSelectedGarment);
+  addToCartWithSize(quickViewProductId, quickViewSelectedSize);
   closeQuickView();
 };
 
@@ -643,7 +656,6 @@ const closeQuickView = (updateURL = true) => {
   if (modal) deactivateModal(modal, true);
   quickViewProductId = null;
   quickViewSelectedSize = null;
-  quickViewSelectedGarment = 'camiseta';
   if (updateURL && document.getElementById('products-grid')) {
     const url = new URL(window.location.href);
     url.searchParams.delete('producto');
@@ -668,32 +680,24 @@ const shareProduct = async (id) => {
   }
 };
 
-const addToCartWithSize = (id, size, garmentKey = 'camiseta') => {
+const addToCartWithSize = (id, size) => {
   const product = products.find(p => p.id === id);
-  const garment = getProductGarment(product, garmentKey);
-  if (!product || !garment || !garment.sizes.includes(size) || (garment.stock[size] || 0) === 0) return showToast("❌ Talla no disponible");
+  if (!product || !product.sizes.includes(size) || (product.stock[size] || 0) === 0) return showToast("❌ Talla no disponible");
 
-  const existing = cart.find(item => item.id === product.id && item.garment === garmentKey && item.size === size);
-  if (existing && existing.quantity >= garment.stock[size]) {
-    return showToast(`⚠️ Solo hay ${garment.stock[size]} unidades disponibles en talla ${size}`);
+  const existing = cart.find(item => item.id === product.id && item.size === size);
+  if (existing && existing.quantity >= product.stock[size]) {
+    return showToast(`⚠️ Solo hay ${product.stock[size]} unidades disponibles en talla ${size}`);
   }
   if (existing) existing.quantity = (existing.quantity || 1) + 1;
   else cart.push({
     ...product,
-    garment: garmentKey,
-    garmentName: garment.name,
-    price: garment.price,
-    img: garment.img,
-    fallbackImg: garment.fallbackImg || product.img,
-    sizes: garment.sizes,
-    stock: garment.stock,
     size,
     quantity: 1
   });
   
   saveCart();
   updateCartCount();
-  showToast(`✅ ${product.name} - ${garment.name}, talla ${size}`);
+  showToast(`✅ ${product.baseName} - ${product.garmentName}, talla ${size}`);
 };
 
 // ==================== TESTIMONIOS / COMUNIDAD ====================
@@ -719,15 +723,17 @@ const featuredProductIds = products.filter(product => product.featured === true)
 
 const getFilteredProducts = () => {
   let filtered = [...products];
+  if (currentGarment !== 'all') filtered = filtered.filter(p => p.garment === currentGarment);
   if (currentCategory !== 'all') filtered = filtered.filter(p => p.category === currentCategory);
   if (showWishlistOnly) filtered = filtered.filter(p => isInWishlist(p.id));
   if (currentSearchTerm) {
     const searchTerm = normalizeSearchText(currentSearchTerm);
     filtered = filtered.filter(product => normalizeSearchText([
       product.name,
+      product.baseName,
+      product.garmentName,
       categoryLabels[product.category],
-      categorySearchTerms[product.category],
-      'camiseta hoodie sudadera crop-top crop top prendas'
+      categorySearchTerms[product.category]
     ].join(' ')).includes(searchTerm));
   }
   return filtered.filter(p => p.price >= currentMinPrice && p.price <= currentMaxPrice);
@@ -760,31 +766,42 @@ const renderProducts = (filteredProducts) => {
   if (!grid) return;
   grid.innerHTML = '';
   if (filteredProducts.length === 0) {
-    grid.innerHTML = `<p class="col-span-full text-center text-zinc-400 py-12 text-xl">No encontramos diseños 😔</p>`;
+    grid.innerHTML = `<p class="col-span-full text-center text-zinc-400 py-12 text-xl">No encontramos productos con esos filtros.</p>`;
     return;
   }
   filteredProducts.forEach(product => {
     const inWishlist = isInWishlist(product.id);
-    const priceRange = getProductPriceRange(product);
     const card = document.createElement('div');
     card.className = 'product-card bg-zinc-900 rounded-3xl overflow-hidden group relative';
     card.innerHTML = `
       <div class="relative">
-        <img src="${product.img}" width="320" height="320" loading="lazy" decoding="async" alt="${product.name}" onclick="showQuickView(${product.id})" class="w-full aspect-square object-cover transition group-hover:scale-105 cursor-pointer">
-        <span class="absolute top-4 left-4 bg-black/70 text-white text-xs font-medium px-3 py-1 rounded-full">${categoryLabels[product.category] || product.category}</span>
+        <img src="${product.img}" data-fallback-src="${product.fallbackImg || ''}" data-garment="${product.garment}" width="320" height="320" loading="lazy" decoding="async" alt="${product.name}" onclick="showQuickView(${product.id})" class="w-full aspect-square object-cover transition group-hover:scale-105 cursor-pointer">
+        <span class="absolute top-4 left-4 bg-black/70 text-white text-xs font-medium px-3 py-1 rounded-full">${product.garmentName}</span>
         <button onclick="event.stopImmediatePropagation(); ${inWishlist ? `removeFromWishlist(${product.id})` : `addToWishlist(${product.id})`}" aria-label="${inWishlist ? 'Quitar' : 'Añadir'} ${product.name} de favoritos" class="absolute top-4 right-4 text-2xl ${inWishlist ? 'text-red-500' : 'text-white/70 hover:text-red-500'} transition">
           <i class="fa-solid fa-heart"></i>
         </button>
       </div>
       <div class="p-5">
-        <h3 onclick="showQuickView(${product.id})" class="font-bold text-lg mb-1 cursor-pointer">${product.name}</h3>
-        <p class="text-yellow-400 font-semibold text-xl">Camiseta C$ ${product.price}</p>
-        <p class="text-zinc-400 text-sm mt-1">4 prendas · C$ ${priceRange.min}–C$ ${priceRange.max}</p>
-        <button type="button" onclick="showQuickView(${product.id})" class="mt-4 w-full border border-yellow-400 text-yellow-400 hover:bg-yellow-400 hover:text-black font-bold py-3 rounded-3xl text-sm transition">Ver prendas y tallas</button>
+        <h3 onclick="showQuickView(${product.id})" class="font-bold text-lg mb-1 cursor-pointer">${product.baseName}</h3>
+        <p class="text-yellow-400 font-semibold text-xl">C$ ${product.price}</p>
+        <p class="text-zinc-400 text-sm mt-1">${categoryLabels[product.category] || product.category}</p>
+        <button type="button" onclick="showQuickView(${product.id})" class="mt-4 w-full border border-yellow-400 text-yellow-400 hover:bg-yellow-400 hover:text-black font-bold py-3 rounded-3xl text-sm transition">Ver tallas</button>
       </div>
     `;
     grid.appendChild(card);
   });
+};
+
+const filterGarment = garment => {
+  if (garment !== 'all' && !garmentOrder.includes(garment)) return;
+  currentGarment = garment;
+  currentMinPrice = 0;
+  currentMaxPrice = Number.POSITIVE_INFINITY;
+  document.querySelectorAll('.garment-filter-btn').forEach(btn => btn.classList.toggle('active', btn.id === `garment-${garment}`));
+  updatePriceFilterUI();
+  updateStoreURL();
+  filterProducts();
+  if (typeof renderBestSellers === 'function') renderBestSellers();
 };
 
 const filterCategory = (cat) => {
@@ -792,11 +809,13 @@ const filterCategory = (cat) => {
   document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.toggle('active', btn.id === `filter-${cat}`));
   updateStoreURL();
   filterProducts();
+  if (typeof renderBestSellers === 'function') renderBestSellers();
 };
 
 const updateStoreURL = () => {
   if (!document.getElementById('products-grid')) return;
   const url = new URL(window.location.href);
+  currentGarment === 'camiseta' ? url.searchParams.delete('prenda') : url.searchParams.set('prenda', currentGarment);
   currentCategory === 'all' ? url.searchParams.delete('categoria') : url.searchParams.set('categoria', currentCategory);
   currentSearchTerm ? url.searchParams.set('buscar', currentSearchTerm) : url.searchParams.delete('buscar');
   const sortValue = document.getElementById('sort-select')?.value || 'default';
@@ -816,7 +835,7 @@ const filterProducts = () => {
     : filtered);
   renderProducts(productsForGrid);
   const gridTitle = document.getElementById('catalog-grid-title');
-  if (gridTitle) gridTitle.textContent = showFeatured ? 'Más diseños' : 'Resultados';
+  if (gridTitle) gridTitle.textContent = showFeatured ? 'Más productos' : 'Resultados';
   const countEl = document.getElementById('count-number');
   if (countEl) countEl.textContent = filtered.length;
 };
@@ -836,9 +855,7 @@ const injectStoreStructuredData = () => {
     itemListElement: products.map((product, index) => {
       const productUrl = new URL(baseUrl.href);
       productUrl.searchParams.set('producto', product.id);
-      const garments = garmentOrder.map(key => getProductGarment(product, key)).filter(Boolean);
-      const prices = garments.map(garment => garment.price);
-      const available = garments.some(garment => garment.sizes.some(size => Number(garment.stock[size]) > 0));
+      const available = product.sizes.some(size => Number(product.stock[size]) > 0);
       return {
         '@type': 'ListItem',
         position: index + 1,
@@ -849,11 +866,9 @@ const injectStoreStructuredData = () => {
           category: categoryLabels[product.category] || product.category,
           url: productUrl.href,
           offers: {
-            '@type': 'AggregateOffer',
+            '@type': 'Offer',
             priceCurrency: 'NIO',
-            lowPrice: Math.min(...prices),
-            highPrice: Math.max(...prices),
-            offerCount: garments.length,
+            price: product.price,
             availability: available ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock'
           }
         }
@@ -877,6 +892,8 @@ window.onload = () => {
 
   if (document.getElementById('products-grid')) {
     const params = new URLSearchParams(window.location.search);
+    const garment = params.get('prenda');
+    if (garment === 'all' || garmentOrder.includes(garment)) currentGarment = garment;
     const category = params.get('categoria');
     if (['fauna', 'anime', 'urbano', 'games', 'unica'].includes(category)) currentCategory = category;
     currentSearchTerm = (params.get('buscar') || '').toLowerCase().trim();
@@ -896,8 +913,9 @@ window.onload = () => {
     const searchInput = document.getElementById('search-input');
     if (searchInput) searchInput.value = currentSearchTerm;
     document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.toggle('active', btn.id === `filter-${currentCategory}`));
+    document.querySelectorAll('.garment-filter-btn').forEach(btn => btn.classList.toggle('active', btn.id === `garment-${currentGarment}`));
     updateWishlistFilterButton();
-    updatePriceFilterButtons();
+    updatePriceFilterUI();
     filterProducts();
     injectStoreStructuredData();
     const productId = Number(params.get('producto'));

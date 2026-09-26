@@ -13,16 +13,20 @@
     Para mostrarlo también entre los destacados, agregá:
       featured: true
 
-    Imágenes de las variantes (reemplazá ID por el número del producto):
+    Imágenes de las prendas (reemplazá ID por el número del diseño base):
       img/products/variants/ID-hoodie.webp
       img/products/variants/ID-sudadera.webp
       img/products/variants/ID-crop-top.webp
 
-    Mientras agregás esas imágenes, la tienda usa la imagen original como respaldo.
-    El stock inicial de cada variante conserva las tallas y cantidades del diseño base.
+    Mientras agregás esas imágenes, la tienda muestra un ícono de la prenda.
+    Nunca usa la fotografía de la camiseta como reemplazo de otra prenda.
+    El stock inicial de cada prenda conserva las tallas y cantidades del diseño base.
+
+    Los nombres temporales independientes se editan en garmentProductNames.
+    Fauna Nica conserva el mismo nombre en las cuatro prendas.
   */
 
-  const products = [
+  const baseProducts = [
     { id: 1, name: 'Agelaius phoeniceus', price: 550, category: 'fauna', img: 'img/products/nica-1.webp', sizes: ['S','M','L'], stock: {S:12, M:25, L:18}, featured: true },
     { id: 2, name: 'Asio clamator', price: 550, category: 'fauna', img: 'img/products/nica-2.webp', sizes: ['M','L'], stock: {M:15, L:12}, featured: true },
     { id: 3, name: 'Strix virgata', price: 550, category: 'fauna', img: 'img/products/nica-3.webp', sizes: ['S','M','L'], stock: {S:20, M:14, L:10} },
@@ -53,8 +57,45 @@
     { id: 28, name: 'Eclipse Nica', price: 620, category: 'unica', img: 'img/products/unica-3.webp', sizes: ['S','M','L'], stock: {S:9, M:14, L:8} },
     { id: 29, name: 'Midnight Warrior', price: 580, category: 'unica', img: 'img/products/unica-4.webp', sizes: ['S','M','L'], stock: {S:12, M:10, L:16} },
     { id: 30, name: 'Fire & Gold', price: 590, category: 'unica', img: 'img/products/unica-5.webp', sizes: ['M','L'], stock: {M:15, L:11} },
-    { id: 31, name: 'Legendary Nica', price: 670, category: 'unica', img: 'img/products/unica-6.webp', sizes: ['S','M','L'], stock: {S:8, M:12, L:14} }
+    { id: 31, name: 'Legendary Nica', price: 670, category: 'unica', img: 'img/products/unica-6.webp', sizes: ['S','M','L'], stock: {S:8, M:12, L:14} },
+
+    // Cinco diseños adicionales de Fauna Nica, visibles mientras se agregan sus imágenes.
+    { id: 32, name: 'Eumomota superciliosa', price: 550, category: 'fauna', img: 'img/products/fauna-32.webp', sizes: ['S','M','L'], stock: {S:10, M:10, L:10} },
+    { id: 33, name: 'Ramphastos sulfuratus', price: 550, category: 'fauna', img: 'img/products/fauna-33.webp', sizes: ['S','M','L'], stock: {S:10, M:10, L:10} },
+    { id: 34, name: 'Amazilia cyanura', price: 550, category: 'fauna', img: 'img/products/fauna-34.webp', sizes: ['S','M','L'], stock: {S:10, M:10, L:10} },
+    { id: 35, name: 'Trogon melanocephalus', price: 550, category: 'fauna', img: 'img/products/fauna-35.webp', sizes: ['S','M','L'], stock: {S:10, M:10, L:10} },
+    { id: 36, name: 'Calocitta formosa', price: 550, category: 'fauna', img: 'img/products/fauna-36.webp', sizes: ['S','M','L'], stock: {S:10, M:10, L:10} }
   ];
+
+  const garmentProductNames = Object.freeze({
+    hoodie: Object.freeze({
+      4: 'Orgullo Pinolero', 5: 'Sombra Shinobi', 6: 'Tiempo Dorado', 7: 'Infinito Azul',
+      8: 'Filo Carmesí', 9: 'Aura Psíquica', 10: 'Luna Escarlata', 11: 'Noche Inmortal',
+      12: 'Cuaderno Oscuro', 13: 'Juicio Nocturno', 14: 'Poder Interior', 15: 'Ruta Hachiroku',
+      16: 'Neón Digital', 17: 'Acero Rebelde', 18: 'Grito de Medianoche', 19: 'Frecuencia Callejera',
+      20: 'Reino Vacío', 21: 'Niebla Carmesí', 22: 'Furia del Norte', 23: 'Zona Cero',
+      24: 'Bloques del Lago', 25: 'Leyenda del Reino', 26: 'Serie Negra 001', 27: 'Serie Negra 002',
+      28: 'Eclipse Dorado', 29: 'Guardián Nocturno', 30: 'Fuego Imperial', 31: 'Alma Legendaria'
+    }),
+    sudadera: Object.freeze({
+      4: 'Raíces de Nicaragua', 5: 'Heredero de la Sombra', 6: 'Ejecutivo Maldito', 7: 'Dominio Infinito',
+      8: 'Guerrera Zen', 9: 'Génesis Psíquico', 10: 'Cuervo Carmesí', 11: 'Sello Ancestral',
+      12: 'Última Sentencia', 13: 'Justicia Oscura', 14: 'Energía al Cien', 15: 'Leyenda del Asfalto',
+      16: 'Distrito Cibernético', 17: 'Metal Eterno', 18: 'Máscara Urbana', 19: 'Conexión Nica',
+      20: 'Caballero del Abismo', 21: 'Pueblo de la Niebla', 22: 'Guerrero de Ceniza', 23: 'Ciudad Perdida',
+      24: 'Mundo en Bloques', 25: 'Trifuerza Ancestral', 26: 'Edición Reserva 01', 27: 'Edición Reserva 02',
+      28: 'Sol Negro Nica', 29: 'Centinela de Medianoche', 30: 'Brasas de Oro', 31: 'Mito Nicaragüense'
+    }),
+    'crop-top': Object.freeze({
+      4: 'Corazón Pinolero', 5: 'Relámpago Ninja', 6: 'Hora Exacta', 7: 'Azul Infinito',
+      8: 'Rosa de Acero', 9: 'Poder Mental', 10: 'Nube Roja', 11: 'Luna Carmesí',
+      12: 'Nota Final', 13: 'Sombra 2.1', 14: 'Espíritu Cien', 15: 'Calle 86',
+      16: 'Chica Cyber', 17: 'Rock de Acero', 18: 'Noche de Máscaras', 19: 'Señal Urbana',
+      20: 'Pequeño Caballero', 21: 'Flor de Niebla', 22: 'Fuerza del Olimpo', 23: 'Último Refugio',
+      24: 'Bloques Nicas', 25: 'Reino Dorado', 26: 'Única 001', 27: 'Única 002',
+      28: 'Eclipse Tropical', 29: 'Guerrera de Medianoche', 30: 'Llama Dorada', 31: 'Leyenda Viva'
+    })
+  });
 
   const garmentPriceRanges = Object.freeze({
     hoodie: Object.freeze({ min: 800, max: 1300 }),
@@ -62,50 +103,50 @@
     'crop-top': Object.freeze({ min: 150, max: 300 })
   });
 
-  const basePriceMin = Math.min(...products.map(product => product.price));
-  const basePriceMax = Math.max(...products.map(product => product.price));
+  const garmentDefinitions = Object.freeze({
+    camiseta: Object.freeze({ name: 'Camiseta', idOffset: 0 }),
+    hoodie: Object.freeze({ name: 'Hoodie', idOffset: 1000 }),
+    sudadera: Object.freeze({ name: 'Sudadera', idOffset: 2000 }),
+    'crop-top': Object.freeze({ name: 'Crop-top', idOffset: 3000 })
+  });
+  const garmentOrder = ['camiseta', 'hoodie', 'sudadera', 'crop-top'];
+  const basePriceMin = Math.min(...baseProducts.map(product => product.price));
+  const basePriceMax = Math.max(...baseProducts.map(product => product.price));
   const calculateVariantPrice = (basePrice, range) => {
     const ratio = basePriceMax === basePriceMin ? 0 : (basePrice - basePriceMin) / (basePriceMax - basePriceMin);
     return Math.round((range.min + ratio * (range.max - range.min)) / 10) * 10;
   };
   const copyStock = product => Object.fromEntries(product.sizes.map(size => [size, product.stock[size]]));
+  const getGarmentPrice = (product, garmentKey) => garmentKey === 'camiseta'
+    ? product.price
+    : calculateVariantPrice(product.price, garmentPriceRanges[garmentKey]);
+  const getGarmentImage = (product, garmentKey) => garmentKey === 'camiseta'
+    ? product.img
+    : `img/products/variants/${product.id}-${garmentKey}.webp`;
+  const getProductDisplayName = (product, garmentKey) => product.category === 'fauna'
+    ? product.name
+    : garmentProductNames[garmentKey]?.[product.id] || product.name;
 
-  products.forEach(product => {
-    product.garments = {
-      camiseta: {
-        name: 'Camiseta',
-        price: product.price,
-        img: product.img,
-        fallbackImg: product.img,
-        sizes: [...product.sizes],
-        stock: copyStock(product)
-      },
-      hoodie: {
-        name: 'Hoodie',
-        price: calculateVariantPrice(product.price, garmentPriceRanges.hoodie),
-        img: `img/products/variants/${product.id}-hoodie.webp`,
-        fallbackImg: product.img,
-        sizes: [...product.sizes],
-        stock: copyStock(product)
-      },
-      sudadera: {
-        name: 'Sudadera',
-        price: calculateVariantPrice(product.price, garmentPriceRanges.sudadera),
-        img: `img/products/variants/${product.id}-sudadera.webp`,
-        fallbackImg: product.img,
-        sizes: [...product.sizes],
-        stock: copyStock(product)
-      },
-      'crop-top': {
-        name: 'Crop-top',
-        price: calculateVariantPrice(product.price, garmentPriceRanges['crop-top']),
-        img: `img/products/variants/${product.id}-crop-top.webp`,
-        fallbackImg: product.img,
-        sizes: [...product.sizes],
-        stock: copyStock(product)
-      }
+  const products = garmentOrder.flatMap(garmentKey => baseProducts.map(product => {
+    const garment = garmentDefinitions[garmentKey];
+    const displayName = getProductDisplayName(product, garmentKey);
+    return {
+      id: garment.idOffset + product.id,
+      baseDesignId: product.id,
+      baseName: displayName,
+      name: `${displayName} — ${garment.name}`,
+      price: getGarmentPrice(product, garmentKey),
+      category: product.category,
+      garment: garmentKey,
+      garmentName: garment.name,
+      img: getGarmentImage(product, garmentKey),
+      fallbackImg: garmentKey === 'camiseta' ? product.img : '',
+      sizes: [...product.sizes],
+      stock: copyStock(product),
+      ...(product.published === false ? { published: false } : {}),
+      ...(product.featured === true ? { featured: true } : {})
     };
-  });
+  }));
 
   const validate = catalog => {
     const validCategories = new Set(['fauna', 'anime', 'urbano', 'games', 'unica']);
@@ -117,27 +158,27 @@
       ids.add(product.id);
       if (!product.name || !Number.isFinite(product.price) || product.price <= 0) throw new Error(`Nombre o precio inválido en el producto ${product.id}`);
       if (!validCategories.has(product.category)) throw new Error(`Categoría inválida en el producto ${product.id}`);
-      if (!/^img\/products\/[a-z0-9-]+\.webp$/i.test(product.img)) throw new Error(`Ruta de imagen inválida en el producto ${product.id}`);
+      if (!/^img\/products\/(?:variants\/)?[a-z0-9-]+\.webp$/i.test(product.img)) throw new Error(`Ruta de imagen inválida en el producto ${product.id}`);
       if (!Array.isArray(product.sizes) || product.sizes.length === 0 || product.sizes.some(size => !validSizes.has(size))) throw new Error(`Tallas inválidas en el producto ${product.id}`);
       if (Object.keys(product.stock).some(size => !product.sizes.includes(size)) || product.sizes.some(size => !Number.isInteger(product.stock[size]) || product.stock[size] < 0)) throw new Error(`Stock inválido en el producto ${product.id}`);
-      if (!product.garments || Object.keys(product.garments).length !== validGarments.size || Object.keys(product.garments).some(garment => !validGarments.has(garment))) throw new Error(`Variantes inválidas en el producto ${product.id}`);
-      Object.entries(product.garments).forEach(([garmentKey, garment]) => {
-        if (!garment.name || !Number.isFinite(garment.price) || garment.price <= 0) throw new Error(`Precio inválido para ${garmentKey} en el producto ${product.id}`);
-        if (!/^img\/products\/(?:variants\/)?[a-z0-9-]+\.webp$/i.test(garment.img)) throw new Error(`Imagen inválida para ${garmentKey} en el producto ${product.id}`);
-        if (!Array.isArray(garment.sizes) || garment.sizes.length === 0 || garment.sizes.some(size => !validSizes.has(size))) throw new Error(`Tallas inválidas para ${garmentKey} en el producto ${product.id}`);
-        if (garment.sizes.some(size => !Number.isInteger(garment.stock[size]) || garment.stock[size] < 0)) throw new Error(`Stock inválido para ${garmentKey} en el producto ${product.id}`);
-      });
-      if (product.garments.hoodie.price < 800 || product.garments.hoodie.price > 1300) throw new Error(`Precio de hoodie fuera de rango en el producto ${product.id}`);
-      if (product.garments.sudadera.price < 380 || product.garments.sudadera.price > 660) throw new Error(`Precio de sudadera fuera de rango en el producto ${product.id}`);
-      if (product.garments['crop-top'].price < 150 || product.garments['crop-top'].price > 300) throw new Error(`Precio de crop-top fuera de rango en el producto ${product.id}`);
+      if (!validGarments.has(product.garment) || !product.garmentName) throw new Error(`Prenda inválida en el producto ${product.id}`);
+      if (!Number.isInteger(product.baseDesignId) || product.baseDesignId < 1 || product.baseDesignId > baseProducts.length) throw new Error(`Diseño base inválido en el producto ${product.id}`);
+      if (product.garment === 'hoodie' && (product.price < 800 || product.price > 1300)) throw new Error(`Precio de hoodie fuera de rango en el producto ${product.id}`);
+      if (product.garment === 'sudadera' && (product.price < 380 || product.price > 660)) throw new Error(`Precio de sudadera fuera de rango en el producto ${product.id}`);
+      if (product.garment === 'crop-top' && (product.price < 150 || product.price > 300)) throw new Error(`Precio de crop-top fuera de rango en el producto ${product.id}`);
       if ('published' in product && typeof product.published !== 'boolean') throw new Error(`Estado de publicación inválido en el producto ${product.id}`);
       if ('featured' in product && typeof product.featured !== 'boolean') throw new Error(`Estado destacado inválido en el producto ${product.id}`);
+    });
+    baseProducts.forEach(baseProduct => {
+      const names = new Set(catalog.filter(product => product.baseDesignId === baseProduct.id).map(product => product.baseName));
+      if (baseProduct.category === 'fauna' && names.size !== 1) throw new Error(`Fauna Nica debe conservar el mismo nombre en el diseño ${baseProduct.id}`);
+      if (baseProduct.category !== 'fauna' && names.size !== garmentOrder.length) throw new Error(`Los nombres deben ser independientes en el diseño ${baseProduct.id}`);
     });
     return true;
   };
 
   validate(products);
-  const catalog = Object.freeze({ products: Object.freeze(products), validate });
+  const catalog = Object.freeze({ products: Object.freeze(products), validate, garmentOrder: Object.freeze([...garmentOrder]) });
   globalThis.MomotusCatalog = catalog;
   if (typeof module !== 'undefined' && module.exports) module.exports = catalog;
 })();

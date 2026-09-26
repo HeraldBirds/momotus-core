@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Herramientas para DTF | Momotus Core</title>
+  <meta name="description" content="Prepará imágenes para DTF con herramientas de semitonos, eliminación de fondo sólido y mejora de tamaño y nitidez.">
+  <meta name="theme-color" content="#09090b">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: blob: https:; font-src 'self' https://cdnjs.cloudflare.com; connect-src 'self';">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { content: [], theme: { extend: { colors: { momotus: '#facc15' } } } };
+  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-zinc-950 text-white">
+  <div id="navbar-placeholder"></div>
+
+  <header class="tools-hero border-b border-zinc-800">
+    <div class="max-w-6xl mx-auto px-6 py-16 md:py-24 text-center">
+      <span class="inline-flex items-center gap-2 bg-yellow-400 text-black font-bold px-5 py-2 rounded-3xl mb-6">
+        <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> HERRAMIENTAS MOMOTUS
+      </span>
+      <h1 class="text-4xl md:text-7xl font-black tracking-tight mb-6">PREPARÁ TU DISEÑO PARA DTF</h1>
+      <p class="text-lg md:text-2xl text-zinc-300 max-w-3xl mx-auto">Subí tu imagen, ajustala a tu manera y descargá el resultado. Todo se procesa en tu dispositivo, sin mandar el archivo a ningún servidor.</p>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 py-14 md:py-20 space-y-12">
+    <nav aria-label="Herramientas disponibles" class="grid sm:grid-cols-3 gap-4">
+      <a href="#semitonos" class="tool-shortcut"><i class="fa-solid fa-circle-half-stroke"></i><span>Semitonos</span></a>
+      <a href="#eliminar-fondo" class="tool-shortcut"><i class="fa-solid fa-eraser"></i><span>Eliminar fondo</span></a>
+      <a href="#mejorar-calidad" class="tool-shortcut"><i class="fa-solid fa-expand"></i><span>Mejorar calidad</span></a>
+    </nav>
+
+    <section id="semitonos" class="tool-panel" aria-labelledby="halftone-title">
+      <div class="tool-panel-heading">
+        <div class="tool-number">01</div>
+        <div><p class="text-yellow-400 font-bold">EFECTO PARA IMPRESIÓN</p><h2 id="halftone-title" class="text-3xl md:text-4xl font-black">Generador de semitonos</h2></div>
+      </div>
+      <div class="tool-layout">
+        <div class="tool-controls">
+          <label class="tool-upload"><i class="fa-solid fa-cloud-arrow-up"></i><span>Subir imagen</span><input id="halftone-file" type="file" accept="image/png,image/jpeg,image/webp" class="sr-only"></label>
+          <label class="tool-field">Frecuencia de trama <span id="halftone-frequency-value">35 LPI</span><input id="halftone-frequency" type="range" min="15" max="75" value="35"></label>
+          <label class="tool-field">Ángulo de trama <span id="halftone-angle-value">45°</span><input id="halftone-angle" type="range" min="-90" max="90" value="45"></label>
+          <label class="tool-field">Contraste <span id="halftone-contrast-value">20</span><input id="halftone-contrast" type="range" min="-80" max="100" value="20"></label>
+          <label class="tool-field-row"><span>Forma del punto</span><select id="halftone-shape"><option value="circle">Círculo</option><option value="ellipse">Elipse</option><option value="square">Cuadrado</option><option value="diamond">Diamante</option><option value="line">Línea</option></select></label>
+          <label class="tool-field-row"><span>Color de tinta</span><input id="halftone-color" type="color" value="#000000"></label>
+          <label class="tool-field-row"><span>Color del fondo</span><input id="halftone-background-color" type="color" value="#ffffff"></label>
+          <label class="tool-check"><input id="halftone-transparent" type="checkbox" checked><span>Fondo transparente</span></label>
+          <label class="tool-check"><input id="halftone-invert" type="checkbox"><span>Invertir semitono</span></label>
+          <button id="halftone-download" type="button" class="tool-download" disabled><i class="fa-solid fa-download"></i> Descargar PNG</button>
+          <p id="halftone-status" class="tool-status" role="status">Subí una imagen para comenzar.</p>
+        </div>
+        <div class="tool-preview"><canvas id="halftone-canvas" aria-label="Vista previa del semitono"></canvas></div>
+      </div>
+      <p class="tool-note"><i class="fa-solid fa-circle-info"></i> La trama se calcula a 300 DPI. Menos LPI produce puntos más grandes; más LPI produce puntos más finos. El ángulo de 45° es un buen punto de partida para una tinta.</p>
+    </section>
+
+    <section id="eliminar-fondo" class="tool-panel" aria-labelledby="background-title">
+      <div class="tool-panel-heading">
+        <div class="tool-number">02</div>
+        <div><p class="text-yellow-400 font-bold">ELIMINACIÓN GLOBAL POR COLOR</p><h2 id="background-title" class="text-3xl md:text-4xl font-black">Eliminar un color completo</h2></div>
+      </div>
+      <div class="tool-layout">
+        <div class="tool-controls">
+          <label class="tool-upload"><i class="fa-solid fa-cloud-arrow-up"></i><span>Subir imagen</span><input id="background-file" type="file" accept="image/png,image/jpeg,image/webp" class="sr-only"></label>
+          <label class="tool-field-row"><span>Color que se eliminará</span><input id="background-color" type="color" value="#ffffff"></label>
+          <div class="tool-color-presets" aria-label="Colores rápidos">
+            <button type="button" data-background-color="#ffffff" aria-label="Eliminar blanco" title="Blanco" style="--preset-color:#ffffff"></button>
+            <button type="button" data-background-color="#000000" aria-label="Eliminar negro" title="Negro" style="--preset-color:#000000"></button>
+            <button type="button" data-background-color="#00ff00" aria-label="Eliminar verde" title="Verde" style="--preset-color:#00ff00"></button>
+            <button type="button" data-background-color="#0000ff" aria-label="Eliminar azul" title="Azul" style="--preset-color:#0000ff"></button>
+          </div>
+          <label class="tool-field">Tolerancia <span id="background-tolerance-value">45</span><input id="background-tolerance" type="range" min="0" max="220" value="45"></label>
+          <label class="tool-field">Suavidad del borde <span id="background-softness-value">25</span><input id="background-softness" type="range" min="0" max="100" value="25"></label>
+          <button id="background-corner" type="button" class="tool-secondary" disabled><i class="fa-solid fa-eye-dropper"></i> Tomar color de la esquina</button>
+          <button id="background-download" type="button" class="tool-download" disabled><i class="fa-solid fa-download"></i> Descargar PNG sin fondo</button>
+          <p id="background-status" class="tool-status" role="status">Funciona mejor con fondos blancos, negros o de un solo color.</p>
+        </div>
+        <div class="tool-preview checkerboard"><canvas id="background-canvas" aria-label="Vista previa sin fondo"></canvas></div>
+      </div>
+      <p class="tool-note"><i class="fa-solid fa-circle-info"></i> La herramienta elimina el color escogido en toda la imagen, aunque aparezca dentro del diseño. Si escogés blanco, quitará todos los blancos similares según la tolerancia. También podés tocar la vista previa para elegir cualquier color.</p>
+    </section>
+
+    <section id="mejorar-calidad" class="tool-panel" aria-labelledby="quality-title">
+      <div class="tool-panel-heading">
+        <div class="tool-number">03</div>
+        <div><p class="text-yellow-400 font-bold">SALIDA PARA IMPRESIÓN DTF</p><h2 id="quality-title" class="text-3xl md:text-4xl font-black">Preparar a 300 DPI</h2></div>
+      </div>
+      <div class="tool-layout">
+        <div class="tool-controls">
+          <label class="tool-upload"><i class="fa-solid fa-cloud-arrow-up"></i><span>Subir imagen</span><input id="quality-file" type="file" accept="image/png,image/jpeg,image/webp" class="sr-only"></label>
+          <label class="tool-field-row"><span>Ancho de impresión</span><span class="tool-number-input"><input id="quality-width-cm" type="number" min="2" max="45" step="0.5" value="30"><span>cm</span></span></label>
+          <label class="tool-field">Nitidez <span id="quality-sharpness-value">35</span><input id="quality-sharpness" type="range" min="0" max="100" value="35"></label>
+          <button id="quality-process" type="button" class="tool-secondary" disabled><i class="fa-solid fa-wand-magic-sparkles"></i> Procesar imagen</button>
+          <button id="quality-download" type="button" class="tool-download" disabled><i class="fa-solid fa-download"></i> Descargar PNG mejorado</button>
+          <p id="quality-status" class="tool-status" role="status">Subí una imagen y escogé el ancho de impresión.</p>
+        </div>
+        <div class="tool-preview checkerboard"><canvas id="quality-canvas" aria-label="Vista previa de la imagen mejorada"></canvas></div>
+      </div>
+      <p class="tool-note"><i class="fa-solid fa-circle-info"></i> La descarga se guarda como PNG con 300 DPI reales en sus metadatos y los píxeles necesarios para el tamaño indicado. Aumentar una imagen no puede recuperar detalles que no existían en el archivo original.</p>
+    </section>
+  </main>
+
+  <section class="border-t border-zinc-800 bg-black py-14">
+    <div class="max-w-4xl mx-auto px-6 text-center">
+      <h2 class="text-3xl font-black mb-4">¿YA QUEDÓ TUANI TU DISEÑO?</h2>
+      <p class="text-zinc-400 mb-8">Llevalo al personalizador y mirá cómo queda en tu prenda.</p>
+      <a href="disena.html" class="inline-flex items-center gap-3 bg-yellow-400 hover:bg-yellow-300 text-black font-bold px-10 py-5 rounded-3xl transition"><i class="fa-solid fa-shirt"></i> Diseñá la tuya</a>
+    </div>
+  </section>
+
+  <div id="cart-modal-placeholder"></div>
+  <script src="js/products.js"></script>
+  <script src="js/script.js"></script>
+  <script src="js/tools.js"></script>
+</body>
+</html>
