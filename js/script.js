@@ -10,6 +10,7 @@ let currentMaxPrice = Number.POSITIVE_INFINITY;
 let showWishlistOnly = false;
 let quickViewProductId = null;
 let quickViewSelectedSize = null;
+let quickViewSelectedGarment = 'camiseta';
 const catalogProducts = window.MomotusCatalog?.products;
 
 if (!Array.isArray(catalogProducts)) {
@@ -17,6 +18,12 @@ if (!Array.isArray(catalogProducts)) {
 }
 
 const products = catalogProducts.filter(product => product.published !== false);
+const garmentOrder = ['camiseta', 'hoodie', 'sudadera', 'crop-top'];
+const getProductGarment = (product, garmentKey = 'camiseta') => product?.garments?.[garmentKey] || product?.garments?.camiseta || null;
+const getProductPriceRange = product => {
+  const prices = garmentOrder.map(key => getProductGarment(product, key)?.price).filter(Number.isFinite);
+  return prices.length ? { min: Math.min(...prices), max: Math.max(...prices) } : { min: product.price, max: product.price };
+};
 
 const categoryLabels = {
   fauna: 'Fauna Nica',
@@ -86,6 +93,12 @@ const fallbackImage = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
 document.addEventListener('error', event => {
   const image = event.target;
   if (!(image instanceof HTMLImageElement) || image.dataset.fallbackApplied === 'true') return;
+  const variantFallback = image.dataset.fallbackSrc;
+  if (variantFallback && image.dataset.variantFallbackApplied !== 'true') {
+    image.dataset.variantFallbackApplied = 'true';
+    image.src = variantFallback;
+    return;
+  }
   image.dataset.fallbackApplied = 'true';
   image.src = fallbackImage;
   image.alt = image.alt ? `${image.alt} — imagen no disponible` : 'Imagen no disponible';
@@ -112,7 +125,7 @@ const deactivateModal = (modal, remove = false) => {
 // ==================== CARRITO MEJORADO ====================
 const saveCart = () => writeStoredJSON(
   'momotusCart',
-  cart.map(({ id, size, quantity }) => ({ id, size, quantity }))
+  cart.map(({ id, garment, size, quantity }) => ({ id, garment, size, quantity }))
 );
 
 const validateCartItems = (items) => {
@@ -120,14 +133,23 @@ const validateCartItems = (items) => {
   const groupedItems = new Map();
   items.forEach(item => {
     const product = products.find(candidate => candidate.id === Number(item.id));
+    const garmentKey = garmentOrder.includes(item.garment) ? item.garment : 'camiseta';
+    const garment = getProductGarment(product, garmentKey);
     const size = String(item.size || '');
-    if (!product || !product.sizes.includes(size)) return;
-    const availableStock = Number(product.stock[size]) || 0;
+    if (!product || !garment || !garment.sizes.includes(size)) return;
+    const availableStock = Number(garment.stock[size]) || 0;
     if (availableStock < 1) return;
-    const key = `${product.id}:${size}`;
+    const key = `${product.id}:${garmentKey}:${size}`;
     const previousQuantity = groupedItems.get(key)?.quantity || 0;
     groupedItems.set(key, {
       ...product,
+      garment: garmentKey,
+      garmentName: garment.name,
+      price: garment.price,
+      img: garment.img,
+      fallbackImg: garment.fallbackImg || product.img,
+      sizes: garment.sizes,
+      stock: garment.stock,
       size,
       quantity: Math.min(availableStock, previousQuantity + Math.max(1, Number(item.quantity) || 1))
     });
@@ -274,7 +296,7 @@ const toggleCartModal = () => {
 
     const itemHTML = `
       <div class="flex gap-4 bg-zinc-800/50 rounded-3xl p-4">
-        <img src="${item.img}" class="w-20 h-20 object-cover rounded-2xl" alt="${item.name}">
+        <img src="${item.img}" data-fallback-src="${item.fallbackImg || ''}" class="w-20 h-20 object-cover rounded-2xl" alt="${item.name} en ${item.garmentName || 'Camiseta'}">
         
         <div class="flex-1">
           <div class="flex justify-between">
@@ -282,7 +304,8 @@ const toggleCartModal = () => {
             <button onclick="removeFromCart(${index});" aria-label="Eliminar ${item.name} del carrito" class="text-red-400 hover:text-red-500 text-xl leading-none">×</button>
           </div>
           
-          <p class="text-zinc-400 text-sm mt-1">Talla: <span class="font-medium">${item.size}</span></p>
+          <p class="text-zinc-400 text-sm mt-1">Prenda: <span class="font-medium text-zinc-200">${item.garmentName || 'Camiseta'}</span></p>
+          <p class="text-zinc-400 text-sm">Talla: <span class="font-medium">${item.size}</span></p>
           
           <div class="flex items-center justify-between mt-4">
             <div class="flex items-center border border-zinc-600 rounded-3xl">
@@ -340,9 +363,9 @@ const checkout = () => {
     return;
   }
 
-  const previousCart = JSON.stringify(cart.map(({ id, size, quantity }) => ({ id, size, quantity })));
+  const previousCart = JSON.stringify(cart.map(({ id, garment, size, quantity }) => ({ id, garment, size, quantity })));
   cart = validateCartItems(cart);
-  const validatedCart = JSON.stringify(cart.map(({ id, size, quantity }) => ({ id, size, quantity })));
+  const validatedCart = JSON.stringify(cart.map(({ id, garment, size, quantity }) => ({ id, garment, size, quantity })));
   if (previousCart !== validatedCart) {
     saveCart();
     updateCartCount();
@@ -358,7 +381,7 @@ const checkout = () => {
   
   cart.forEach(item => {
     const qty = item.quantity || 1;
-    text += `• ${item.name}\n   Talla: ${item.size} × ${qty} = C$ ${item.price * qty}\n\n`;
+    text += `• ${item.name}\n   Prenda: ${item.garmentName || 'Camiseta'}\n   Talla: ${item.size} × ${qty} = C$ ${item.price * qty}\n\n`;
   });
   
   text += `\nTotal: C$ ${cart.reduce((sum, item) => sum + item.price * (item.quantity || 1), 0)}\n\n`;
@@ -476,41 +499,59 @@ const toggleMobileMenu = () => {
 };
 
 // ==================== QUICK VIEW ====================
+const renderQuickViewSizes = (product, garmentKey) => {
+  const garment = getProductGarment(product, garmentKey);
+  if (!garment) return '';
+  return garment.sizes.map(size => {
+    const stock = Number(garment.stock[size]) || 0;
+    const stockClass = stock > 8 ? 'text-green-400' : stock > 3 ? 'text-yellow-400' : 'text-red-400';
+    const stockText = stock > 8 ? 'Disponible' : stock > 0 ? 'Pocas unidades' : 'Agotado';
+    return `<button type="button" data-quick-size="${size}" onclick="selectQuickViewSize('${size}')" aria-pressed="false" aria-label="Seleccionar talla ${size}, ${stockText}" class="quick-size-btn px-5 py-3 rounded-2xl border border-zinc-600 hover:border-yellow-400 transition flex flex-col items-center ${stock === 0 ? 'opacity-40 pointer-events-none' : ''}">
+      <span>${size}</span>
+      <span class="${stockClass} text-xs font-medium">${stockText}</span>
+    </button>`;
+  }).join('');
+};
+
 const showQuickView = (id, updateURL = true) => {
   const product = products.find(p => p.id === id);
   if (!product) return;
   quickViewProductId = product.id;
   quickViewSelectedSize = null;
+  quickViewSelectedGarment = 'camiseta';
   const inWishlist = isInWishlist(id);
-
-  let sizesHTML = '';
-  product.sizes.forEach(s => {
-    const stock = product.stock[s] || 0;
-    const stockClass = stock > 8 ? 'text-green-400' : stock > 3 ? 'text-yellow-400' : 'text-red-400';
-    const stockText = stock > 8 ? 'Disponible' : stock > 0 ? 'Pocas unidades' : 'Agotado';
-    sizesHTML += `<button type="button" data-quick-size="${s}" onclick="selectQuickViewSize('${s}')" aria-pressed="false" aria-label="Seleccionar talla ${s}, ${stockText}" class="quick-size-btn px-5 py-3 rounded-2xl border border-zinc-600 hover:border-yellow-400 transition flex flex-col items-center ${stock === 0 ? 'opacity-40 pointer-events-none' : ''}">
-      <span>${s}</span>
-      <span class="${stockClass} text-xs font-medium">${stockText}</span>
+  const initialGarment = getProductGarment(product, quickViewSelectedGarment);
+  if (!initialGarment) return;
+  const garmentsHTML = garmentOrder.map(garmentKey => {
+    const garment = getProductGarment(product, garmentKey);
+    const isSelected = garmentKey === quickViewSelectedGarment;
+    return `<button type="button" data-quick-garment="${garmentKey}" onclick="selectQuickViewGarment('${garmentKey}')" aria-pressed="${isSelected}" class="quick-garment-btn rounded-2xl border px-4 py-3 text-left transition ${isSelected ? 'border-yellow-400 bg-yellow-400 text-black' : 'border-zinc-600 hover:border-yellow-400'}">
+      <span class="block font-bold">${garment.name}</span>
+      <span class="block text-sm">C$ ${garment.price}</span>
     </button>`;
-  });
+  }).join('');
 
   const modalHTML = `
     <div id="quickview-modal" role="dialog" aria-modal="true" aria-labelledby="quickview-title" onclick="if(event.target.id === 'quickview-modal') closeQuickView()" class="fixed inset-0 bg-black/80 flex items-center justify-center z-[10000]">
-      <div class="bg-zinc-900 rounded-3xl max-w-2xl w-full mx-4 max-h-[92vh] overflow-y-auto">
+      <div class="bg-zinc-900 rounded-3xl max-w-4xl w-full mx-4 max-h-[92vh] overflow-y-auto">
         <div class="px-8 py-6 border-b border-zinc-700 flex justify-between items-center">
           <h3 id="quickview-title" class="text-2xl font-bold">${product.name}</h3>
           <button onclick="closeQuickView()" aria-label="Cerrar vista del producto" class="text-4xl text-zinc-400 hover:text-white">×</button>
         </div>
         <div class="p-8 flex flex-col md:flex-row gap-8">
-          <img src="${product.img}" width="400" height="400" decoding="async" class="w-full md:w-1/2 aspect-square object-cover rounded-3xl" alt="${product.name}">
+          <img id="quickview-product-image" src="${initialGarment.img}" data-fallback-src="${initialGarment.fallbackImg || product.img}" width="400" height="400" decoding="async" class="w-full md:w-1/2 aspect-square object-cover rounded-3xl" alt="${product.name} en ${initialGarment.name}">
           <div class="flex-1">
-            <p class="text-4xl font-bold text-yellow-400 mb-2">C$ ${product.price}</p>
+            <p id="quickview-product-price" class="text-4xl font-bold text-yellow-400 mb-2">C$ ${initialGarment.price}</p>
             <span class="inline-block bg-black/70 text-white text-xs px-4 py-1 rounded-full mb-6">${categoryLabels[product.category] || product.category}</span>
             <div class="mb-6">
-              <p class="font-medium mb-3">Talla</p>
-              <div class="flex flex-wrap gap-2">${sizesHTML}</div>
+              <p class="font-medium mb-3">Prenda</p>
+              <div class="grid grid-cols-2 gap-2">${garmentsHTML}</div>
             </div>
-            <p class="text-zinc-400 mb-6">Escogé tu talla y agregá el diseño al carrito. La disponibilidad se confirma al finalizar el pedido.</p>
+            <div class="mb-6">
+              <p class="font-medium mb-3">Talla</p>
+              <div id="quickview-sizes" class="flex flex-wrap gap-2">${renderQuickViewSizes(product, quickViewSelectedGarment)}</div>
+            </div>
+            <p class="text-zinc-400 mb-6">Escogé la prenda y la talla. La disponibilidad se confirma al finalizar el pedido.</p>
             <button id="quickview-add-button" type="button" onclick="addSelectedQuickViewProduct()" disabled class="mb-4 w-full bg-yellow-400 disabled:bg-zinc-700 disabled:text-zinc-400 hover:bg-yellow-300 text-black font-bold py-4 rounded-3xl transition">
               Escogé una talla
             </button>
@@ -539,9 +580,45 @@ const showQuickView = (id, updateURL = true) => {
   }
 };
 
+const selectQuickViewGarment = garmentKey => {
+  const product = products.find(item => item.id === quickViewProductId);
+  const garment = getProductGarment(product, garmentKey);
+  if (!product || !garment || !garmentOrder.includes(garmentKey)) return;
+
+  quickViewSelectedGarment = garmentKey;
+  quickViewSelectedSize = null;
+  document.querySelectorAll('.quick-garment-btn').forEach(button => {
+    const isSelected = button.dataset.quickGarment === garmentKey;
+    button.classList.toggle('border-yellow-400', isSelected);
+    button.classList.toggle('bg-yellow-400', isSelected);
+    button.classList.toggle('text-black', isSelected);
+    button.classList.toggle('border-zinc-600', !isSelected);
+    button.setAttribute('aria-pressed', String(isSelected));
+  });
+
+  const image = document.getElementById('quickview-product-image');
+  if (image) {
+    delete image.dataset.fallbackApplied;
+    delete image.dataset.variantFallbackApplied;
+    image.dataset.fallbackSrc = garment.fallbackImg || product.img;
+    image.src = garment.img;
+    image.alt = `${product.name} en ${garment.name}`;
+  }
+  const price = document.getElementById('quickview-product-price');
+  if (price) price.textContent = `C$ ${garment.price}`;
+  const sizes = document.getElementById('quickview-sizes');
+  if (sizes) sizes.innerHTML = renderQuickViewSizes(product, garmentKey);
+  const addButton = document.getElementById('quickview-add-button');
+  if (addButton) {
+    addButton.disabled = true;
+    addButton.textContent = 'Escogé una talla';
+  }
+};
+
 const selectQuickViewSize = size => {
   const product = products.find(item => item.id === quickViewProductId);
-  if (!product || !product.sizes.includes(size) || Number(product.stock[size]) < 1) return;
+  const garment = getProductGarment(product, quickViewSelectedGarment);
+  if (!product || !garment || !garment.sizes.includes(size) || Number(garment.stock[size]) < 1) return;
   quickViewSelectedSize = size;
   document.querySelectorAll('.quick-size-btn').forEach(button => {
     const isSelected = button.dataset.quickSize === size;
@@ -557,7 +634,7 @@ const selectQuickViewSize = size => {
 
 const addSelectedQuickViewProduct = () => {
   if (!quickViewProductId || !quickViewSelectedSize) return showToast('Escogé una talla primero');
-  addToCartWithSize(quickViewProductId, quickViewSelectedSize);
+  addToCartWithSize(quickViewProductId, quickViewSelectedSize, quickViewSelectedGarment);
   closeQuickView();
 };
 
@@ -566,6 +643,7 @@ const closeQuickView = (updateURL = true) => {
   if (modal) deactivateModal(modal, true);
   quickViewProductId = null;
   quickViewSelectedSize = null;
+  quickViewSelectedGarment = 'camiseta';
   if (updateURL && document.getElementById('products-grid')) {
     const url = new URL(window.location.href);
     url.searchParams.delete('producto');
@@ -590,20 +668,32 @@ const shareProduct = async (id) => {
   }
 };
 
-const addToCartWithSize = (id, size) => {
+const addToCartWithSize = (id, size, garmentKey = 'camiseta') => {
   const product = products.find(p => p.id === id);
-  if (!product || (product.stock[size] || 0) === 0) return showToast("❌ Talla no disponible");
-  
-  const existing = cart.find(item => item.id === product.id && item.size === size);
-  if (existing && existing.quantity >= product.stock[size]) {
-    return showToast(`⚠️ Solo hay ${product.stock[size]} unidades disponibles en talla ${size}`);
+  const garment = getProductGarment(product, garmentKey);
+  if (!product || !garment || !garment.sizes.includes(size) || (garment.stock[size] || 0) === 0) return showToast("❌ Talla no disponible");
+
+  const existing = cart.find(item => item.id === product.id && item.garment === garmentKey && item.size === size);
+  if (existing && existing.quantity >= garment.stock[size]) {
+    return showToast(`⚠️ Solo hay ${garment.stock[size]} unidades disponibles en talla ${size}`);
   }
   if (existing) existing.quantity = (existing.quantity || 1) + 1;
-  else cart.push({ ...product, size, quantity: 1 });
+  else cart.push({
+    ...product,
+    garment: garmentKey,
+    garmentName: garment.name,
+    price: garment.price,
+    img: garment.img,
+    fallbackImg: garment.fallbackImg || product.img,
+    sizes: garment.sizes,
+    stock: garment.stock,
+    size,
+    quantity: 1
+  });
   
   saveCart();
   updateCartCount();
-  showToast(`✅ ${product.name} - Talla ${size} agregado`);
+  showToast(`✅ ${product.name} - ${garment.name}, talla ${size}`);
 };
 
 // ==================== TESTIMONIOS / COMUNIDAD ====================
@@ -636,7 +726,8 @@ const getFilteredProducts = () => {
     filtered = filtered.filter(product => normalizeSearchText([
       product.name,
       categoryLabels[product.category],
-      categorySearchTerms[product.category]
+      categorySearchTerms[product.category],
+      'camiseta hoodie sudadera crop-top crop top prendas'
     ].join(' ')).includes(searchTerm));
   }
   return filtered.filter(p => p.price >= currentMinPrice && p.price <= currentMaxPrice);
@@ -674,6 +765,7 @@ const renderProducts = (filteredProducts) => {
   }
   filteredProducts.forEach(product => {
     const inWishlist = isInWishlist(product.id);
+    const priceRange = getProductPriceRange(product);
     const card = document.createElement('div');
     card.className = 'product-card bg-zinc-900 rounded-3xl overflow-hidden group relative';
     card.innerHTML = `
@@ -686,8 +778,9 @@ const renderProducts = (filteredProducts) => {
       </div>
       <div class="p-5">
         <h3 onclick="showQuickView(${product.id})" class="font-bold text-lg mb-1 cursor-pointer">${product.name}</h3>
-        <p class="text-yellow-400 font-semibold text-xl">C$ ${product.price}</p>
-        <button type="button" onclick="showQuickView(${product.id})" class="mt-4 w-full border border-yellow-400 text-yellow-400 hover:bg-yellow-400 hover:text-black font-bold py-3 rounded-3xl text-sm transition">Ver tallas</button>
+        <p class="text-yellow-400 font-semibold text-xl">Camiseta C$ ${product.price}</p>
+        <p class="text-zinc-400 text-sm mt-1">4 prendas · C$ ${priceRange.min}–C$ ${priceRange.max}</p>
+        <button type="button" onclick="showQuickView(${product.id})" class="mt-4 w-full border border-yellow-400 text-yellow-400 hover:bg-yellow-400 hover:text-black font-bold py-3 rounded-3xl text-sm transition">Ver prendas y tallas</button>
       </div>
     `;
     grid.appendChild(card);
@@ -743,7 +836,9 @@ const injectStoreStructuredData = () => {
     itemListElement: products.map((product, index) => {
       const productUrl = new URL(baseUrl.href);
       productUrl.searchParams.set('producto', product.id);
-      const available = product.sizes.some(size => Number(product.stock[size]) > 0);
+      const garments = garmentOrder.map(key => getProductGarment(product, key)).filter(Boolean);
+      const prices = garments.map(garment => garment.price);
+      const available = garments.some(garment => garment.sizes.some(size => Number(garment.stock[size]) > 0));
       return {
         '@type': 'ListItem',
         position: index + 1,
@@ -754,9 +849,11 @@ const injectStoreStructuredData = () => {
           category: categoryLabels[product.category] || product.category,
           url: productUrl.href,
           offers: {
-            '@type': 'Offer',
+            '@type': 'AggregateOffer',
             priceCurrency: 'NIO',
-            price: product.price,
+            lowPrice: Math.min(...prices),
+            highPrice: Math.max(...prices),
+            offerCount: garments.length,
             availability: available ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock'
           }
         }

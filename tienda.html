@@ -75,8 +75,8 @@
 
           <select id="sort-select" onchange="sortProducts()" class="bg-zinc-800 border border-zinc-700 rounded-3xl px-6 py-4 outline-none text-white">
             <option value="default">Ordenar por...</option>
-            <option value="price-low">Precio: Menor a Mayor</option>
-            <option value="price-high">Precio: Mayor a Menor</option>
+            <option value="price-low">Camiseta: menor a mayor</option>
+            <option value="price-high">Camiseta: mayor a menor</option>
             <option value="name">Nombre A-Z</option>
           </select>
 
@@ -120,6 +120,7 @@
           Mis favoritos <span id="wishlist-filter-count" class="font-bold">(0)</span>
         </button>
         <div class="flex flex-nowrap gap-2 overflow-x-auto pb-1 scrollbar-hide" aria-label="Filtrar por precio">
+          <span class="flex items-center text-sm text-zinc-400 whitespace-nowrap mr-1">Precio de camiseta:</span>
           <button id="price-all" onclick="filterPrice(0, Number.POSITIVE_INFINITY, this)" class="price-btn active">Todos los precios</button>
           <button id="price-low" onclick="filterPrice(0, 450, this)" class="price-btn">Hasta C$450</button>
           <button id="price-mid" onclick="filterPrice(451, 550, this)" class="price-btn">C$451–C$550</button>
@@ -194,6 +195,7 @@
 
       bestProducts.forEach(product => {
         const inWishlist = isInWishlist(product.id);
+        const priceRange = getProductPriceRange(product);
         const card = document.createElement('div');
         card.className = 'product-card bg-zinc-900 rounded-3xl overflow-hidden group relative';
         card.innerHTML = `
@@ -206,10 +208,11 @@
           </div>
           <div class="p-5">
             <h3 onclick="showQuickView(${product.id})" class="font-bold text-lg mb-1 cursor-pointer line-clamp-2">${product.name}</h3>
-            <p class="text-yellow-400 font-semibold text-2xl">C$ ${product.price}</p>
+            <p class="text-yellow-400 font-semibold text-xl">Camiseta C$ ${product.price}</p>
+            <p class="text-zinc-400 text-sm mt-1">4 prendas · C$ ${priceRange.min}–C$ ${priceRange.max}</p>
             <button onclick="event.stopImmediatePropagation(); showQuickView(${product.id});" 
                     class="mt-4 w-full bg-yellow-400 hover:bg-yellow-300 text-black font-bold py-3 rounded-3xl text-sm transition">
-              Ver tallas
+              Ver prendas y tallas
             </button>
           </div>
         `;

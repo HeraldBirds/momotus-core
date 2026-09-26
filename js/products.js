@@ -12,6 +12,14 @@
 
     Para mostrarlo también entre los destacados, agregá:
       featured: true
+
+    Imágenes de las variantes (reemplazá ID por el número del producto):
+      img/products/variants/ID-hoodie.webp
+      img/products/variants/ID-sudadera.webp
+      img/products/variants/ID-crop-top.webp
+
+    Mientras agregás esas imágenes, la tienda usa la imagen original como respaldo.
+    El stock inicial de cada variante conserva las tallas y cantidades del diseño base.
   */
 
   const products = [
@@ -19,7 +27,7 @@
     { id: 2, name: 'Asio clamator', price: 550, category: 'fauna', img: 'img/products/nica-2.webp', sizes: ['M','L'], stock: {M:15, L:12}, featured: true },
     { id: 3, name: 'Strix virgata', price: 550, category: 'fauna', img: 'img/products/nica-3.webp', sizes: ['S','M','L'], stock: {S:20, M:14, L:10} },
     { id: 4, name: 'Bandera Nica Pride', price: 550, category: 'unica', img: 'img/products/nica-4.webp', sizes: ['S','M','L'], stock: {S:10, M:22, L:15} },
-    { id: 5, name: 'Kurama Edition', price: 550, category: 'anime', img: 'img/products/anime-1.webp', sizes: ['S','M','L'], stock: {S:15, M:20, L:12} },
+    { id: 5, name: 'Sasuke Uchiha Edition', price: 550, category: 'anime', img: 'img/products/anime-1.webp', sizes: ['S','M','L'], stock: {S:15, M:20, L:12} },
     { id: 6, name: 'Kento Nanami', price: 550, category: 'anime', img: 'img/products/anime-2.webp', sizes: ['M','L'], stock: {M:18, L:14} },
     { id: 7, name: 'Satoru Gojō', price: 550, category: 'anime', img: 'img/products/anime-3.webp', sizes: ['S','M','L'], stock: {S:11, M:19, L:13} },
     { id: 8, name: 'Maki Zenin', price: 500, category: 'anime', img: 'img/products/anime-4.webp', sizes: ['S','M','L'], stock: {S:14, M:22, L:16} },
@@ -48,9 +56,61 @@
     { id: 31, name: 'Legendary Nica', price: 670, category: 'unica', img: 'img/products/unica-6.webp', sizes: ['S','M','L'], stock: {S:8, M:12, L:14} }
   ];
 
+  const garmentPriceRanges = Object.freeze({
+    hoodie: Object.freeze({ min: 800, max: 1300 }),
+    sudadera: Object.freeze({ min: 380, max: 660 }),
+    'crop-top': Object.freeze({ min: 150, max: 300 })
+  });
+
+  const basePriceMin = Math.min(...products.map(product => product.price));
+  const basePriceMax = Math.max(...products.map(product => product.price));
+  const calculateVariantPrice = (basePrice, range) => {
+    const ratio = basePriceMax === basePriceMin ? 0 : (basePrice - basePriceMin) / (basePriceMax - basePriceMin);
+    return Math.round((range.min + ratio * (range.max - range.min)) / 10) * 10;
+  };
+  const copyStock = product => Object.fromEntries(product.sizes.map(size => [size, product.stock[size]]));
+
+  products.forEach(product => {
+    product.garments = {
+      camiseta: {
+        name: 'Camiseta',
+        price: product.price,
+        img: product.img,
+        fallbackImg: product.img,
+        sizes: [...product.sizes],
+        stock: copyStock(product)
+      },
+      hoodie: {
+        name: 'Hoodie',
+        price: calculateVariantPrice(product.price, garmentPriceRanges.hoodie),
+        img: `img/products/variants/${product.id}-hoodie.webp`,
+        fallbackImg: product.img,
+        sizes: [...product.sizes],
+        stock: copyStock(product)
+      },
+      sudadera: {
+        name: 'Sudadera',
+        price: calculateVariantPrice(product.price, garmentPriceRanges.sudadera),
+        img: `img/products/variants/${product.id}-sudadera.webp`,
+        fallbackImg: product.img,
+        sizes: [...product.sizes],
+        stock: copyStock(product)
+      },
+      'crop-top': {
+        name: 'Crop-top',
+        price: calculateVariantPrice(product.price, garmentPriceRanges['crop-top']),
+        img: `img/products/variants/${product.id}-crop-top.webp`,
+        fallbackImg: product.img,
+        sizes: [...product.sizes],
+        stock: copyStock(product)
+      }
+    };
+  });
+
   const validate = catalog => {
     const validCategories = new Set(['fauna', 'anime', 'urbano', 'games', 'unica']);
     const validSizes = new Set(['S', 'M', 'L']);
+    const validGarments = new Set(['camiseta', 'hoodie', 'sudadera', 'crop-top']);
     const ids = new Set();
     catalog.forEach((product, index) => {
       if (!Number.isInteger(product.id) || ids.has(product.id)) throw new Error(`ID de producto inválido o repetido en la posición ${index + 1}`);
@@ -60,6 +120,16 @@
       if (!/^img\/products\/[a-z0-9-]+\.webp$/i.test(product.img)) throw new Error(`Ruta de imagen inválida en el producto ${product.id}`);
       if (!Array.isArray(product.sizes) || product.sizes.length === 0 || product.sizes.some(size => !validSizes.has(size))) throw new Error(`Tallas inválidas en el producto ${product.id}`);
       if (Object.keys(product.stock).some(size => !product.sizes.includes(size)) || product.sizes.some(size => !Number.isInteger(product.stock[size]) || product.stock[size] < 0)) throw new Error(`Stock inválido en el producto ${product.id}`);
+      if (!product.garments || Object.keys(product.garments).length !== validGarments.size || Object.keys(product.garments).some(garment => !validGarments.has(garment))) throw new Error(`Variantes inválidas en el producto ${product.id}`);
+      Object.entries(product.garments).forEach(([garmentKey, garment]) => {
+        if (!garment.name || !Number.isFinite(garment.price) || garment.price <= 0) throw new Error(`Precio inválido para ${garmentKey} en el producto ${product.id}`);
+        if (!/^img\/products\/(?:variants\/)?[a-z0-9-]+\.webp$/i.test(garment.img)) throw new Error(`Imagen inválida para ${garmentKey} en el producto ${product.id}`);
+        if (!Array.isArray(garment.sizes) || garment.sizes.length === 0 || garment.sizes.some(size => !validSizes.has(size))) throw new Error(`Tallas inválidas para ${garmentKey} en el producto ${product.id}`);
+        if (garment.sizes.some(size => !Number.isInteger(garment.stock[size]) || garment.stock[size] < 0)) throw new Error(`Stock inválido para ${garmentKey} en el producto ${product.id}`);
+      });
+      if (product.garments.hoodie.price < 800 || product.garments.hoodie.price > 1300) throw new Error(`Precio de hoodie fuera de rango en el producto ${product.id}`);
+      if (product.garments.sudadera.price < 380 || product.garments.sudadera.price > 660) throw new Error(`Precio de sudadera fuera de rango en el producto ${product.id}`);
+      if (product.garments['crop-top'].price < 150 || product.garments['crop-top'].price > 300) throw new Error(`Precio de crop-top fuera de rango en el producto ${product.id}`);
       if ('published' in product && typeof product.published !== 'boolean') throw new Error(`Estado de publicación inválido en el producto ${product.id}`);
       if ('featured' in product && typeof product.featured !== 'boolean') throw new Error(`Estado destacado inválido en el producto ${product.id}`);
     });
