@@ -530,7 +530,7 @@ const renderCommonNavbar = () => {
           <a href="tienda.html" class="${currentPage === 'tienda.html' ? 'text-yellow-400 font-bold' : 'hover:text-yellow-400 transition'}">Tienda</a>
           <a href="disena.html" class="${currentPage === 'disena.html' ? 'text-yellow-400 font-bold' : 'hover:text-yellow-400 transition'}">Diseña la Tuya</a>
           <a href="comunidad.html" class="${currentPage === 'comunidad.html' ? 'text-yellow-400 font-bold' : 'hover:text-yellow-400 transition'}">Comunidad</a>
-          <a href="herramientas.html" class="${currentPage === 'herramientas.html' ? 'text-yellow-400 font-bold' : 'hover:text-yellow-400 transition'}">Herramientas</a>
+          <a href="herramientas.html" class="desktop-tools-link ${currentPage === 'herramientas.html' ? 'text-yellow-400 font-bold' : 'hover:text-yellow-400 transition'}">Herramientas</a>
         </div>
         <div class="flex items-center gap-6">
           <button onclick="toggleCartModal()" aria-label="Abrir carrito" class="relative text-2xl hover:text-yellow-400 transition">
@@ -547,7 +547,7 @@ const renderCommonNavbar = () => {
           <a href="tienda.html" class="hover:text-yellow-400">Tienda</a>
           <a href="disena.html" class="hover:text-yellow-400">Diseña la Tuya</a>
           <a href="comunidad.html" class="hover:text-yellow-400">Comunidad</a>
-          <a href="herramientas.html" class="hover:text-yellow-400">Herramientas</a>
+          <a href="herramientas.html" class="desktop-tools-link hover:text-yellow-400">Herramientas</a>
         </div>
       </div>
     </nav>
