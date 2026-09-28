@@ -65,6 +65,16 @@
       <div class="tool-histogram-wrap"><span>Histograma</span><canvas id="editor-histogram" width="192" height="52" aria-label="Histograma de luminosidad"></canvas></div>
     </div>
 
+    <div class="tool-workflow" aria-label="Flujo recomendado para preparar el diseño">
+      <span class="tool-workflow-label">Flujo recomendado</span>
+      <button type="button" data-tool-target="mejorar-calidad"><b>1</b><span>Mejorar calidad</span></button>
+      <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+      <button type="button" data-tool-target="eliminar-fondo"><b>2</b><span>Eliminar fondo</span></button>
+      <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+      <button type="button" data-tool-target="semitonos"><b>3</b><span>Crear semitono</span></button>
+      <small>Podés enviar el resultado directamente al siguiente paso.</small>
+    </div>
+
     <section id="semitonos" class="tool-panel" aria-labelledby="halftone-title">
       <div class="tool-panel-heading">
         <div class="tool-number">01</div>
@@ -72,31 +82,45 @@
       </div>
       <div class="tool-layout">
         <div class="tool-controls">
-          <label class="tool-upload" data-drop-type="halftone"><i class="fa-solid fa-cloud-arrow-up"></i><span><strong>Subir o arrastrar imagen</strong><small>También podés pegarla con Ctrl + V</small></span><input id="halftone-file" type="file" accept="image/png,image/jpeg,image/webp" class="sr-only"></label>
-          <div class="tool-presets" aria-label="Ajustes rápidos de semitono">
-            <button type="button" data-halftone-preset="suave">Sombra suave</button>
-            <button type="button" data-halftone-preset="balanceado" class="active">Balanceado</button>
-            <button type="button" data-halftone-preset="fino">Detalle fino</button>
-            <button type="button" data-halftone-preset="lineas">Líneas</button>
+          <label class="tool-upload" data-drop-type="halftone" title="Subir imagen para semitonos"><i class="fa-solid fa-cloud-arrow-up"></i><span><strong>Subir o arrastrar imagen</strong><small>También podés pegarla con Ctrl + V</small></span><input id="halftone-file" type="file" accept="image/png,image/jpeg,image/webp" class="sr-only" aria-label="Subir imagen para semitonos"></label>
+          <div class="tool-control-tabs" role="tablist" aria-label="Propiedades del semitono">
+            <button type="button" data-control-target="halftone-quick" title="Ajustes rápidos"><i class="fa-solid fa-bolt"></i><span>Rápidos</span></button>
+            <button type="button" data-control-target="halftone-selection" title="Aplicación selectiva"><i class="fa-solid fa-bullseye"></i><span>Selección</span></button>
+            <button type="button" data-control-target="halftone-pattern" title="Trama"><i class="fa-solid fa-border-all"></i><span>Trama</span></button>
+            <button type="button" data-control-target="halftone-color-panel" title="Color y fondo"><i class="fa-solid fa-palette"></i><span>Color</span></button>
           </div>
-          <div class="tool-control-group">
-            <p><i class="fa-solid fa-bullseye"></i> Aplicación selectiva</p>
+          <details id="halftone-quick" class="tool-control-group">
+            <summary><span><i class="fa-solid fa-bolt"></i> Ajustes rápidos</span><i class="fa-solid fa-chevron-down"></i></summary>
+            <div class="tool-control-content tool-presets" aria-label="Ajustes rápidos de semitono">
+              <button type="button" data-halftone-preset="suave">Sombra suave</button>
+              <button type="button" data-halftone-preset="balanceado" class="active">Balanceado</button>
+              <button type="button" data-halftone-preset="fino">Detalle fino</button>
+              <button type="button" data-halftone-preset="lineas">Líneas</button>
+            </div>
+          </details>
+          <details id="halftone-selection" class="tool-control-group">
+            <summary><span><i class="fa-solid fa-bullseye"></i> Aplicación selectiva</span><i class="fa-solid fa-chevron-down"></i></summary>
+            <div class="tool-control-content">
             <label class="tool-field-row"><span>Zona tonal</span><select id="halftone-range"><option value="transitions">Sombras y transiciones</option><option value="shadows">Sombras</option><option value="midtones">Medios tonos</option><option value="highlights">Luces</option><option value="all">Toda la imagen</option></select></label>
             <label class="tool-field">Cantidad de trama <span id="halftone-amount-value">55%</span><input id="halftone-amount" type="range" min="10" max="100" value="55"></label>
             <label class="tool-field">Proteger colores sólidos <span id="halftone-solid-protection-value">75%</span><input id="halftone-solid-protection" type="range" min="0" max="100" value="75"></label>
             <label class="tool-check"><input id="halftone-keep-solids" type="checkbox" checked><span>Conservar las zonas sin trama</span></label>
-          </div>
-          <div class="tool-control-group">
-            <p><i class="fa-solid fa-border-all"></i> Trama</p>
+            </div>
+          </details>
+          <details id="halftone-pattern" class="tool-control-group">
+            <summary><span><i class="fa-solid fa-border-all"></i> Trama</span><i class="fa-solid fa-chevron-down"></i></summary>
+            <div class="tool-control-content">
             <label class="tool-field-row"><span>Ancho final de impresión</span><span class="tool-number-input"><input id="halftone-width-cm" type="number" min="8" max="38" step="1" value="28"><span>cm</span></span></label>
             <label class="tool-field">Frecuencia <span id="halftone-frequency-value">55 LPI</span><input id="halftone-frequency" type="range" min="45" max="70" value="55"></label>
             <label class="tool-field">Diámetro máximo del punto <span id="halftone-dot-size-value">0.40 mm</span><input id="halftone-dot-size" type="range" min="0.30" max="0.60" step="0.05" value="0.40"></label>
             <label class="tool-field">Ángulo <span id="halftone-angle-value">45°</span><input id="halftone-angle" type="range" min="-90" max="90" value="45"></label>
             <label class="tool-field">Contraste <span id="halftone-contrast-value">12</span><input id="halftone-contrast" type="range" min="-80" max="100" value="12"></label>
             <label class="tool-field-row"><span>Forma del punto</span><select id="halftone-shape"><option value="circle">Círculo</option><option value="ellipse">Elipse</option><option value="square">Cuadrado</option><option value="diamond">Diamante</option><option value="line">Línea</option></select></label>
-          </div>
-          <div class="tool-control-group">
-            <p><i class="fa-solid fa-palette"></i> Color y fondo</p>
+            </div>
+          </details>
+          <details id="halftone-color-panel" class="tool-control-group">
+            <summary><span><i class="fa-solid fa-palette"></i> Color y fondo</span><i class="fa-solid fa-chevron-down"></i></summary>
+            <div class="tool-control-content">
             <label class="tool-field-row"><span>Modo de color</span><select id="halftone-mode"><option value="original">Conservar colores</option><option value="mono">Una sola tinta</option></select></label>
             <label id="halftone-ink-control" class="tool-field-row is-disabled"><span>Color de tinta <small>(modo una tinta)</small></span><input id="halftone-color" type="color" value="#000000" disabled></label>
             <label class="tool-field-row"><span>Área del diseño</span><select id="halftone-mask-mode"><option value="edge">Detectar y excluir el fondo</option><option value="alpha">Usar la transparencia</option><option value="none">Procesar todo</option></select></label>
@@ -104,15 +128,18 @@
             <label class="tool-field-row"><span>Color del fondo</span><input id="halftone-background-color" type="color" value="#ffffff"></label>
             <label class="tool-check"><input id="halftone-transparent" type="checkbox" checked><span>Fondo transparente</span></label>
             <label class="tool-check"><input id="halftone-invert" type="checkbox"><span>Invertir tamaño tonal</span></label>
-          </div>
-          <button id="halftone-download" type="button" class="tool-download" disabled><i class="fa-solid fa-download"></i> Descargar PNG</button>
-          <p id="halftone-status" class="tool-status" role="status">Subí una imagen para comenzar.</p>
+            </div>
+          </details>
+          <div class="tool-action-dock"><button id="halftone-download" type="button" class="tool-download" disabled><i class="fa-solid fa-download"></i> Descargar PNG</button><p id="halftone-status" class="tool-status" role="status">Subí una imagen para comenzar.</p></div>
         </div>
         <div class="tool-preview-shell">
           <div class="tool-preview-toolbar">
             <div class="tool-segmented"><button type="button" data-preview-tool="halftone" data-preview-view="original">Original</button><button type="button" data-preview-tool="halftone" data-preview-view="result" class="active">Resultado</button></div>
-            <label>Zoom <select data-preview-zoom="halftone"><option value="75">75%</option><option value="100" selected>100%</option><option value="150">150%</option></select></label>
+            <button type="button" class="tool-hold-compare" data-hold-original="halftone" disabled><i class="fa-solid fa-eye"></i> Mantener para comparar</button>
+            <button type="button" class="tool-expand-preview" data-preview-expand="halftone" aria-pressed="false" title="Ampliar lienzo"><i class="fa-solid fa-expand"></i><span>Vista amplia</span></button>
+            <label>Zoom <select data-preview-zoom="halftone"><option value="fit">Ajustar</option><option value="detail" selected>Detalle</option><option value="width">Ancho</option><option value="100">100%</option><option value="150">150%</option></select></label>
           </div>
+          <div class="tool-transfer-actions"><span>Usar este resultado en:</span><button type="button" data-transfer-from="halftone" data-transfer-to="quality" disabled><i class="fa-solid fa-sliders"></i> Calidad</button><button type="button" data-transfer-from="halftone" data-transfer-to="background" disabled><i class="fa-solid fa-eraser"></i> Fondo</button></div>
           <div id="halftone-preview" class="tool-preview"><img id="halftone-original" class="tool-original-image" alt="Imagen original para semitono" hidden><canvas id="halftone-canvas" aria-label="Vista previa del semitono"></canvas></div>
         </div>
       </div>
@@ -126,30 +153,46 @@
       </div>
       <div class="tool-layout">
         <div class="tool-controls">
-          <label class="tool-upload" data-drop-type="background"><i class="fa-solid fa-cloud-arrow-up"></i><span><strong>Subir o arrastrar imagen</strong><small>También podés pegarla con Ctrl + V</small></span><input id="background-file" type="file" accept="image/png,image/jpeg,image/webp" class="sr-only"></label>
-          <label class="tool-field-row"><span>Acción</span><select id="background-mode"><option value="remove">Eliminar color escogido</option><option value="keep">Conservar solo ese color</option></select></label>
-          <label class="tool-field-row"><span>Color que se eliminará</span><input id="background-color" type="color" value="#ffffff"></label>
-          <div class="tool-color-presets" aria-label="Colores rápidos">
-            <button type="button" data-background-color="#ffffff" aria-label="Eliminar blanco" title="Blanco" style="--preset-color:#ffffff"></button>
-            <button type="button" data-background-color="#000000" aria-label="Eliminar negro" title="Negro" style="--preset-color:#000000"></button>
-            <button type="button" data-background-color="#00ff00" aria-label="Eliminar verde" title="Verde" style="--preset-color:#00ff00"></button>
-            <button type="button" data-background-color="#0000ff" aria-label="Eliminar azul" title="Azul" style="--preset-color:#0000ff"></button>
+          <label class="tool-upload" data-drop-type="background" title="Subir imagen para eliminar el fondo"><i class="fa-solid fa-cloud-arrow-up"></i><span><strong>Subir o arrastrar imagen</strong><small>También podés pegarla con Ctrl + V</small></span><input id="background-file" type="file" accept="image/png,image/jpeg,image/webp" class="sr-only" aria-label="Subir imagen para eliminar el fondo"></label>
+          <div class="tool-control-tabs" role="tablist" aria-label="Propiedades del fondo">
+            <button type="button" data-control-target="background-color-panel" title="Color y selección"><i class="fa-solid fa-eye-dropper"></i><span>Color</span></button>
+            <button type="button" data-control-target="background-edge-panel" title="Bordes y salida"><i class="fa-solid fa-wand-magic-sparkles"></i><span>Bordes</span></button>
           </div>
-          <label class="tool-field">Tolerancia <span id="background-tolerance-value">45</span><input id="background-tolerance" type="range" min="0" max="220" value="45"></label>
-          <label class="tool-field">Suavidad del borde <span id="background-softness-value">25</span><input id="background-softness" type="range" min="0" max="100" value="25"></label>
-          <label class="tool-check"><input id="background-decontaminate" type="checkbox" checked><span>Limpiar halo del color eliminado</span></label>
-          <label class="tool-check"><input id="background-trim" type="checkbox"><span>Recortar espacio transparente al descargar</span></label>
-          <button id="background-corner" type="button" class="tool-secondary" disabled><i class="fa-solid fa-eye-dropper"></i> Tomar color de la esquina</button>
-          <button id="background-reset" type="button" class="tool-secondary" disabled><i class="fa-solid fa-rotate-left"></i> Restablecer ajustes</button>
-          <button id="background-download" type="button" class="tool-download" disabled><i class="fa-solid fa-download"></i> Descargar PNG sin fondo</button>
-          <p id="background-status" class="tool-status" role="status">Funciona mejor con fondos blancos, negros o de un solo color.</p>
+          <details id="background-color-panel" class="tool-control-group">
+            <summary><span><i class="fa-solid fa-eye-dropper"></i> Color y selección</span><i class="fa-solid fa-chevron-down"></i></summary>
+            <div class="tool-control-content">
+              <label class="tool-field-row"><span>Acción</span><select id="background-mode"><option value="remove">Eliminar color escogido</option><option value="keep">Conservar solo ese color</option></select></label>
+              <label class="tool-field-row"><span>Color que se eliminará</span><input id="background-color" type="color" value="#ffffff"></label>
+              <div class="tool-color-presets" aria-label="Colores rápidos">
+                <button type="button" data-background-color="#ffffff" aria-label="Eliminar blanco" title="Blanco" style="--preset-color:#ffffff"></button>
+                <button type="button" data-background-color="#000000" aria-label="Eliminar negro" title="Negro" style="--preset-color:#000000"></button>
+                <button type="button" data-background-color="#00ff00" aria-label="Eliminar verde" title="Verde" style="--preset-color:#00ff00"></button>
+                <button type="button" data-background-color="#0000ff" aria-label="Eliminar azul" title="Azul" style="--preset-color:#0000ff"></button>
+              </div>
+              <button id="background-corner" type="button" class="tool-secondary" disabled><i class="fa-solid fa-eye-dropper"></i> Tomar color de la esquina</button>
+            </div>
+          </details>
+          <details id="background-edge-panel" class="tool-control-group">
+            <summary><span><i class="fa-solid fa-wand-magic-sparkles"></i> Bordes y salida</span><i class="fa-solid fa-chevron-down"></i></summary>
+            <div class="tool-control-content">
+              <label class="tool-field">Tolerancia <span id="background-tolerance-value">45</span><input id="background-tolerance" type="range" min="0" max="220" value="45"></label>
+              <label class="tool-field">Suavidad del borde <span id="background-softness-value">25</span><input id="background-softness" type="range" min="0" max="100" value="25"></label>
+              <label class="tool-check"><input id="background-decontaminate" type="checkbox" checked><span>Limpiar halo del color eliminado</span></label>
+              <label class="tool-check"><input id="background-trim" type="checkbox"><span>Recortar espacio transparente al descargar</span></label>
+              <button id="background-reset" type="button" class="tool-secondary" disabled><i class="fa-solid fa-rotate-left"></i> Restablecer ajustes</button>
+            </div>
+          </details>
+          <div class="tool-action-dock"><button id="background-download" type="button" class="tool-download" disabled><i class="fa-solid fa-download"></i> Descargar PNG sin fondo</button><p id="background-status" class="tool-status" role="status">Funciona mejor con fondos blancos, negros o de un solo color.</p></div>
         </div>
         <div class="tool-preview-shell">
           <div class="tool-preview-toolbar">
             <div class="tool-segmented"><button type="button" data-preview-tool="background" data-preview-view="original">Original</button><button type="button" data-preview-tool="background" data-preview-view="result" class="active">Resultado</button><button type="button" data-preview-tool="background" data-preview-view="mask">Máscara</button></div>
+            <button type="button" class="tool-hold-compare" data-hold-original="background" disabled><i class="fa-solid fa-eye"></i> Mantener para comparar</button>
+            <button type="button" class="tool-expand-preview" data-preview-expand="background" aria-pressed="false" title="Ampliar lienzo"><i class="fa-solid fa-expand"></i><span>Vista amplia</span></button>
             <label>Vista <select data-preview-background="background"><option value="checkerboard">Cuadrícula</option><option value="dark">Negro</option><option value="light">Blanco</option></select></label>
-            <label>Zoom <select data-preview-zoom="background"><option value="75">75%</option><option value="100" selected>100%</option><option value="150">150%</option></select></label>
+            <label>Zoom <select data-preview-zoom="background"><option value="fit">Ajustar</option><option value="detail" selected>Detalle</option><option value="width">Ancho</option><option value="100">100%</option><option value="150">150%</option></select></label>
           </div>
+          <div class="tool-transfer-actions"><span>Continuar con:</span><button type="button" data-transfer-from="background" data-transfer-to="quality" disabled><i class="fa-solid fa-sliders"></i> Calidad</button><button type="button" data-transfer-from="background" data-transfer-to="halftone" disabled><i class="fa-solid fa-circle-half-stroke"></i> Semitonos</button></div>
           <div id="background-preview" class="tool-preview checkerboard"><img id="background-original" class="tool-original-image" alt="Imagen original antes de eliminar el color" hidden><canvas id="background-canvas" aria-label="Vista previa sin fondo"></canvas></div>
         </div>
       </div>
@@ -163,32 +206,60 @@
       </div>
       <div class="tool-layout">
         <div class="tool-controls">
-          <label class="tool-upload" data-drop-type="quality"><i class="fa-solid fa-cloud-arrow-up"></i><span><strong>Subir o arrastrar imagen</strong><small>También podés pegarla con Ctrl + V</small></span><input id="quality-file" type="file" accept="image/png,image/jpeg,image/webp" class="sr-only"></label>
-          <div class="tool-presets" aria-label="Tamaños rápidos de impresión">
-            <button type="button" data-quality-width="10">Logo 10 cm</button>
-            <button type="button" data-quality-width="20">Pecho 20 cm</button>
-            <button type="button" data-quality-width="28">Frente 28 cm</button>
-            <button type="button" data-quality-width="35">Espalda 35 cm</button>
+          <label class="tool-upload" data-drop-type="quality" title="Subir imagen para mejorar su calidad"><i class="fa-solid fa-cloud-arrow-up"></i><span><strong>Subir o arrastrar imagen</strong><small>También podés pegarla con Ctrl + V</small></span><input id="quality-file" type="file" accept="image/png,image/jpeg,image/webp" class="sr-only" aria-label="Subir imagen para mejorar su calidad"></label>
+          <div class="tool-control-tabs" role="tablist" aria-label="Propiedades de calidad">
+            <button type="button" data-control-target="quality-size-panel" title="Tamaño y tipo"><i class="fa-solid fa-ruler-combined"></i><span>Tamaño</span></button>
+            <button type="button" data-control-target="quality-quick-panel" title="Ajustes rápidos"><i class="fa-solid fa-bolt"></i><span>Rápidos</span></button>
+            <button type="button" data-control-target="quality-color-panel" title="Color"><i class="fa-solid fa-sliders"></i><span>Color</span></button>
+            <button type="button" data-control-target="quality-detail-panel" title="Detalle protegido"><i class="fa-solid fa-wand-magic-sparkles"></i><span>Detalle</span></button>
           </div>
-          <label class="tool-field-row"><span>Ancho de impresión</span><span class="tool-number-input"><input id="quality-width-cm" type="number" min="2" max="45" step="0.5" value="30"><span>cm</span></span></label>
-          <label class="tool-field-row"><span>Tipo de imagen</span><select id="quality-smoothing"><option value="illustration">Ilustración o fotografía</option><option value="logo">Logo con bordes definidos</option><option value="pixel">Pixel art, sin suavizado</option></select></label>
-          <div class="tool-control-group">
-            <p><i class="fa-solid fa-sliders"></i> Ajustes de color</p>
+          <details id="quality-size-panel" class="tool-control-group">
+            <summary><span><i class="fa-solid fa-ruler-combined"></i> Tamaño y tipo</span><i class="fa-solid fa-chevron-down"></i></summary>
+            <div class="tool-control-content">
+              <div class="tool-presets" aria-label="Tamaños rápidos de impresión">
+                <button type="button" data-quality-width="10">Logo 10 cm</button>
+                <button type="button" data-quality-width="20">Pecho 20 cm</button>
+                <button type="button" data-quality-width="28">Frente 28 cm</button>
+                <button type="button" data-quality-width="35">Espalda 35 cm</button>
+              </div>
+              <label class="tool-field-row"><span>Ancho de impresión</span><span class="tool-number-input"><input id="quality-width-cm" type="number" min="2" max="45" step="0.5" value="30"><span>cm</span></span></label>
+              <label class="tool-field-row"><span>Tipo de imagen</span><select id="quality-smoothing"><option value="illustration">Ilustración</option><option value="photo">Fotografía</option><option value="logo">Logo con bordes definidos</option><option value="pixel">Pixel art, sin suavizado</option></select></label>
+            </div>
+          </details>
+          <details id="quality-quick-panel" class="tool-control-group">
+            <summary><span><i class="fa-solid fa-bolt"></i> Ajustes rápidos</span><i class="fa-solid fa-chevron-down"></i></summary>
+            <div class="tool-control-content tool-presets" aria-label="Ajustes rápidos de calidad">
+              <button type="button" data-quality-preset="dtf" class="active">DTF balanceado</button>
+              <button type="button" data-quality-preset="illustration">Ilustración viva</button>
+              <button type="button" data-quality-preset="photo">Fotografía limpia</button>
+              <button type="button" data-quality-preset="logo">Logo definido</button>
+            </div>
+          </details>
+          <details id="quality-color-panel" class="tool-control-group">
+            <summary><span><i class="fa-solid fa-sliders"></i> Color</span><i class="fa-solid fa-chevron-down"></i></summary>
+            <div class="tool-control-content">
             <label class="tool-field">Brillo <span id="quality-brightness-value">0</span><input id="quality-brightness" type="range" min="-50" max="50" value="0"></label>
-            <label class="tool-field">Contraste <span id="quality-contrast-value">0</span><input id="quality-contrast" type="range" min="-50" max="50" value="0"></label>
-            <label class="tool-field">Saturación <span id="quality-saturation-value">0</span><input id="quality-saturation" type="range" min="-100" max="100" value="0"></label>
-          </div>
-          <label class="tool-field">Nitidez <span id="quality-sharpness-value">35</span><input id="quality-sharpness" type="range" min="0" max="100" value="35"></label>
-          <div id="quality-assessment" class="tool-assessment" aria-live="polite">La evaluación aparecerá cuando subás una imagen.</div>
-          <button id="quality-process" type="button" class="tool-secondary" disabled><i class="fa-solid fa-wand-magic-sparkles"></i> Procesar imagen</button>
-          <button id="quality-download" type="button" class="tool-download" disabled><i class="fa-solid fa-download"></i> Descargar PNG mejorado</button>
-          <p id="quality-status" class="tool-status" role="status">Subí una imagen y escogé el ancho de impresión.</p>
+            <label class="tool-field">Contraste <span id="quality-contrast-value">6</span><input id="quality-contrast" type="range" min="-50" max="50" value="6"></label>
+            <label class="tool-field">Saturación <span id="quality-saturation-value">8</span><input id="quality-saturation" type="range" min="-100" max="100" value="8"></label>
+            </div>
+          </details>
+          <details id="quality-detail-panel" class="tool-control-group">
+            <summary><span><i class="fa-solid fa-wand-magic-sparkles"></i> Detalle protegido</span><i class="fa-solid fa-chevron-down"></i></summary>
+            <div class="tool-control-content">
+            <label class="tool-field">Claridad local <span id="quality-clarity-value">24</span><input id="quality-clarity" type="range" min="0" max="70" value="24"></label>
+            <label class="tool-field">Nitidez <span id="quality-sharpness-value">50</span><input id="quality-sharpness" type="range" min="0" max="100" value="50"></label>
+            </div>
+          </details>
+          <div class="tool-action-dock"><div id="quality-assessment" class="tool-assessment" aria-live="polite">La evaluación aparecerá cuando subás una imagen.</div><button id="quality-process" type="button" class="tool-secondary" disabled><i class="fa-solid fa-wand-magic-sparkles"></i> Aplicar mejora DTF</button><button id="quality-download" type="button" class="tool-download" disabled><i class="fa-solid fa-download"></i> Descargar PNG mejorado</button><p id="quality-status" class="tool-status" role="status">Subí una imagen y escogé el ancho de impresión.</p></div>
         </div>
         <div class="tool-preview-shell">
           <div class="tool-preview-toolbar">
             <div class="tool-segmented"><button type="button" data-preview-tool="quality" data-preview-view="original">Original</button><button type="button" data-preview-tool="quality" data-preview-view="result" class="active">Resultado</button></div>
-            <label>Zoom <select data-preview-zoom="quality"><option value="75">75%</option><option value="100" selected>100%</option><option value="150">150%</option></select></label>
+            <button type="button" class="tool-hold-compare" data-hold-original="quality" disabled><i class="fa-solid fa-eye"></i> Mantener para comparar</button>
+            <button type="button" class="tool-expand-preview" data-preview-expand="quality" aria-pressed="false" title="Ampliar lienzo"><i class="fa-solid fa-expand"></i><span>Vista amplia</span></button>
+            <label>Zoom <select data-preview-zoom="quality"><option value="fit">Ajustar</option><option value="detail" selected>Detalle</option><option value="width">Ancho</option><option value="100">100%</option><option value="150">150%</option></select></label>
           </div>
+          <div class="tool-transfer-actions"><span>Continuar con:</span><button type="button" data-transfer-from="quality" data-transfer-to="background" disabled><i class="fa-solid fa-eraser"></i> Eliminar fondo</button><button type="button" data-transfer-from="quality" data-transfer-to="halftone" disabled><i class="fa-solid fa-circle-half-stroke"></i> Semitonos</button></div>
           <div id="quality-preview" class="tool-preview checkerboard"><img id="quality-original" class="tool-original-image" alt="Imagen original antes de prepararla a 300 DPI" hidden><canvas id="quality-canvas" aria-label="Vista previa de la imagen mejorada"></canvas></div>
         </div>
       </div>

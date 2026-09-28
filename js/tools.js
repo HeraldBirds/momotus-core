@@ -12,6 +12,8 @@
   const states = { halftone: null, background: null, quality: null };
   const previewViews = { halftone: 'result', background: 'result', quality: 'result' };
   const renderTimers = {};
+  const previewZoomFrames = {};
+  const previewCenterFrames = {};
   const uploadTokens = { halftone: 0, background: 0, quality: 0 };
   const histories = {
     halftone: { entries: [], index: -1 },
@@ -20,6 +22,7 @@
   };
   let activeTool = 'halftone';
   let qualityProcessing = false;
+  let qualityRevision = 0;
 
   const byId = id => document.getElementById(id);
   const setStatus = (id, message) => { const element = byId(id); if (element) element.textContent = message; };
@@ -40,9 +43,9 @@
     ) / 1.5;
   };
 
-  const loadImageFile = (file, maxSide = 4500) => new Promise((resolve, reject) => {
+  const loadImageFile = (file, maxSide = 4500, internalTransfer = false) => new Promise((resolve, reject) => {
     if (!file || !ALLOWED_IMAGE_TYPES.has(file.type)) return reject(new Error('Escogé una imagen PNG, JPG o WebP.'));
-    if (file.size > MAX_FILE_SIZE) return reject(new Error('La imagen debe pesar 12 MB o menos.'));
+    if (!internalTransfer && file.size > MAX_FILE_SIZE) return reject(new Error('La imagen debe pesar 12 MB o menos.'));
     const url = URL.createObjectURL(file);
     const image = new Image();
     image.onload = () => {
@@ -74,6 +77,38 @@
     return { imageData: context.getImageData(0, 0, source.width, source.height) };
   };
 
+  const applyPreviewZoom = type => {
+    cancelAnimationFrame(previewZoomFrames[type]);
+    previewZoomFrames[type] = requestAnimationFrame(() => {
+      previewZoomFrames[type] = 0;
+      const preview = byId(`${type}-preview`);
+      const select = document.querySelector(`[data-preview-zoom="${type}"]`);
+      const canvas = byId(`${type}-canvas`);
+      const image = byId(`${type}-original`);
+      if (!preview || !select || preview.clientWidth === 0 || preview.clientHeight === 0) return;
+
+      const styles = getComputedStyle(preview);
+      const availableWidth = Math.max(1, preview.clientWidth - parseFloat(styles.paddingLeft) - parseFloat(styles.paddingRight));
+      const availableHeight = Math.max(1, preview.clientHeight - parseFloat(styles.paddingTop) - parseFloat(styles.paddingBottom));
+
+      [canvas, image].forEach(element => {
+        if (!element) return;
+        const intrinsicWidth = element instanceof HTMLCanvasElement ? element.width : (element.naturalWidth || states[type]?.width || 1);
+        const intrinsicHeight = element instanceof HTMLCanvasElement ? element.height : (element.naturalHeight || states[type]?.height || 1);
+        const fittedScale = Math.min(availableWidth / intrinsicWidth, availableHeight / intrinsicHeight);
+        let displayScale = fittedScale;
+        if (select.value === 'detail') displayScale *= 1.35;
+        else if (select.value === 'width') displayScale = availableWidth / intrinsicWidth;
+        else if (select.value !== 'fit') displayScale *= Math.max(0.1, Number(select.value) / 100 || 1);
+
+        element.style.width = `${Math.max(1, Math.round(intrinsicWidth * displayScale))}px`;
+        element.style.height = 'auto';
+        element.style.maxWidth = 'none';
+        element.style.maxHeight = 'none';
+      });
+    });
+  };
+
   const showOriginal = type => {
     const state = states[type];
     if (!state) return;
@@ -82,6 +117,7 @@
     image.src = state.sourceUrl;
     image.hidden = false;
     canvas.hidden = true;
+    applyPreviewZoom(type);
   };
 
   const showResult = type => {
@@ -89,6 +125,13 @@
     const canvas = byId(`${type}-canvas`);
     image.hidden = true;
     canvas.hidden = false;
+    applyPreviewZoom(type);
+  };
+
+  const setToolResultReady = (type, ready) => {
+    document.querySelectorAll(`[data-transfer-from="${type}"]`).forEach(button => { button.disabled = !ready; });
+    const compareButton = document.querySelector(`[data-hold-original="${type}"]`);
+    if (compareButton) compareButton.disabled = !ready;
   };
 
   const drawHistogram = (type, renderedCanvas = null) => {
@@ -539,12 +582,15 @@
       context.fillRect(0, 0, canvas.width, canvas.height);
     }
     context.drawImage(workCanvas, 0, 0);
+    setToolResultReady('halftone', true);
     const modeLabel = colorMode === 'original' ? 'color conservado' : 'una tinta';
     const maskLabel = maskMode === 'edge' ? 'fondo excluido' : maskMode === 'alpha' ? 'máscara alfa' : 'imagen completa';
     const rangeLabels = { transitions: 'sombras y transiciones', shadows: 'sombras', midtones: 'medios tonos', highlights: 'luces', all: 'imagen completa' };
     const sourceDpi = Math.round(sourceState.naturalWidth / (requestedWidthCm / 2.54));
     const limitedLabel = state.safetyLimited ? ' · medida limitada por seguridad' : '';
     setStatus('halftone-status', `${state.width} × ${state.height} px · ${state.actualWidthCm.toFixed(1)} × ${state.actualHeightCm.toFixed(1)} cm · ${frequency} LPI · punto máx. ${maximumDotMm.toFixed(2)} mm · origen ${sourceDpi} DPI${limitedLabel}.`);
+    applyPreviewZoom('halftone');
+    centerPreview('halftone');
   };
 
   const renderBackground = (maskPreview = false) => {
@@ -594,10 +640,13 @@
     canvas.width = state.width;
     canvas.height = state.height;
     context.putImageData(output, 0, 0);
+    setToolResultReady('background', true);
     const percentage = ((affected / (state.width * state.height)) * 100).toFixed(1);
     const action = mode === 'keep' ? 'ocultos para conservar el color' : 'afectados en toda la imagen';
     const previewLabel = maskPreview ? ' · máscara: blanco conserva, negro elimina' : ' · salida 300 DPI';
     setStatus('background-status', `${percentage}% de píxeles ${action}${previewLabel}.`);
+    applyPreviewZoom('background');
+    centerPreview('background');
   };
 
   const renderActiveBackground = () => renderBackground(previewViews.background === 'mask');
@@ -617,16 +666,42 @@
     renderActiveBackground();
   };
 
-  const sharpenCanvas = async (canvas, strength) => {
-    if (strength <= 0) return;
+  const createProgressiveSource = async (state, targetWidth, targetHeight, smoothing) => {
+    let source = document.createElement('canvas');
+    source.width = state.width;
+    source.height = state.height;
+    source.getContext('2d').drawImage(state.image, 0, 0, state.width, state.height);
+    if (smoothing === 'pixel' || (targetWidth <= state.width * 1.35 && targetHeight <= state.height * 1.35)) return source;
+
+    while (source.width < targetWidth * 0.82 || source.height < targetHeight * 0.82) {
+      const scale = Math.min(1.7, targetWidth / source.width, targetHeight / source.height);
+      if (scale <= 1.02) break;
+      const next = document.createElement('canvas');
+      next.width = Math.min(targetWidth, Math.max(source.width + 1, Math.round(source.width * scale)));
+      next.height = Math.min(targetHeight, Math.max(source.height + 1, Math.round(source.height * scale)));
+      const context = next.getContext('2d');
+      context.imageSmoothingEnabled = true;
+      context.imageSmoothingQuality = 'high';
+      context.drawImage(source, 0, 0, next.width, next.height);
+      source.width = 1;
+      source.height = 1;
+      source = next;
+      await nextFrame();
+    }
+    return source;
+  };
+
+  const enhanceCanvas = async (canvas, sharpness, clarity) => {
+    if (sharpness <= 0 && clarity <= 0) return;
     const context = canvas.getContext('2d');
     const source = context.getImageData(0, 0, canvas.width, canvas.height);
     const output = context.createImageData(canvas.width, canvas.height);
     const src = source.data, dst = output.data, width = canvas.width, height = canvas.height;
-    const amount = Math.min(0.75, strength * 0.0075);
+    const sharpAmount = Math.min(0.65, sharpness * 0.006);
+    const clarityAmount = Math.min(0.32, clarity * 0.0045);
     dst.set(src);
-    for (let y = 1; y < height - 1; y++) {
-      for (let x = 1; x < width - 1; x++) {
+    for (let y = 2; y < height - 2; y++) {
+      for (let x = 2; x < width - 2; x++) {
         const index = (y * width + x) * 4;
         const alpha = src[index + 3];
         const edgeAlphaDifference = Math.max(
@@ -635,13 +710,21 @@
           Math.abs(alpha - src[index - width * 4 + 3]),
           Math.abs(alpha - src[index + width * 4 + 3])
         );
-        if (alpha < 255 || edgeAlphaDifference > 12) continue;
+        if (alpha < 200 || edgeAlphaDifference > 24) continue;
         for (let channel = 0; channel < 3; channel++) {
           const center = src[index + channel];
-          const neighbors = src[index - 4 + channel] + src[index + 4 + channel] + src[index - width * 4 + channel] + src[index + width * 4 + channel];
-          dst[index + channel] = Math.max(0, Math.min(255, center + amount * (4 * center - neighbors)));
+          const nearAverage = (
+            src[index - 4 + channel] + src[index + 4 + channel]
+            + src[index - width * 4 + channel] + src[index + width * 4 + channel]
+          ) / 4;
+          const farAverage = (
+            src[index - 8 + channel] + src[index + 8 + channel]
+            + src[index - width * 8 + channel] + src[index + width * 8 + channel]
+          ) / 4;
+          const fineDetail = Math.abs(center - nearAverage) >= 2 ? center - nearAverage : 0;
+          const localContrast = Math.abs(center - farAverage) >= 4 ? center - farAverage : 0;
+          dst[index + channel] = clampChannel(center + fineDetail * sharpAmount + localContrast * clarityAmount);
         }
-        dst[index + 3] = src[index + 3];
       }
       if (y % 64 === 0) await nextFrame();
     }
@@ -672,6 +755,7 @@
     const state = states.quality;
     if (!state || qualityProcessing) return;
     const sourceToken = uploadTokens.quality;
+    const renderRevision = qualityRevision;
     qualityProcessing = true;
     const requestedWidthCm = Math.max(2, Math.min(45, Number(byId('quality-width-cm').value) || 30));
     byId('quality-width-cm').value = String(requestedWidthCm);
@@ -695,22 +779,32 @@
       const brightness = 100 + Number(byId('quality-brightness').value);
       const contrast = 100 + Number(byId('quality-contrast').value);
       const saturation = 100 + Number(byId('quality-saturation').value);
+      const progressiveSource = await createProgressiveSource(state, width, height, smoothing);
+      if (sourceToken !== uploadTokens.quality || renderRevision !== qualityRevision) return;
       context.imageSmoothingEnabled = smoothing !== 'pixel';
       context.imageSmoothingQuality = smoothing === 'logo' ? 'medium' : 'high';
       context.filter = `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%)`;
-      context.drawImage(state.image, 0, 0, width, height);
+      context.drawImage(progressiveSource, 0, 0, width, height);
       context.filter = 'none';
-      if (smoothing !== 'pixel') await sharpenCanvas(canvas, Number(byId('quality-sharpness').value));
-      if (sourceToken !== uploadTokens.quality) return;
+      progressiveSource.width = 1;
+      progressiveSource.height = 1;
+      if (smoothing !== 'pixel') {
+        await enhanceCanvas(canvas, Number(byId('quality-sharpness').value), Number(byId('quality-clarity').value));
+      }
+      if (sourceToken !== uploadTokens.quality || renderRevision !== qualityRevision) return;
+      setToolResultReady('quality', true);
       byId('quality-download').disabled = false;
       drawHistogram('quality', canvas);
       const actualWidthCm = centimetersAt300Dpi(width);
       const actualHeightCm = centimetersAt300Dpi(height);
       const limited = safetyScale < 0.999 ? ' · tamaño ajustado para proteger la memoria del dispositivo' : '';
-      setStatus('quality-status', `${width} × ${height} px · ${actualWidthCm} × ${actualHeightCm} cm a 300 DPI${limited}.`);
+      setStatus('quality-status', `${width} × ${height} px · ${actualWidthCm} × ${actualHeightCm} cm a 300 DPI · detalle y bordes protegidos${limited}.`);
+      applyPreviewZoom('quality');
+      centerPreview('quality');
     } catch (error) {
-      if (sourceToken !== uploadTokens.quality) return;
+      if (sourceToken !== uploadTokens.quality || renderRevision !== qualityRevision) return;
       console.error('No se pudo procesar la imagen:', error);
+      setToolResultReady('quality', false);
       byId('quality-download').disabled = true;
       setStatus('quality-status', 'El dispositivo no pudo procesar ese tamaño. Probá con un ancho menor.');
       showToast('Probá con un ancho de impresión menor.');
@@ -728,7 +822,7 @@
   const settingIds = {
     halftone: ['halftone-range', 'halftone-amount', 'halftone-solid-protection', 'halftone-keep-solids', 'halftone-width-cm', 'halftone-frequency', 'halftone-dot-size', 'halftone-mode', 'halftone-mask-mode', 'halftone-mask-tolerance', 'halftone-angle', 'halftone-contrast', 'halftone-shape', 'halftone-color', 'halftone-background-color', 'halftone-transparent', 'halftone-invert'],
     background: ['background-mode', 'background-color', 'background-tolerance', 'background-softness', 'background-decontaminate', 'background-trim'],
-    quality: ['quality-width-cm', 'quality-smoothing', 'quality-brightness', 'quality-contrast', 'quality-saturation', 'quality-sharpness']
+    quality: ['quality-width-cm', 'quality-smoothing', 'quality-brightness', 'quality-contrast', 'quality-saturation', 'quality-clarity', 'quality-sharpness']
   };
 
   const captureSettings = type => Object.fromEntries(settingIds[type].map(id => {
@@ -780,7 +874,7 @@
       byId('background-tolerance-value').textContent = byId('background-tolerance').value;
       byId('background-softness-value').textContent = byId('background-softness').value;
     } else {
-      ['brightness', 'contrast', 'saturation', 'sharpness'].forEach(name => {
+      ['brightness', 'contrast', 'saturation', 'clarity', 'sharpness'].forEach(name => {
         byId(`quality-${name}-value`).textContent = byId(`quality-${name}`).value;
       });
     }
@@ -813,7 +907,7 @@
   };
 
   const resetQuality = () => {
-    const defaults = { 'quality-width-cm': '30', 'quality-smoothing': 'illustration', 'quality-brightness': '0', 'quality-contrast': '0', 'quality-saturation': '0', 'quality-sharpness': '35' };
+    const defaults = { 'quality-width-cm': '30', 'quality-smoothing': 'illustration', 'quality-brightness': '0', 'quality-contrast': '6', 'quality-saturation': '8', 'quality-clarity': '24', 'quality-sharpness': '50' };
     applySettings('quality', defaults);
   };
 
@@ -835,11 +929,33 @@
     else if (type === 'background') renderBackground(view === 'mask');
     else if (byId('quality-download').disabled) processQuality();
     else showResult('quality');
+    centerPreview(type);
+  };
+
+  const centerPreview = type => {
+    cancelAnimationFrame(previewCenterFrames[type]);
+    previewCenterFrames[type] = requestAnimationFrame(() => {
+      previewCenterFrames[type] = 0;
+      const preview = byId(`${type}-preview`);
+      if (!preview) return;
+      preview.scrollLeft = Math.max(0, (preview.scrollWidth - preview.clientWidth) / 2);
+      preview.scrollTop = Math.max(0, (preview.scrollHeight - preview.clientHeight) / 2);
+    });
+  };
+
+  const closeExpandedPreview = () => {
+    document.querySelectorAll('.tool-preview-shell.preview-expanded').forEach(shell => shell.classList.remove('preview-expanded'));
+    document.querySelectorAll('[data-preview-expand]').forEach(button => {
+      button.classList.remove('active');
+      button.setAttribute('aria-pressed', 'false');
+    });
+    document.body.classList.remove('tool-preview-is-expanded');
   };
 
   const switchTool = target => {
     const typeByTarget = { semitonos: 'halftone', 'eliminar-fondo': 'background', 'mejorar-calidad': 'quality' };
     activeTool = typeByTarget[target] || 'halftone';
+    closeExpandedPreview();
     document.querySelectorAll('.tool-panel').forEach(panel => { panel.hidden = panel.id !== target; });
     document.querySelectorAll('[data-tool-target]').forEach(button => {
       const selected = button.dataset.toolTarget === target;
@@ -849,20 +965,23 @@
     updateDocumentInfo(activeTool);
     updateHistoryButtons();
     if (history.replaceState) history.replaceState(null, '', `#${target}`);
+    applyPreviewZoom(activeTool);
+    centerPreview(activeTool);
   };
 
-  const processFile = async (file, type, input = null) => {
+  const processFile = async (file, type, input = null, internalTransfer = false) => {
     if (!file) return;
     const token = ++uploadTokens[type];
     let source = null;
     let accepted = false;
     try {
       setStatus(`${type}-status`, 'Cargando imagen…');
-      source = await loadImageFile(file);
+      source = await loadImageFile(file, 4500, internalTransfer);
       if (token !== uploadTokens[type]) {
         URL.revokeObjectURL(source.sourceUrl);
-        return;
+        return false;
       }
+      setToolResultReady(type, false);
       const previousSourceUrl = states[type]?.sourceUrl;
       previewViews[type] = 'result';
       updatePreviewButtons(type);
@@ -893,12 +1012,58 @@
       }
       if (previousSourceUrl) URL.revokeObjectURL(previousSourceUrl);
       updateDocumentInfo(type);
+      if (input) input.value = '';
+      centerPreview(type);
+      return true;
     } catch (error) {
-      if (token !== uploadTokens[type]) return;
+      if (token !== uploadTokens[type]) return false;
       if (source?.sourceUrl && !accepted) URL.revokeObjectURL(source.sourceUrl);
       setStatus(`${type}-status`, error.message);
       showToast(error.message);
       if (input) input.value = '';
+      return false;
+    }
+  };
+
+  const canvasToFile = (canvas, filename) => new Promise((resolve, reject) => {
+    canvas.toBlob(blob => {
+      if (!blob) return reject(new Error('No se pudo preparar el resultado.'));
+      resolve(new File([blob], filename, { type: 'image/png' }));
+    }, 'image/png');
+  });
+
+  const prepareTransferCanvas = async type => {
+    if (!states[type]) throw new Error('Primero cargá y procesá una imagen.');
+    if (type === 'quality') {
+      if (byId('quality-download').disabled) await processQuality();
+      if (byId('quality-download').disabled) throw new Error('No se pudo terminar la mejora de calidad.');
+    } else if (type === 'background') {
+      renderBackground(false);
+    } else {
+      renderHalftone();
+    }
+    return byId(`${type}-canvas`);
+  };
+
+  const transferResult = async (from, to, button) => {
+    if (!states[from]) return;
+    const targetByType = { halftone: 'semitonos', background: 'eliminar-fondo', quality: 'mejorar-calidad' };
+    const originalContent = button.innerHTML;
+    button.disabled = true;
+    button.textContent = 'Preparando…';
+    try {
+      const canvas = await prepareTransferCanvas(from);
+      const file = await canvasToFile(canvas, `${states[from].filename}-${from}.png`);
+      const loaded = await processFile(file, to, null, true);
+      if (!loaded) return;
+      switchTool(targetByType[to], true);
+      showToast('Resultado enviado a la siguiente herramienta. Ya podés seguir trabajándolo.');
+    } catch (error) {
+      console.error('No se pudo compartir el resultado entre herramientas:', error);
+      showToast(error.message || 'No se pudo compartir el resultado.');
+    } finally {
+      button.innerHTML = originalContent;
+      button.disabled = !states[from] || (from === 'quality' && byId('quality-download').disabled);
     }
   };
 
@@ -931,7 +1096,9 @@
   };
 
   const invalidateQualityResult = () => {
+    qualityRevision++;
     if (!states.quality) return;
+    setToolResultReady('quality', false);
     byId('quality-download').disabled = true;
     updateQualityAssessment();
     setStatus('quality-status', 'Cambiaste los ajustes · procesá nuevamente para actualizar la descarga.');
@@ -943,6 +1110,34 @@
     switchTool(initialTarget);
 
     ['halftone', 'background', 'quality'].forEach(setupDropUpload);
+    document.querySelectorAll('.tool-control-group').forEach(group => group.addEventListener('toggle', () => {
+      if (!group.open) return;
+      const controls = group.closest('.tool-controls');
+      controls?.querySelectorAll('.tool-control-group').forEach(sibling => {
+        if (sibling !== group) sibling.open = false;
+      });
+      const content = group.querySelector('.tool-control-content');
+      if (content) content.scrollTop = 0;
+    }));
+    document.querySelectorAll('[data-control-target]').forEach(button => {
+      button.setAttribute('role', 'tab');
+      button.setAttribute('aria-controls', button.dataset.controlTarget);
+      button.setAttribute('aria-label', button.getAttribute('title') || 'Abrir opciones');
+      button.setAttribute('aria-selected', 'false');
+      byId(button.dataset.controlTarget)?.setAttribute('role', 'tabpanel');
+      button.addEventListener('click', () => {
+        const target = byId(button.dataset.controlTarget);
+        const controls = button.closest('.tool-controls');
+        if (!target || !controls) return;
+        const shouldClose = target.open && button.classList.contains('active');
+        controls.querySelectorAll('.tool-control-group').forEach(group => { group.open = !shouldClose && group === target; });
+        controls.querySelectorAll('[data-control-target]').forEach(tab => {
+          const active = !shouldClose && tab === button;
+          tab.classList.toggle('active', active);
+          tab.setAttribute('aria-selected', String(active));
+        });
+      });
+    });
     document.addEventListener('paste', event => {
       const image = [...(event.clipboardData?.items || [])].find(item => item.type.startsWith('image/'))?.getAsFile();
       if (image) processFile(image, activeTool, byId(`${activeTool}-file`));
@@ -1023,11 +1218,30 @@
     bindRange('quality-brightness', 'quality-brightness-value', '', invalidateQualityResult);
     bindRange('quality-contrast', 'quality-contrast-value', '', invalidateQualityResult);
     bindRange('quality-saturation', 'quality-saturation-value', '', invalidateQualityResult);
+    bindRange('quality-clarity', 'quality-clarity-value', '', invalidateQualityResult);
     byId('quality-width-cm').addEventListener('input', invalidateQualityResult);
     byId('quality-smoothing').addEventListener('change', invalidateQualityResult);
     document.querySelectorAll('[data-quality-width]').forEach(button => button.addEventListener('click', () => {
       byId('quality-width-cm').value = button.dataset.qualityWidth;
       document.querySelectorAll('[data-quality-width]').forEach(item => item.classList.toggle('active', item === button));
+      invalidateQualityResult();
+      recordHistory('quality');
+    }));
+    const qualityPresets = {
+      dtf: { smoothing: 'illustration', brightness: 0, contrast: 6, saturation: 8, clarity: 24, sharpness: 50 },
+      illustration: { smoothing: 'illustration', brightness: 0, contrast: 10, saturation: 14, clarity: 30, sharpness: 58 },
+      photo: { smoothing: 'photo', brightness: 1, contrast: 5, saturation: 6, clarity: 18, sharpness: 42 },
+      logo: { smoothing: 'logo', brightness: 0, contrast: 12, saturation: 6, clarity: 8, sharpness: 68 }
+    };
+    document.querySelectorAll('[data-quality-preset]').forEach(button => button.addEventListener('click', () => {
+      const preset = qualityPresets[button.dataset.qualityPreset];
+      if (!preset) return;
+      byId('quality-smoothing').value = preset.smoothing;
+      ['brightness', 'contrast', 'saturation', 'clarity', 'sharpness'].forEach(name => {
+        byId(`quality-${name}`).value = preset[name];
+        byId(`quality-${name}-value`).textContent = String(preset[name]);
+      });
+      document.querySelectorAll('[data-quality-preset]').forEach(item => item.classList.toggle('active', item === button));
       invalidateQualityResult();
       recordHistory('quality');
     }));
@@ -1051,15 +1265,58 @@
     });
 
     document.querySelectorAll('[data-preview-tool]').forEach(button => button.addEventListener('click', () => showPreview(button.dataset.previewTool, button.dataset.previewView)));
+    Object.keys(previewViews).forEach(updatePreviewButtons);
+    document.querySelectorAll('[data-preview-expand]').forEach(button => button.addEventListener('click', () => {
+      const type = button.dataset.previewExpand;
+      const shell = byId(`${type}-preview`)?.closest('.tool-preview-shell');
+      if (!shell) return;
+      const willExpand = !shell.classList.contains('preview-expanded');
+      closeExpandedPreview();
+      if (willExpand) {
+        shell.classList.add('preview-expanded');
+        button.classList.add('active');
+        button.setAttribute('aria-pressed', 'true');
+        document.body.classList.add('tool-preview-is-expanded');
+      }
+      applyPreviewZoom(type);
+      centerPreview(type);
+    }));
+    document.querySelectorAll('[data-hold-original]').forEach(button => {
+      let previousView = null;
+      const reveal = event => {
+        const type = button.dataset.holdOriginal;
+        if (!states[type] || previousView !== null) return;
+        event.preventDefault();
+        previousView = previewViews[type];
+        showOriginal(type);
+        centerPreview(type);
+      };
+      const restore = () => {
+        if (previousView === null) return;
+        const type = button.dataset.holdOriginal;
+        const view = previousView;
+        previousView = null;
+        showPreview(type, view);
+      };
+      button.addEventListener('pointerdown', reveal);
+      button.addEventListener('pointerup', restore);
+      button.addEventListener('pointercancel', restore);
+      button.addEventListener('pointerleave', restore);
+      button.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') reveal(event);
+      });
+      button.addEventListener('keyup', event => {
+        if (event.key === 'Enter' || event.key === ' ') restore();
+      });
+      button.addEventListener('blur', restore);
+    });
+    document.querySelectorAll('[data-transfer-from][data-transfer-to]').forEach(button => button.addEventListener('click', () => {
+      transferResult(button.dataset.transferFrom, button.dataset.transferTo, button);
+    }));
     document.querySelectorAll('[data-preview-zoom]').forEach(select => select.addEventListener('change', () => {
-      const canvas = byId(`${select.dataset.previewZoom}-canvas`);
-      const image = byId(`${select.dataset.previewZoom}-original`);
-      canvas.style.width = `${select.value}%`;
-      canvas.style.maxWidth = 'none';
-      canvas.style.maxHeight = 'none';
-      image.style.width = `${select.value}%`;
-      image.style.maxWidth = 'none';
-      image.style.maxHeight = 'none';
+      const type = select.dataset.previewZoom;
+      applyPreviewZoom(type);
+      centerPreview(type);
     }));
     document.querySelectorAll('[data-preview-background]').forEach(select => select.addEventListener('change', () => {
       const preview = byId(`${select.dataset.previewBackground}-preview`);
@@ -1067,6 +1324,20 @@
       preview.classList.toggle('preview-dark', select.value === 'dark');
       preview.classList.toggle('preview-light', select.value === 'light');
     }));
+    document.addEventListener('keydown', event => {
+      if (event.key !== 'Escape' || !document.body.classList.contains('tool-preview-is-expanded')) return;
+      closeExpandedPreview();
+      applyPreviewZoom(activeTool);
+      centerPreview(activeTool);
+    });
+    let previewResizeFrame = 0;
+    window.addEventListener('resize', () => {
+      cancelAnimationFrame(previewResizeFrame);
+      previewResizeFrame = requestAnimationFrame(() => {
+        applyPreviewZoom(activeTool);
+        centerPreview(activeTool);
+      });
+    });
     window.addEventListener('beforeunload', () => Object.values(states).forEach(state => {
       if (state?.sourceUrl) URL.revokeObjectURL(state.sourceUrl);
     }));
