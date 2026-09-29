@@ -775,7 +775,7 @@ body {
   background: transparent;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr);
   height: 100%;
   min-height: 0;
 }
@@ -783,7 +783,29 @@ body {
 .tool-preview-toolbar { grid-column: 1; grid-row: 1; min-width: 0; margin: 0 0.45rem 0.55rem 0; }
 .tool-transfer-actions { grid-column: 2; grid-row: 1; margin: 0 0 0.55rem; }
 .tool-transfer-actions span { display: none; }
-.tool-preview { grid-column: 1 / -1; grid-row: 2; }
+.tool-result-strip {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2rem;
+  margin-bottom: 0.45rem;
+  padding: 0.35rem 0.65rem;
+  border: 1px solid #27272a;
+  border-radius: 0.7rem;
+  background: #0c0c0e;
+  color: #a1a1aa;
+  font-size: 0.69rem;
+  line-height: 1.3;
+}
+.tool-result-strip > i { flex: 0 0 auto; color: #facc15; }
+.tool-result-strip > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tool-result-strip > strong { margin-left: auto; color: #facc15; white-space: nowrap; }
+.tool-result-strip > strong.good { color: #22c55e; }
+.tool-result-strip > strong.medium { color: #facc15; }
+.tool-result-strip > strong.low { color: #fb7185; }
+.tool-preview { grid-column: 1 / -1; grid-row: 3; }
 
 .tool-preview-toolbar {
   display: flex;
@@ -1006,11 +1028,19 @@ body {
   border-radius: 0;
   background: #09090b;
   padding: 0;
-  scrollbar-width: none;
+  scrollbar-width: thin;
+  scrollbar-color: #52525b #18181b;
   contain: layout paint;
 }
 
-.tool-preview::-webkit-scrollbar { display: none; }
+.tool-preview::-webkit-scrollbar { width: 8px; height: 8px; }
+.tool-preview::-webkit-scrollbar-track { background: #18181b; }
+.tool-preview::-webkit-scrollbar-thumb { border-radius: 999px; background: #52525b; }
+.tool-preview::-webkit-scrollbar-thumb:hover { background: #71717a; }
+.tool-preview.is-pannable { cursor: grab; }
+.tool-preview.is-panning { cursor: grabbing; user-select: none; }
+.tool-preview.is-panning canvas,
+.tool-preview.is-panning img { pointer-events: none; }
 
 .tool-preview canvas,
 .tool-original-image {

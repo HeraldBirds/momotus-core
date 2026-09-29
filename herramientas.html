@@ -98,9 +98,12 @@
               <button type="button" data-halftone-auto="midtones">Auto medios</button>
               <button type="button" data-halftone-auto="highlights">Auto luces</button>
               <button type="button" data-halftone-auto="transitions">Auto transiciones</button>
+              <button type="button" data-halftone-auto="dominant">Color dominante</button>
+              <button type="button" data-halftone-auto="vivid">Colores vivos</button>
+              <button type="button" data-halftone-auto="neutral">Colores neutros</button>
               <p class="tool-preset-label"><i class="fa-solid fa-sliders"></i> Estilos preparados</p>
               <button type="button" data-halftone-preset="suave">Sombra suave</button>
-              <button type="button" data-halftone-preset="balanceado" class="active">Balanceado</button>
+              <button type="button" data-halftone-preset="balanceado">Balanceado</button>
               <button type="button" data-halftone-preset="fino">Detalle fino</button>
               <button type="button" data-halftone-preset="lineas">Líneas</button>
             </div>
@@ -109,6 +112,7 @@
             <summary><span><i class="fa-solid fa-bullseye"></i> Aplicación selectiva</span><i class="fa-solid fa-chevron-down"></i></summary>
             <div class="tool-control-content">
             <label class="tool-field-row"><span>Zona tonal</span><select id="halftone-range"><option value="transitions">Sombras y transiciones</option><option value="shadows">Sombras</option><option value="midtones">Medios tonos</option><option value="highlights">Luces</option><option value="all">Toda la imagen</option></select></label>
+            <label class="tool-field-row"><span>Rango de color</span><select id="halftone-hue-range"><option value="all">Todos los colores</option><option value="dominant">Color dominante</option><option value="vivid">Colores vivos</option><option value="neutral">Grises y neutros</option><option value="reds">Rojos</option><option value="oranges">Naranjas</option><option value="yellows">Amarillos</option><option value="greens">Verdes</option><option value="cyans">Cian y turquesa</option><option value="blues">Azules</option><option value="purples">Morados y magentas</option></select></label>
             <label class="tool-field">Cantidad de trama <span id="halftone-amount-value">55%</span><input id="halftone-amount" type="range" min="10" max="100" value="55"></label>
             <label class="tool-field">Proteger colores sólidos <span id="halftone-solid-protection-value">75%</span><input id="halftone-solid-protection" type="range" min="0" max="100" value="75"></label>
             <label class="tool-check"><input id="halftone-keep-solids" type="checkbox" checked><span>Conservar las zonas sin trama</span></label>
@@ -148,6 +152,7 @@
             <label>Zoom <select data-preview-zoom="halftone"><option value="fit">Ajustar</option><option value="detail" selected>Detalle</option><option value="width">Ancho</option><option value="100">100%</option><option value="150">150%</option><option value="200">200%</option><option value="300">300%</option><option value="400">400%</option></select></label>
           </div>
           <div class="tool-transfer-actions"><span>Usar este resultado en:</span><button type="button" data-transfer-from="halftone" data-transfer-to="quality" disabled><i class="fa-solid fa-sliders"></i> Calidad</button><button type="button" data-transfer-from="halftone" data-transfer-to="background" disabled><i class="fa-solid fa-eraser"></i> Fondo</button></div>
+          <div class="tool-result-strip"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><span id="halftone-result-info" role="status" aria-live="polite">Subí una imagen para comenzar.</span></div>
           <div id="halftone-preview" class="tool-preview"><img id="halftone-original" class="tool-original-image" alt="Imagen original para semitono" hidden><canvas id="halftone-canvas" aria-label="Vista previa del semitono"></canvas></div>
         </div>
       </div>
@@ -202,6 +207,7 @@
             <label>Zoom <select data-preview-zoom="background"><option value="fit">Ajustar</option><option value="detail" selected>Detalle</option><option value="width">Ancho</option><option value="100">100%</option><option value="150">150%</option><option value="200">200%</option><option value="300">300%</option><option value="400">400%</option></select></label>
           </div>
           <div class="tool-transfer-actions"><span>Continuar con:</span><button type="button" data-transfer-from="background" data-transfer-to="quality" disabled><i class="fa-solid fa-sliders"></i> Calidad</button><button type="button" data-transfer-from="background" data-transfer-to="halftone" disabled><i class="fa-solid fa-circle-half-stroke"></i> Semitonos</button></div>
+          <div class="tool-result-strip"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><span id="background-result-info" role="status" aria-live="polite">Funciona mejor con fondos blancos, negros o de un solo color.</span></div>
           <div id="background-preview" class="tool-preview checkerboard"><img id="background-original" class="tool-original-image" alt="Imagen original antes de eliminar el color" hidden><canvas id="background-canvas" aria-label="Vista previa sin fondo"></canvas></div>
         </div>
       </div>
@@ -270,6 +276,7 @@
             <label>Zoom <select data-preview-zoom="quality"><option value="fit">Ajustar</option><option value="detail" selected>Detalle</option><option value="width">Ancho</option><option value="100">100%</option><option value="150">150%</option><option value="200">200%</option><option value="300">300%</option><option value="400">400%</option></select></label>
           </div>
           <div class="tool-transfer-actions"><span>Continuar con:</span><button type="button" data-transfer-from="quality" data-transfer-to="background" disabled><i class="fa-solid fa-eraser"></i> Eliminar fondo</button><button type="button" data-transfer-from="quality" data-transfer-to="halftone" disabled><i class="fa-solid fa-circle-half-stroke"></i> Semitonos</button></div>
+          <div class="tool-result-strip"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><span id="quality-result-info" role="status" aria-live="polite">Subí una imagen y escogé el ancho de impresión.</span><strong id="quality-result-assessment"></strong></div>
           <div id="quality-preview" class="tool-preview checkerboard"><img id="quality-original" class="tool-original-image" alt="Imagen original antes de prepararla a 300 DPI" hidden><canvas id="quality-canvas" aria-label="Vista previa de la imagen mejorada"></canvas></div>
         </div>
       </div>
@@ -288,7 +295,20 @@
   <div id="cart-modal-placeholder"></div>
   <script>
     if (window.MOMOTUS_TOOLS_DESKTOP) {
-      document.write('<script src="js/products.js"><\/script><script src="js/script.js"><\/script><script src="js/tools.js"><\/script>');
+      const loadToolsScript = src => new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = src;
+        script.onload = resolve;
+        script.onerror = reject;
+        document.body.appendChild(script);
+      });
+      loadToolsScript('js/tools-shell.js')
+        .then(() => loadToolsScript('js/tools.js'))
+        .catch(error => {
+          console.error('No se pudieron cargar las herramientas:', error);
+          const message = document.getElementById('halftone-result-info');
+          if (message) message.textContent = 'No se pudieron cargar las herramientas. Actualizá la página con Ctrl + F5.';
+        });
     }
   </script>
 </body>

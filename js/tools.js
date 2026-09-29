@@ -5,7 +5,8 @@
   const PIXELS_PER_METER_300_DPI = 11811;
   const MAX_FILE_SIZE = 12 * 1024 * 1024;
   const MAX_WORKING_PIXELS = 12000000;
-  const MAX_OUTPUT_SIDE = 5000;
+  const MAX_INTERNAL_PIXELS = 18000000;
+  const MAX_OUTPUT_SIDE = 6000;
   const MAX_HALFTONE_PIXELS = 18000000;
   const MAX_HALFTONE_SIDE = 6000;
   const ALLOWED_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
@@ -24,9 +25,19 @@
   let activeTool = 'halftone';
   let qualityProcessing = false;
   let qualityRevision = 0;
+  let halftoneRenderRevision = 0;
+  let backgroundRenderRevision = 0;
 
   const byId = id => document.getElementById(id);
-  const setStatus = (id, message) => { const element = byId(id); if (element) element.textContent = message; };
+  const setStatus = (id, message) => {
+    const element = byId(id);
+    if (element) element.textContent = message;
+    const mirror = id.endsWith('-status') ? byId(id.replace('-status', '-result-info')) : null;
+    if (mirror) {
+      mirror.textContent = message;
+      mirror.title = message;
+    }
+  };
   const hexToRgb = hex => ({ r: parseInt(hex.slice(1, 3), 16), g: parseInt(hex.slice(3, 5), 16), b: parseInt(hex.slice(5, 7), 16) });
   const rgbToHex = (r, g, b) => `#${[r, g, b].map(value => Math.round(value).toString(16).padStart(2, '0')).join('')}`;
   const nextFrame = () => new Promise(resolve => requestAnimationFrame(resolve));
@@ -50,8 +61,10 @@
     const url = URL.createObjectURL(file);
     const image = new Image();
     image.onload = () => {
-      const sideScale = maxSide / Math.max(image.naturalWidth, image.naturalHeight);
-      const pixelScale = Math.sqrt(MAX_WORKING_PIXELS / (image.naturalWidth * image.naturalHeight));
+      const pixelLimit = internalTransfer ? MAX_INTERNAL_PIXELS : MAX_WORKING_PIXELS;
+      const effectiveMaxSide = internalTransfer ? MAX_HALFTONE_SIDE : maxSide;
+      const sideScale = effectiveMaxSide / Math.max(image.naturalWidth, image.naturalHeight);
+      const pixelScale = Math.sqrt(pixelLimit / (image.naturalWidth * image.naturalHeight));
       const scale = Math.min(1, sideScale, pixelScale);
       const width = Math.max(1, Math.round(image.naturalWidth * scale));
       const height = Math.max(1, Math.round(image.naturalHeight * scale));
@@ -233,12 +246,16 @@
         let displayScale = fittedScale;
         if (select.value === 'detail') displayScale *= 1.55;
         else if (select.value === 'width') displayScale = availableWidth / intrinsicWidth;
-        else if (select.value !== 'fit') displayScale *= Math.max(0.1, Number(select.value) / 100 || 1);
+        else if (select.value !== 'fit') displayScale = Math.max(0.1, Number(select.value) / 100 || 1);
 
         element.style.width = `${Math.max(1, Math.round(intrinsicWidth * displayScale))}px`;
         element.style.height = 'auto';
         element.style.maxWidth = 'none';
         element.style.maxHeight = 'none';
+      });
+      requestAnimationFrame(() => {
+        const pannable = preview.scrollWidth > preview.clientWidth + 2 || preview.scrollHeight > preview.clientHeight + 2;
+        preview.classList.toggle('is-pannable', pannable);
       });
     });
   };
@@ -251,6 +268,7 @@
     image.src = state.sourceUrl;
     image.hidden = false;
     canvas.hidden = true;
+    drawHistogram(type);
     applyPreviewZoom(type);
   };
 
@@ -259,6 +277,7 @@
     const canvas = byId(`${type}-canvas`);
     image.hidden = true;
     canvas.hidden = false;
+    if (canvas.width && canvas.height) drawHistogram(type, canvas);
     applyPreviewZoom(type);
   };
 
@@ -419,31 +438,50 @@
     return output;
   };
 
-  const prepareBinaryAlphaCanvas = canvas => {
+  const prepareBinaryAlphaCanvas = async canvas => {
     const sourceContext = canvas.getContext('2d', { willReadFrequently: true });
-    const imageData = sourceContext.getImageData(0, 0, canvas.width, canvas.height);
-    const data = imageData.data;
+    const thresholdMatrix = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+    const tileHeight = 256;
+    let output = null;
+    let outputContext = null;
     let hasPartialAlpha = false;
-    for (let index = 0; index < data.length; index += 4) {
-      const alpha = data[index + 3];
-      if (alpha === 0 || alpha === 255) continue;
-      hasPartialAlpha = true;
-      data[index + 3] = alpha >= 128 ? 255 : 0;
-      if (data[index + 3] === 0) data[index] = data[index + 1] = data[index + 2] = 0;
+    for (let top = 0; top < canvas.height; top += tileHeight) {
+      const height = Math.min(tileHeight, canvas.height - top);
+      const imageData = sourceContext.getImageData(0, top, canvas.width, height);
+      const data = imageData.data;
+      let tileChanged = false;
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < canvas.width; x++) {
+          const index = (y * canvas.width + x) * 4;
+          const alpha = data[index + 3];
+          if (alpha === 0 || alpha === 255) continue;
+          hasPartialAlpha = true;
+          tileChanged = true;
+          const threshold = (thresholdMatrix[((top + y) % 4) * 4 + (x % 4)] + 0.5) / 16 * 255;
+          data[index + 3] = alpha >= threshold ? 255 : 0;
+          if (data[index + 3] === 0) data[index] = data[index + 1] = data[index + 2] = 0;
+        }
+      }
+      if (tileChanged) {
+        if (!output) {
+          output = document.createElement('canvas');
+          output.width = canvas.width;
+          output.height = canvas.height;
+          outputContext = output.getContext('2d');
+          outputContext.drawImage(canvas, 0, 0);
+        }
+        outputContext.putImageData(imageData, 0, top);
+      }
+      if (top > 0 && top % (tileHeight * 4) === 0) await nextFrame();
     }
     if (!hasPartialAlpha) return canvas;
-    const output = document.createElement('canvas');
-    output.width = canvas.width;
-    output.height = canvas.height;
-    const context = output.getContext('2d');
-    context.putImageData(imageData, 0, 0);
     return output;
   };
 
-  const downloadCanvas = (canvas, filename) => {
+  const downloadCanvas = async (canvas, filename) => {
     let exportCanvas;
     try {
-      exportCanvas = prepareBinaryAlphaCanvas(canvas);
+      exportCanvas = await prepareBinaryAlphaCanvas(canvas);
     } catch (error) {
       console.error('No se pudo limpiar la transparencia del PNG:', error);
       showToast('No se pudo preparar la transparencia para descargar.');
@@ -527,6 +565,19 @@
 
   const clampUnit = value => Math.max(0, Math.min(1, value));
   const clampNumber = (value, minimum, maximum) => Math.max(minimum, Math.min(maximum, value));
+  const getHueAndSaturation = (red, green, blue) => {
+    const r = red / 255, g = green / 255, b = blue / 255;
+    const maximum = Math.max(r, g, b), minimum = Math.min(r, g, b);
+    const delta = maximum - minimum;
+    let hue = 0;
+    if (delta > 0) {
+      if (maximum === r) hue = 60 * (((g - b) / delta) % 6);
+      else if (maximum === g) hue = 60 * ((b - r) / delta + 2);
+      else hue = 60 * ((r - g) / delta + 4);
+    }
+    if (hue < 0) hue += 360;
+    return { hue, saturation: maximum === 0 ? 0 : delta / maximum };
+  };
 
   const analyzeHalftoneColors = state => {
     if (state.halftoneColorStats) return state.halftoneColorStats;
@@ -555,33 +606,54 @@
     if (closestDistance > 24) background = null;
     const pixelCount = width * height;
     const step = Math.max(1, Math.floor(pixelCount / 60000));
-    let samples = 0, shadows = 0, midtones = 0, highlights = 0;
-    let luminanceTotal = 0, luminanceSquared = 0, saturationTotal = 0;
-    for (let pixel = 0; pixel < pixelCount; pixel += step) {
-      const index = pixel * 4;
-      const alpha = data[index + 3];
-      if (alpha < 32) continue;
-      const red = data[index], green = data[index + 1], blue = data[index + 2];
-      if (background && perceptualColorDistance(red, green, blue, background) < 18) continue;
-      const luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue;
-      const saturation = Math.max(red, green, blue) - Math.min(red, green, blue);
-      samples++;
-      luminanceTotal += luminance;
-      luminanceSquared += luminance * luminance;
-      saturationTotal += saturation;
-      if (luminance < 85) shadows++;
-      else if (luminance > 180) highlights++;
-      else midtones++;
-    }
+    const collect = excludeBackground => {
+      let samples = 0, shadows = 0, midtones = 0, highlights = 0, colorful = 0, neutral = 0;
+      let luminanceTotal = 0, luminanceSquared = 0, saturationTotal = 0;
+      const hueBins = new Uint32Array(12);
+      for (let pixel = 0; pixel < pixelCount; pixel += step) {
+        const index = pixel * 4;
+        const alpha = data[index + 3];
+        if (alpha < 32) continue;
+        const red = data[index], green = data[index + 1], blue = data[index + 2];
+        if (excludeBackground && background && perceptualColorDistance(red, green, blue, background) < 18) continue;
+        const luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+        const color = getHueAndSaturation(red, green, blue);
+        const saturation = color.saturation * 255;
+        samples++;
+        luminanceTotal += luminance;
+        luminanceSquared += luminance * luminance;
+        saturationTotal += saturation;
+        if (color.saturation >= 0.18) {
+          colorful++;
+          hueBins[Math.min(11, Math.floor(color.hue / 30))]++;
+        } else neutral++;
+        if (luminance < 85) shadows++;
+        else if (luminance > 180) highlights++;
+        else midtones++;
+      }
+      return { samples, shadows, midtones, highlights, colorful, neutral, luminanceTotal, luminanceSquared, saturationTotal, hueBins };
+    };
+    const allOpaque = collect(false);
+    let analysis = background ? collect(true) : allOpaque;
+    if (analysis.samples < Math.max(16, allOpaque.samples * 0.05)) analysis = allOpaque;
+    let { samples, shadows, midtones, highlights, colorful, neutral, luminanceTotal, luminanceSquared, saturationTotal, hueBins } = analysis;
     if (!samples) samples = 1;
     const mean = luminanceTotal / samples;
     const spread = Math.sqrt(Math.max(0, luminanceSquared / samples - mean * mean));
+    let dominantHueBin = 0;
+    for (let index = 1; index < hueBins.length; index++) {
+      if (hueBins[index] > hueBins[dominantHueBin]) dominantHueBin = index;
+    }
     state.halftoneColorStats = {
       shadows: shadows / samples,
       midtones: midtones / samples,
       highlights: highlights / samples,
       spread,
-      saturation: saturationTotal / samples
+      saturation: saturationTotal / samples,
+      colorful: colorful / samples,
+      neutral: neutral / samples,
+      dominantHue: dominantHueBin * 30 + 15,
+      dominantRatio: colorful ? hueBins[dominantHueBin] / colorful : 0
     };
     return state.halftoneColorStats;
   };
@@ -589,11 +661,18 @@
   const buildAutomaticHalftonePreset = (state, requestedRange) => {
     const stats = analyzeHalftoneColors(state);
     let range = requestedRange;
+    let hueRange = 'all';
+    if (['dominant', 'vivid', 'neutral'].includes(requestedRange)) {
+      hueRange = requestedRange;
+      range = requestedRange === 'neutral' ? 'transitions' : 'midtones';
+    }
+    if (requestedRange === 'dominant' && stats.colorful < 0.08) hueRange = 'neutral';
     if (range === 'smart') {
       if (stats.shadows >= 0.46) range = 'shadows';
       else if (stats.highlights >= 0.48) range = 'highlights';
       else if (stats.midtones >= 0.5) range = 'midtones';
       else range = 'transitions';
+      if (stats.neutral >= 0.82) hueRange = 'neutral';
     }
     const baseAmount = { shadows: 42, midtones: 48, highlights: 38, transitions: 54 }[range] || 50;
     const frequency = clampNumber(Math.round(48 + stats.spread / 7 + stats.saturation / 30), 45, 70);
@@ -608,12 +687,14 @@
       angle: 45,
       shape: range === 'highlights' ? 'ellipse' : 'circle',
       contrast: clampNumber(Math.round(8 + (stats.spread - 35) / 4), 6, 24),
-      keepSolids: true
+      keepSolids: true,
+      hueRange
     };
   };
 
   const applyHalftonePreset = (preset, button) => {
     byId('halftone-range').value = preset.range;
+    byId('halftone-hue-range').value = preset.hueRange || 'all';
     byId('halftone-amount').value = preset.amount;
     byId('halftone-solid-protection').value = preset.protection;
     byId('halftone-frequency').value = preset.frequency;
@@ -628,7 +709,20 @@
     recordHistory('halftone');
   };
 
-  const halftoneSelectionStrength = (range, luminance, variation, protection, amount) => {
+  const halftoneColorStrength = (hueRange, red, green, blue, stats) => {
+    if (hueRange === 'all') return 1;
+    const color = getHueAndSaturation(red, green, blue);
+    if (hueRange === 'neutral') return clampUnit((0.32 - color.saturation) / 0.18);
+    if (hueRange === 'vivid') return clampUnit((color.saturation - 0.12) / 0.35);
+    if (color.saturation < 0.08) return 0;
+    const centers = { reds: 0, oranges: 30, yellows: 60, greens: 120, cyans: 180, blues: 225, purples: 300 };
+    const targetHue = hueRange === 'dominant' ? stats.dominantHue : centers[hueRange];
+    if (!Number.isFinite(targetHue)) return 1;
+    const distance = Math.min(Math.abs(color.hue - targetHue), 360 - Math.abs(color.hue - targetHue));
+    return clampUnit((65 - distance) / 35) * clampUnit(color.saturation / 0.22);
+  };
+
+  const halftoneSelectionStrength = (range, luminance, variation, protection, amount, colorStrength = 1) => {
     const shadowWeight = clampUnit((175 - luminance) / 145);
     const highlightWeight = clampUnit((luminance - 80) / 155);
     const midtoneWeight = clampUnit(1 - Math.abs(luminance - 128) / 105);
@@ -639,7 +733,7 @@
     else if (range === 'midtones') rangeWeight = midtoneWeight;
     else if (range === 'highlights') rangeWeight = highlightWeight;
     const solidProtection = (1 - protection) + protection * Math.max(0.15, detailWeight);
-    return clampUnit(rangeWeight * solidProtection * amount);
+    return clampUnit(rangeWeight * solidProtection * amount * colorStrength);
   };
 
   const halftoneGridThreshold = (gridX, gridY) => {
@@ -716,7 +810,7 @@
     };
   };
 
-  const getHalftoneBackgroundMask = (state, cellSize, tolerance, mode) => {
+  const getHalftoneBackgroundMask = async (state, cellSize, tolerance, mode, isCancelled = () => false) => {
     if (mode !== 'edge') return null;
     const cacheKey = `${cellSize.toFixed(3)}:${tolerance}`;
     if (state.halftoneMaskCache?.key === cacheKey) return state.halftoneMaskCache;
@@ -734,6 +828,10 @@
         const matchesEdgeColor = target && sample.a > 0.2
           && perceptualColorDistance(sample.r, sample.g, sample.b, target) <= tolerance;
         candidates[row * columns + column] = transparent || matchesEdgeColor ? 1 : 0;
+      }
+      if (row > 0 && row % 36 === 0) {
+        await nextFrame();
+        if (isCancelled()) return null;
       }
     }
 
@@ -761,14 +859,19 @@
       if (column + 1 < columns) enqueue(index + 1);
       if (row > 0) enqueue(index - columns);
       if (row + 1 < rows) enqueue(index + columns);
+      if (queueStart % 120000 === 0) {
+        await nextFrame();
+        if (isCancelled()) return null;
+      }
     }
     state.halftoneMaskCache = { key: cacheKey, background, columns, rows };
     return state.halftoneMaskCache;
   };
 
-  const renderHalftone = () => {
+  const renderHalftone = async () => {
     const sourceState = states.halftone;
     if (!sourceState) return;
+    const renderRevision = ++halftoneRenderRevision;
     previewViews.halftone = 'result';
     updatePreviewButtons('halftone');
     showResult('halftone');
@@ -776,6 +879,9 @@
     const context = canvas.getContext('2d');
     const requestedWidthCm = Math.max(8, Math.min(38, Number(byId('halftone-width-cm').value) || 28));
     byId('halftone-width-cm').value = String(requestedWidthCm);
+    setStatus('halftone-status', 'Preparando la imagen para el semitono…');
+    await nextFrame();
+    if (renderRevision !== halftoneRenderRevision || sourceState !== states.halftone) return false;
     const state = prepareHalftoneOutput(sourceState, requestedWidthCm);
     const frequency = Number(byId('halftone-frequency').value);
     const cellSize = EXPORT_DPI / frequency;
@@ -791,6 +897,7 @@
     const maskMode = byId('halftone-mask-mode').value;
     const maskTolerance = Number(byId('halftone-mask-tolerance').value);
     const tonalRange = byId('halftone-range').value;
+    const hueRange = byId('halftone-hue-range').value;
     const amount = Number(byId('halftone-amount').value) / 100;
     const solidProtection = Number(byId('halftone-solid-protection').value) / 100;
     const keepSolids = byId('halftone-keep-solids').checked;
@@ -798,7 +905,7 @@
     const backgroundColor = byId('halftone-background-color').value;
     const renderKey = JSON.stringify({
       requestedWidthCm, frequency, maximumDotMm, angleDegrees, contrast, invert, transparent,
-      shape, colorMode, maskMode, maskTolerance, tonalRange, amount, solidProtection,
+      shape, colorMode, maskMode, maskTolerance, tonalRange, hueRange, amount, solidProtection,
       keepSolids, inkColor, backgroundColor
     });
     if (sourceState.halftoneRenderKey === renderKey && canvas.width === state.width && canvas.height === state.height) {
@@ -806,11 +913,11 @@
       if (sourceState.halftoneStatus) setStatus('halftone-status', sourceState.halftoneStatus);
       applyPreviewZoom('halftone');
       centerPreview('halftone');
-      return;
+      return true;
     }
-    canvas.width = state.width;
-    canvas.height = state.height;
-    context.clearRect(0, 0, canvas.width, canvas.height);
+    setStatus('halftone-status', 'Generando semitono profesional…');
+    await nextFrame();
+    if (renderRevision !== halftoneRenderRevision || sourceState !== states.halftone) return false;
     const workCanvas = document.createElement('canvas');
     workCanvas.width = state.width;
     workCanvas.height = state.height;
@@ -820,7 +927,15 @@
     const cosine = Math.cos(angle), sine = Math.sin(angle);
     const centerX = state.width / 2, centerY = state.height / 2;
     const diagonal = Math.hypot(state.width, state.height);
-    const backgroundMask = getHalftoneBackgroundMask(state, cellSize, maskTolerance, maskMode);
+    const backgroundMask = await getHalftoneBackgroundMask(
+      state,
+      cellSize,
+      maskTolerance,
+      maskMode,
+      () => renderRevision !== halftoneRenderRevision || sourceState !== states.halftone
+    );
+    if (renderRevision !== halftoneRenderRevision || sourceState !== states.halftone) return false;
+    const colorStats = analyzeHalftoneColors(sourceState);
     let gridRow = 0;
     for (let gridY = -diagonal / 2; gridY <= diagonal / 2; gridY += cellSize, gridRow++) {
       let gridColumn = 0;
@@ -842,7 +957,8 @@
         const green = Math.max(0, Math.min(255, factor * (sample.g - 128) + 128));
         const blue = Math.max(0, Math.min(255, factor * (sample.b - 128) + 128));
         const luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue;
-        const selectionStrength = halftoneSelectionStrength(tonalRange, luminance, sample.variation, solidProtection, amount);
+        const colorStrength = halftoneColorStrength(hueRange, red, green, blue, colorStats);
+        const selectionStrength = halftoneSelectionStrength(tonalRange, luminance, sample.variation, solidProtection, amount, colorStrength);
         if (selectionStrength < halftoneGridThreshold(gridColumn, gridRow)) continue;
         const tone = invert ? luminance / 255 : 1 - luminance / 255;
         const coverage = colorMode === 'original' ? Math.max(0.18, tone) : tone;
@@ -853,7 +969,14 @@
           : inkColor;
         if (radius >= 0.25) drawHalftoneShape(workContext, shape, x, y, radius, angle);
       }
+      if (gridRow > 0 && gridRow % 28 === 0) {
+        await nextFrame();
+        if (renderRevision !== halftoneRenderRevision || sourceState !== states.halftone) return false;
+      }
     }
+    canvas.width = state.width;
+    canvas.height = state.height;
+    context.clearRect(0, 0, canvas.width, canvas.height);
     if (!transparent) {
       context.fillStyle = backgroundColor;
       context.fillRect(0, 0, canvas.width, canvas.height);
@@ -869,18 +992,24 @@
     setStatus('halftone-status', sourceState.halftoneStatus);
     sourceState.halftoneRenderKey = renderKey;
     delete previewBoundsCache.halftone;
+    drawHistogram('halftone', canvas);
     applyPreviewZoom('halftone');
     centerPreview('halftone');
+    return true;
   };
 
-  const renderBackground = (maskPreview = false) => {
+  const renderBackground = async (maskPreview = false) => {
     const state = states.background;
     if (!state) return;
+    const renderRevision = ++backgroundRenderRevision;
     previewViews.background = maskPreview ? 'mask' : 'result';
     updatePreviewButtons('background');
     showResult('background');
     const canvas = byId('background-canvas');
     const context = canvas.getContext('2d');
+    setStatus('background-status', 'Preparando la selección de color…');
+    await nextFrame();
+    if (renderRevision !== backgroundRenderRevision || state !== states.background) return false;
     const output = new ImageData(new Uint8ClampedArray(state.imageData.data), state.width, state.height);
     const key = hexToRgb(byId('background-color').value);
     const tolerance = Number(byId('background-tolerance').value);
@@ -889,6 +1018,7 @@
     const decontaminate = mode === 'remove' && byId('background-decontaminate').checked;
     const data = output.data;
     let affected = 0;
+    setStatus('background-status', 'Analizando y limpiando el color…');
     for (let index = 0; index < data.length; index += 4) {
       const originalAlpha = data[index + 3];
       const distance = perceptualColorDistance(data[index], data[index + 1], data[index + 2], key);
@@ -907,6 +1037,10 @@
         data[index + 2] = clampChannel((data[index + 2] - (1 - coverage) * key.b) / coverage);
       }
       if (data[index + 3] < originalAlpha) affected++;
+      if (index > 0 && index % 1000000 === 0) {
+        await nextFrame();
+        if (renderRevision !== backgroundRenderRevision || state !== states.background) return false;
+      }
     }
     if (maskPreview) {
       for (let index = 0; index < data.length; index += 4) {
@@ -915,6 +1049,10 @@
         data[index + 1] = maskValue;
         data[index + 2] = maskValue;
         data[index + 3] = 255;
+        if (index > 0 && index % 1600000 === 0) {
+          await nextFrame();
+          if (renderRevision !== backgroundRenderRevision || state !== states.background) return false;
+        }
       }
     }
     canvas.width = state.width;
@@ -926,13 +1064,15 @@
     const previewLabel = maskPreview ? ' · máscara: blanco conserva, negro elimina' : ' · salida 300 DPI';
     setStatus('background-status', `${percentage}% de píxeles ${action}${previewLabel}.`);
     delete previewBoundsCache.background;
+    drawHistogram('background', canvas);
     applyPreviewZoom('background');
     centerPreview('background');
+    return true;
   };
 
   const renderActiveBackground = () => renderBackground(previewViews.background === 'mask');
 
-  const pickBackgroundColor = (clientX = null, clientY = null) => {
+  const pickBackgroundColor = (clientX = null, clientY = null, saveHistory = false) => {
     const state = states.background;
     if (!state) return;
     let x = 0, y = 0;
@@ -945,6 +1085,7 @@
     const data = state.imageData.data;
     byId('background-color').value = rgbToHex(data[index], data[index + 1], data[index + 2]);
     renderActiveBackground();
+    if (saveHistory) recordHistory('background');
   };
 
   const createProgressiveSource = async (state, targetWidth, targetHeight, smoothing) => {
@@ -975,41 +1116,54 @@
   const enhanceCanvas = async (canvas, sharpness, clarity) => {
     if (sharpness <= 0 && clarity <= 0) return;
     const context = canvas.getContext('2d');
-    const source = context.getImageData(0, 0, canvas.width, canvas.height);
-    const output = context.createImageData(canvas.width, canvas.height);
-    const src = source.data, dst = output.data, width = canvas.width, height = canvas.height;
+    const sourceCanvas = copyCanvas(canvas);
+    const sourceContext = sourceCanvas.getContext('2d', { willReadFrequently: true });
+    const width = canvas.width, height = canvas.height;
     const sharpAmount = Math.min(0.65, sharpness * 0.006);
     const clarityAmount = Math.min(0.32, clarity * 0.0045);
-    dst.set(src);
-    for (let y = 2; y < height - 2; y++) {
-      for (let x = 2; x < width - 2; x++) {
-        const index = (y * width + x) * 4;
-        const alpha = src[index + 3];
+    const tileHeight = 192;
+    for (let outputTop = 0; outputTop < height; outputTop += tileHeight) {
+      const outputBottom = Math.min(height, outputTop + tileHeight);
+      const sourceTop = Math.max(0, outputTop - 2);
+      const sourceBottom = Math.min(height, outputBottom + 2);
+      const source = sourceContext.getImageData(0, sourceTop, width, sourceBottom - sourceTop);
+      const output = new ImageData(new Uint8ClampedArray(source.data), width, source.height);
+      const src = source.data, dst = output.data, localHeight = source.height;
+      const firstRow = Math.max(2, outputTop - sourceTop);
+      const lastRow = Math.min(localHeight - 2, outputBottom - sourceTop);
+      for (let y = firstRow; y < lastRow; y++) {
+        for (let x = 2; x < width - 2; x++) {
+          const index = (y * width + x) * 4;
+          const alpha = src[index + 3];
         const edgeAlphaDifference = Math.max(
           Math.abs(alpha - src[index - 1]),
           Math.abs(alpha - src[index + 7]),
           Math.abs(alpha - src[index - width * 4 + 3]),
           Math.abs(alpha - src[index + width * 4 + 3])
         );
-        if (alpha < 200 || edgeAlphaDifference > 24) continue;
-        for (let channel = 0; channel < 3; channel++) {
-          const center = src[index + channel];
-          const nearAverage = (
-            src[index - 4 + channel] + src[index + 4 + channel]
-            + src[index - width * 4 + channel] + src[index + width * 4 + channel]
-          ) / 4;
-          const farAverage = (
-            src[index - 8 + channel] + src[index + 8 + channel]
-            + src[index - width * 8 + channel] + src[index + width * 8 + channel]
-          ) / 4;
-          const fineDetail = Math.abs(center - nearAverage) >= 2 ? center - nearAverage : 0;
-          const localContrast = Math.abs(center - farAverage) >= 4 ? center - farAverage : 0;
-          dst[index + channel] = clampChannel(center + fineDetail * sharpAmount + localContrast * clarityAmount);
+          if (alpha < 200 || edgeAlphaDifference > 24) continue;
+          for (let channel = 0; channel < 3; channel++) {
+            const center = src[index + channel];
+            const nearAverage = (
+              src[index - 4 + channel] + src[index + 4 + channel]
+              + src[index - width * 4 + channel] + src[index + width * 4 + channel]
+            ) / 4;
+            const farAverage = (
+              src[index - 8 + channel] + src[index + 8 + channel]
+              + src[index - width * 8 + channel] + src[index + width * 8 + channel]
+            ) / 4;
+            const fineDetail = Math.abs(center - nearAverage) >= 2 ? center - nearAverage : 0;
+            const localContrast = Math.abs(center - farAverage) >= 4 ? center - farAverage : 0;
+            dst[index + channel] = clampChannel(center + fineDetail * sharpAmount + localContrast * clarityAmount);
+          }
         }
       }
-      if (y % 64 === 0) await nextFrame();
+      const cropTop = outputTop - sourceTop;
+      context.putImageData(output, 0, sourceTop, 0, cropTop, width, outputBottom - outputTop);
+      await nextFrame();
     }
-    context.putImageData(output, 0, 0);
+    sourceCanvas.width = 1;
+    sourceCanvas.height = 1;
   };
 
   const updateQualityAssessment = () => {
@@ -1030,6 +1184,13 @@
     }
     assessment.classList.add(level);
     assessment.textContent = `${sourceDpi} DPI efectivos antes de ampliar. ${message}`;
+    const mirror = byId('quality-result-assessment');
+    if (mirror) {
+      mirror.classList.remove('good', 'medium', 'low');
+      mirror.classList.add(level);
+      mirror.textContent = `${sourceDpi} DPI de origen`;
+      mirror.title = message;
+    }
   };
 
   const processQuality = async () => {
@@ -1042,7 +1203,7 @@
     byId('quality-width-cm').value = String(requestedWidthCm);
     const requestedWidth = Math.round(requestedWidthCm / 2.54 * EXPORT_DPI);
     const requestedHeight = Math.round(requestedWidth * state.naturalHeight / state.naturalWidth);
-    const safetyScale = Math.min(1, MAX_OUTPUT_SIDE / Math.max(requestedWidth, requestedHeight), Math.sqrt(MAX_WORKING_PIXELS / (requestedWidth * requestedHeight)));
+    const safetyScale = Math.min(1, MAX_OUTPUT_SIDE / Math.max(requestedWidth, requestedHeight), Math.sqrt(MAX_INTERNAL_PIXELS / (requestedWidth * requestedHeight)));
     const width = Math.max(1, Math.round(requestedWidth * safetyScale));
     const height = Math.max(1, Math.round(requestedHeight * safetyScale));
     setStatus('quality-status', 'Procesando imagen…');
@@ -1102,7 +1263,7 @@
   };
 
   const settingIds = {
-    halftone: ['halftone-range', 'halftone-amount', 'halftone-solid-protection', 'halftone-keep-solids', 'halftone-width-cm', 'halftone-frequency', 'halftone-dot-size', 'halftone-mode', 'halftone-mask-mode', 'halftone-mask-tolerance', 'halftone-angle', 'halftone-contrast', 'halftone-shape', 'halftone-color', 'halftone-background-color', 'halftone-transparent', 'halftone-invert'],
+    halftone: ['halftone-range', 'halftone-hue-range', 'halftone-amount', 'halftone-solid-protection', 'halftone-keep-solids', 'halftone-width-cm', 'halftone-frequency', 'halftone-dot-size', 'halftone-mode', 'halftone-mask-mode', 'halftone-mask-tolerance', 'halftone-angle', 'halftone-contrast', 'halftone-shape', 'halftone-color', 'halftone-background-color', 'halftone-transparent', 'halftone-invert'],
     background: ['background-mode', 'background-color', 'background-tolerance', 'background-softness', 'background-decontaminate', 'background-trim'],
     quality: ['quality-width-cm', 'quality-smoothing', 'quality-brightness', 'quality-contrast', 'quality-saturation', 'quality-clarity', 'quality-sharpness']
   };
@@ -1184,13 +1345,16 @@
   };
 
   const resetHalftone = () => {
-    const defaults = { 'halftone-range': 'transitions', 'halftone-amount': '55', 'halftone-solid-protection': '75', 'halftone-keep-solids': true, 'halftone-width-cm': '28', 'halftone-frequency': '55', 'halftone-dot-size': '0.40', 'halftone-mode': 'original', 'halftone-mask-mode': 'edge', 'halftone-mask-tolerance': '38', 'halftone-angle': '45', 'halftone-contrast': '12', 'halftone-shape': 'circle', 'halftone-color': '#000000', 'halftone-background-color': '#ffffff', 'halftone-transparent': true, 'halftone-invert': false };
+    const defaults = { 'halftone-range': 'transitions', 'halftone-hue-range': 'all', 'halftone-amount': '55', 'halftone-solid-protection': '75', 'halftone-keep-solids': true, 'halftone-width-cm': '28', 'halftone-frequency': '55', 'halftone-dot-size': '0.40', 'halftone-mode': 'original', 'halftone-mask-mode': 'edge', 'halftone-mask-tolerance': '38', 'halftone-angle': '45', 'halftone-contrast': '12', 'halftone-shape': 'circle', 'halftone-color': '#000000', 'halftone-background-color': '#ffffff', 'halftone-transparent': true, 'halftone-invert': false };
     applySettings('halftone', defaults);
+    document.querySelectorAll('[data-halftone-preset], [data-halftone-auto]').forEach(item => item.classList.remove('active'));
   };
 
   const resetQuality = () => {
     const defaults = { 'quality-width-cm': '30', 'quality-smoothing': 'illustration', 'quality-brightness': '0', 'quality-contrast': '6', 'quality-saturation': '8', 'quality-clarity': '24', 'quality-sharpness': '50' };
     applySettings('quality', defaults);
+    document.querySelectorAll('[data-quality-preset], [data-quality-width]').forEach(item => item.classList.remove('active'));
+    document.querySelector('[data-quality-preset="dtf"]')?.classList.add('active');
   };
 
   const updatePreviewButtons = type => {
@@ -1338,9 +1502,9 @@
       if (byId('quality-download').disabled) await processQuality();
       if (byId('quality-download').disabled) throw new Error('No se pudo terminar la mejora de calidad.');
     } else if (type === 'background') {
-      renderBackground(false);
+      if (!await renderBackground(false)) throw new Error('El resultado cambió mientras se preparaba. Intentá nuevamente.');
     } else {
-      renderHalftone();
+      if (!await renderHalftone()) throw new Error('El resultado cambió mientras se preparaba. Intentá nuevamente.');
     }
     return byId(`${type}-canvas`);
   };
@@ -1406,6 +1570,8 @@
 
   const initializeTools = () => {
     document.querySelectorAll('[data-tool-target]').forEach(button => button.addEventListener('click', () => switchTool(button.dataset.toolTarget)));
+    document.querySelectorAll('.tool-shortcut[data-tool-target]').forEach(button => button.setAttribute('aria-controls', button.dataset.toolTarget));
+    document.querySelectorAll('.tool-panel').forEach(panel => panel.setAttribute('role', 'tabpanel'));
     const initialTarget = ['semitonos', 'eliminar-fondo', 'mejorar-calidad'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'semitonos';
     switchTool(initialTarget);
 
@@ -1471,7 +1637,7 @@
     });
     byId('halftone-width-cm').addEventListener('input', () => scheduleRender('halftone', renderHalftone, 260));
     ['halftone-color', 'halftone-background-color'].forEach(id => byId(id).addEventListener('input', () => scheduleRender('halftone', renderHalftone)));
-    ['halftone-range', 'halftone-shape', 'halftone-transparent', 'halftone-invert', 'halftone-keep-solids'].forEach(id => byId(id).addEventListener('change', () => scheduleRender('halftone', renderHalftone, 0)));
+    ['halftone-range', 'halftone-hue-range', 'halftone-shape', 'halftone-transparent', 'halftone-invert', 'halftone-keep-solids'].forEach(id => byId(id).addEventListener('change', () => scheduleRender('halftone', renderHalftone, 0)));
     ['halftone-mode', 'halftone-mask-mode'].forEach(id => byId(id).addEventListener('change', () => {
       syncHalftoneMode();
       scheduleRender('halftone', renderHalftone, 0);
@@ -1490,15 +1656,16 @@
     document.querySelectorAll('[data-halftone-auto]').forEach(button => button.addEventListener('click', () => {
       const state = states.halftone;
       if (!state) return showToast('Primero subí una imagen para analizar sus colores.');
-      const preset = buildAutomaticHalftonePreset(state, button.dataset.halftoneAuto);
+      const requestedRange = button.dataset.halftoneAuto;
+      const preset = buildAutomaticHalftonePreset(state, requestedRange);
       applyHalftonePreset(preset, button);
-      const labels = { shadows: 'sombras', midtones: 'medios tonos', highlights: 'luces', transitions: 'transiciones' };
-      showToast(`Ajuste automático aplicado a ${labels[preset.range] || 'la imagen'}.`);
+      const labels = { shadows: 'sombras', midtones: 'medios tonos', highlights: 'luces', transitions: 'transiciones', dominant: 'el color dominante', vivid: 'los colores vivos', neutral: 'los colores neutros', smart: 'la imagen' };
+      showToast(`Ajuste automático aplicado a ${labels[requestedRange] || 'la imagen'}.`);
     }));
-    byId('halftone-download').addEventListener('click', () => {
+    byId('halftone-download').addEventListener('click', async () => {
       if (!states.halftone) return;
-      renderHalftone();
-      downloadCanvas(byId('halftone-canvas'), `${states.halftone.filename}-semitono-300dpi.png`);
+      const rendered = await renderHalftone();
+      if (rendered) await downloadCanvas(byId('halftone-canvas'), `${states.halftone.filename}-semitono-300dpi.png`);
     });
 
     bindRange('background-tolerance', 'background-tolerance-value', '', () => scheduleRender('background', renderActiveBackground));
@@ -1511,14 +1678,15 @@
       scheduleRender('background', renderActiveBackground, 0);
       recordHistory('background');
     }));
-    byId('background-corner').addEventListener('click', () => pickBackgroundColor());
+    byId('background-corner').addEventListener('click', () => pickBackgroundColor(null, null, true));
     byId('background-reset').addEventListener('click', () => { resetBackground(); recordHistory('background'); });
-    byId('background-canvas').addEventListener('click', event => pickBackgroundColor(event.clientX, event.clientY));
-    byId('background-download').addEventListener('click', () => {
+    byId('background-canvas').addEventListener('click', event => pickBackgroundColor(event.clientX, event.clientY, true));
+    byId('background-download').addEventListener('click', async () => {
       if (!states.background) return;
-      renderBackground();
+      const rendered = await renderBackground();
+      if (!rendered) return;
       const canvas = byId('background-trim').checked ? trimTransparentCanvas(byId('background-canvas')) : byId('background-canvas');
-      downloadCanvas(canvas, `${states.background.filename}-sin-color-300dpi.png`);
+      await downloadCanvas(canvas, `${states.background.filename}-sin-color-300dpi.png`);
     });
 
     bindRange('quality-sharpness', 'quality-sharpness-value', '', invalidateQualityResult);
@@ -1553,9 +1721,22 @@
       recordHistory('quality');
     }));
     byId('quality-process').addEventListener('click', processQuality);
-    byId('quality-download').addEventListener('click', () => states.quality && downloadCanvas(byId('quality-canvas'), `${states.quality.filename}-300dpi.png`));
+    byId('quality-download').addEventListener('click', async () => states.quality && await downloadCanvas(byId('quality-canvas'), `${states.quality.filename}-300dpi.png`));
 
-    Object.entries(settingIds).forEach(([type, ids]) => ids.forEach(id => byId(id).addEventListener('change', () => recordHistory(type))));
+    Object.entries(settingIds).forEach(([type, ids]) => ids.forEach(id => {
+      const element = byId(id);
+      element.addEventListener('change', () => recordHistory(type));
+      const clearPreset = event => {
+        if (!event.isTrusted) return;
+        if (type === 'halftone') document.querySelectorAll('[data-halftone-preset], [data-halftone-auto]').forEach(item => item.classList.remove('active'));
+        if (type === 'quality') {
+          document.querySelectorAll('[data-quality-preset]').forEach(item => item.classList.remove('active'));
+          if (id === 'quality-width-cm') document.querySelectorAll('[data-quality-width]').forEach(item => item.classList.remove('active'));
+        }
+      };
+      element.addEventListener('input', clearPreset);
+      element.addEventListener('change', clearPreset);
+    }));
     byId('tool-undo').addEventListener('click', () => moveHistory(-1));
     byId('tool-redo').addEventListener('click', () => moveHistory(1));
     byId('tool-reset-current').addEventListener('click', () => {
@@ -1655,6 +1836,48 @@
       }
       select.dispatchEvent(new Event('change', { bubbles: true }));
     }));
+    document.querySelectorAll('.tool-preview').forEach(preview => {
+      preview.tabIndex = 0;
+      preview.setAttribute('aria-label', `${preview.getAttribute('aria-label') || 'Vista del diseño'}. Usá las flechas o arrastrá para recorrer una imagen ampliada.`);
+      let pan = null;
+      let moved = false;
+      preview.addEventListener('pointerdown', event => {
+        if (event.button !== 0 || !preview.classList.contains('is-pannable')) return;
+        moved = false;
+        pan = { x: event.clientX, y: event.clientY, left: preview.scrollLeft, top: preview.scrollTop };
+        preview.setPointerCapture(event.pointerId);
+        preview.classList.add('is-panning');
+      });
+      preview.addEventListener('pointermove', event => {
+        if (!pan) return;
+        const deltaX = event.clientX - pan.x;
+        const deltaY = event.clientY - pan.y;
+        if (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3) moved = true;
+        preview.scrollLeft = pan.left - deltaX;
+        preview.scrollTop = pan.top - deltaY;
+      });
+      const stopPanning = event => {
+        if (!pan) return;
+        if (preview.hasPointerCapture(event.pointerId)) preview.releasePointerCapture(event.pointerId);
+        pan = null;
+        preview.classList.remove('is-panning');
+      };
+      preview.addEventListener('pointerup', stopPanning);
+      preview.addEventListener('pointercancel', stopPanning);
+      preview.addEventListener('click', event => {
+        if (!moved) return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        moved = false;
+      }, true);
+      preview.addEventListener('keydown', event => {
+        const distance = event.shiftKey ? 160 : 60;
+        const movements = { ArrowLeft: [-distance, 0], ArrowRight: [distance, 0], ArrowUp: [0, -distance], ArrowDown: [0, distance] };
+        if (!movements[event.key]) return;
+        event.preventDefault();
+        preview.scrollBy({ left: movements[event.key][0], top: movements[event.key][1], behavior: 'smooth' });
+      });
+    });
     document.querySelectorAll('[data-preview-background]').forEach(select => select.addEventListener('change', () => {
       const preview = byId(`${select.dataset.previewBackground}-preview`);
       preview.classList.toggle('checkerboard', select.value === 'checkerboard');
