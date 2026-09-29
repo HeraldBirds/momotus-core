@@ -597,7 +597,7 @@ body {
   gap: 0.25rem;
   min-height: 42px;
   padding: 0.35rem 0.25rem;
-  border: 1px solid transparent;
+  border: 0;
   border-radius: 0.55rem;
   color: #a1a1aa;
   font-size: 0.62rem;
@@ -756,10 +756,10 @@ body {
 .tool-preview-shell {
   grid-area: canvas;
   min-width: 0;
-  padding: 0.5rem;
-  border: 1px solid #27272a;
+  padding: 0;
+  border: 1px solid transparent;
   border-radius: 1rem;
-  background: #18181b;
+  background: transparent;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   grid-template-rows: auto minmax(0, 1fr);
@@ -811,7 +811,22 @@ body {
   font-weight: 800;
 }
 .tool-expand-preview:hover,
-.tool-expand-preview.active { border-color: #facc15; color: #facc15; }
+.tool-expand-preview.active,
+.tool-magnify:hover,
+.tool-magnify.active { border-color: #facc15; color: #facc15; }
+.tool-magnify {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 2.15rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #52525b;
+  border-radius: 0.7rem;
+  background: #27272a;
+  color: #d4d4d8;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
 .tool-hold-compare:hover:not(:disabled) { border-color: #facc15; color: #facc15; }
 .tool-hold-compare:disabled { opacity: 0.35; cursor: not-allowed; }
 
@@ -878,6 +893,7 @@ body {
   right: calc(100% + 0.65rem);
   width: min(320px, 34vw);
   height: 100%;
+  box-sizing: border-box;
   background: #18181b;
   box-shadow: 0 1.25rem 3rem rgba(0, 0, 0, 0.55);
 }
@@ -907,14 +923,64 @@ body {
   flex: 1;
   flex-direction: column;
   gap: 0.55rem;
-  max-height: 100%;
+  min-height: 0;
+  max-height: none;
+  overflow-x: hidden;
   overflow-y: auto;
   padding: 0.65rem;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  scrollbar-gutter: stable;
   scrollbar-width: thin;
   scrollbar-color: #52525b #18181b;
 }
 .tool-control-content::-webkit-scrollbar { width: 7px; }
+.tool-control-content::-webkit-scrollbar-track { background: #18181b; }
 .tool-control-content::-webkit-scrollbar-thumb { border-radius: 999px; background: #52525b; }
+.tool-control-content::-webkit-scrollbar-thumb:hover { background: #71717a; }
+.tool-control-content:focus-visible { outline: 2px solid #facc15; outline-offset: -2px; }
+.tool-scroll-controller {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 0.25rem;
+  min-height: 2.5rem;
+  padding: 0.25rem;
+  border-bottom: 1px solid #3f3f46;
+  background: #18181b;
+}
+.tool-scroll-hand,
+.tool-scroll-step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2rem;
+  border: 0;
+  border-radius: 0.55rem;
+  background: #27272a;
+  color: #facc15;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+.tool-scroll-hand {
+  flex: 1 1 auto;
+  gap: 0.45rem;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+.tool-scroll-step {
+  width: 2rem;
+  flex: 0 0 2rem;
+  cursor: pointer;
+}
+.tool-scroll-step:hover,
+.tool-scroll-step:focus-visible,
+.tool-scroll-hand:hover,
+.tool-scroll-hand:focus-visible { background: #3f3f46; outline: none; }
+.tool-scroll-step:disabled { opacity: 0.28; cursor: not-allowed; }
+.tool-scroll-hand:active,
+.tool-scroll-hand.dragging { cursor: grabbing; background: #27272a; }
 .tool-control-group .tool-field { background: #18181b; }
 .tool-control-group .tool-field-row,
 .tool-control-group .tool-check { background: #18181b; }
@@ -925,18 +991,21 @@ body {
   width: auto;
   justify-self: center;
   align-self: center;
-  aspect-ratio: 1320 / 2868;
+  aspect-ratio: auto;
   max-width: 100%;
   max-height: 100%;
   flex: 1;
   display: grid;
   place-items: safe center;
   overflow: auto;
-  border: 1px dashed #52525b;
-  border-radius: 1.5rem;
+  border: 0;
+  border-radius: 0;
   background: #09090b;
-  padding: 1rem;
+  padding: 0;
+  scrollbar-width: none;
 }
+
+.tool-preview::-webkit-scrollbar { display: none; }
 
 .tool-preview canvas,
 .tool-original-image {
@@ -945,7 +1014,7 @@ body {
   max-height: 100%;
   width: auto;
   height: auto;
-  border-radius: 0.8rem;
+  border-radius: 0;
 }
 
 .tool-original-image[hidden],
@@ -976,15 +1045,14 @@ body {
   inset: 5.25rem 1rem 1rem 5rem;
   height: auto;
   min-height: 0;
-  border-color: #52525b;
-  background: #18181b;
+  background: #111113;
   box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.82), 0 1.5rem 4rem rgba(0, 0, 0, 0.7);
 }
 .tool-preview-shell.preview-expanded .tool-preview {
   min-height: 0;
   width: auto;
   height: min(100%, 760px);
-  aspect-ratio: 1320 / 2868;
+  aspect-ratio: auto;
   max-width: 100%;
 }
 .tool-preview-shell.preview-expanded .tool-expand-preview i::before { content: "\f066"; }

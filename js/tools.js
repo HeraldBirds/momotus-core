@@ -14,6 +14,7 @@
   const renderTimers = {};
   const previewZoomFrames = {};
   const previewCenterFrames = {};
+  const previewBoundsCache = {};
   const uploadTokens = { halftone: 0, background: 0, quality: 0 };
   const histories = {
     halftone: { entries: [], index: -1 },
@@ -77,6 +78,126 @@
     return { imageData: context.getImageData(0, 0, source.width, source.height) };
   };
 
+  const fitPreviewStage = (type, intrinsicWidth, intrinsicHeight) => {
+    const preview = byId(`${type}-preview`);
+    const shell = preview?.closest('.tool-preview-shell');
+    if (!preview || !shell || shell.clientWidth === 0 || shell.clientHeight === 0) return;
+
+    const shellStyles = getComputedStyle(shell);
+    const horizontalPadding = parseFloat(shellStyles.paddingLeft) + parseFloat(shellStyles.paddingRight);
+    const verticalPadding = parseFloat(shellStyles.paddingTop) + parseFloat(shellStyles.paddingBottom);
+    const toolbar = shell.querySelector('.tool-preview-toolbar');
+    const transfers = shell.querySelector('.tool-transfer-actions');
+    const toolbarHeight = Math.max(toolbar?.offsetHeight || 0, transfers?.offsetHeight || 0);
+    const toolbarMargin = Math.max(
+      toolbar ? parseFloat(getComputedStyle(toolbar).marginBottom) : 0,
+      transfers ? parseFloat(getComputedStyle(transfers).marginBottom) : 0
+    );
+    const maximumWidth = Math.max(1, shell.clientWidth - horizontalPadding);
+    const maximumHeight = Math.max(1, shell.clientHeight - verticalPadding - toolbarHeight - toolbarMargin);
+    const stageWidth = maximumWidth;
+    const stageHeight = maximumHeight;
+
+    preview.style.setProperty('--preview-ratio', `${intrinsicWidth} / ${intrinsicHeight}`);
+    preview.style.width = `${Math.max(1, Math.round(stageWidth))}px`;
+    preview.style.height = `${Math.max(1, Math.round(stageHeight))}px`;
+  };
+
+  const detectPreviewContentBounds = (type, element, intrinsicWidth, intrinsicHeight) => {
+    const cached = previewBoundsCache[type];
+    const view = previewViews[type];
+    if (cached?.element === element && cached.width === intrinsicWidth && cached.height === intrinsicHeight && cached.view === view) {
+      return cached.bounds;
+    }
+
+    const fullBounds = { x: 0, y: 0, width: intrinsicWidth, height: intrinsicHeight };
+    if (!states[type] || intrinsicWidth < 2 || intrinsicHeight < 2) return fullBounds;
+    const maximumSampleSide = 420;
+    const sampleScale = Math.min(1, maximumSampleSide / Math.max(intrinsicWidth, intrinsicHeight));
+    const sampleWidth = Math.max(1, Math.round(intrinsicWidth * sampleScale));
+    const sampleHeight = Math.max(1, Math.round(intrinsicHeight * sampleScale));
+    const sample = document.createElement('canvas');
+    sample.width = sampleWidth;
+    sample.height = sampleHeight;
+    const context = sample.getContext('2d', { willReadFrequently: true });
+    const drawable = element instanceof HTMLImageElement && (!element.complete || !element.naturalWidth)
+      ? states[type].image
+      : element;
+
+    try {
+      context.drawImage(drawable, 0, 0, sampleWidth, sampleHeight);
+      const pixels = context.getImageData(0, 0, sampleWidth, sampleHeight).data;
+      const cornerCoordinates = [
+        [1, 1], [sampleWidth - 2, 1], [1, sampleHeight - 2], [sampleWidth - 2, sampleHeight - 2]
+      ].map(([x, y]) => [Math.max(0, x), Math.max(0, y)]);
+      const corners = cornerCoordinates.map(([x, y]) => {
+        const index = (y * sampleWidth + x) * 4;
+        return { r: pixels[index], g: pixels[index + 1], b: pixels[index + 2], a: pixels[index + 3] };
+      });
+      let closestPair = [corners[0], corners[1]];
+      let closestDistance = Infinity;
+      for (let first = 0; first < corners.length; first++) {
+        for (let second = first + 1; second < corners.length; second++) {
+          const colorDistance = perceptualColorDistance(corners[first].r, corners[first].g, corners[first].b, corners[second]);
+          const alphaDistance = Math.abs(corners[first].a - corners[second].a) * 0.5;
+          const distance = colorDistance + alphaDistance;
+          if (distance < closestDistance) {
+            closestDistance = distance;
+            closestPair = [corners[first], corners[second]];
+          }
+        }
+      }
+      const background = {
+        r: (closestPair[0].r + closestPair[1].r) / 2,
+        g: (closestPair[0].g + closestPair[1].g) / 2,
+        b: (closestPair[0].b + closestPair[1].b) / 2,
+        a: (closestPair[0].a + closestPair[1].a) / 2
+      };
+      let left = sampleWidth, top = sampleHeight, right = -1, bottom = -1;
+      for (let y = 0; y < sampleHeight; y++) {
+        for (let x = 0; x < sampleWidth; x++) {
+          const index = (y * sampleWidth + x) * 4;
+          const alpha = pixels[index + 3];
+          const differsFromBackground = background.a < 24
+            ? alpha > 24
+            : alpha > 18 && (
+              Math.abs(alpha - background.a) > 30
+              || perceptualColorDistance(pixels[index], pixels[index + 1], pixels[index + 2], background) > 26
+            );
+          if (!differsFromBackground) continue;
+          if (x < left) left = x;
+          if (x > right) right = x;
+          if (y < top) top = y;
+          if (y > bottom) bottom = y;
+        }
+      }
+      if (right >= left && bottom >= top) {
+        const padding = Math.max(2, Math.round(Math.max(sampleWidth, sampleHeight) * 0.018));
+        left = Math.max(0, left - padding);
+        top = Math.max(0, top - padding);
+        right = Math.min(sampleWidth - 1, right + padding);
+        bottom = Math.min(sampleHeight - 1, bottom + padding);
+        const detectedArea = (right - left + 1) * (bottom - top + 1);
+        const fullArea = sampleWidth * sampleHeight;
+        if (detectedArea >= fullArea * 0.015) {
+          const bounds = {
+            x: left / sampleWidth * intrinsicWidth,
+            y: top / sampleHeight * intrinsicHeight,
+            width: (right - left + 1) / sampleWidth * intrinsicWidth,
+            height: (bottom - top + 1) / sampleHeight * intrinsicHeight
+          };
+          previewBoundsCache[type] = { element, width: intrinsicWidth, height: intrinsicHeight, view, bounds };
+          return bounds;
+        }
+      }
+    } catch (error) {
+      console.warn('No se pudo calcular el área visible del diseño:', error);
+    }
+
+    previewBoundsCache[type] = { element, width: intrinsicWidth, height: intrinsicHeight, view, bounds: fullBounds };
+    return fullBounds;
+  };
+
   const applyPreviewZoom = type => {
     cancelAnimationFrame(previewZoomFrames[type]);
     previewZoomFrames[type] = requestAnimationFrame(() => {
@@ -87,6 +208,16 @@
       const image = byId(`${type}-original`);
       if (!preview || !select || preview.clientWidth === 0 || preview.clientHeight === 0) return;
 
+      const visibleElement = canvas && !canvas.hidden ? canvas : image;
+      const stageWidth = states[type]
+        ? (visibleElement instanceof HTMLCanvasElement ? visibleElement.width : (visibleElement?.naturalWidth || states[type].width))
+        : 1320;
+      const stageHeight = states[type]
+        ? (visibleElement instanceof HTMLCanvasElement ? visibleElement.height : (visibleElement?.naturalHeight || states[type].height))
+        : 2868;
+      const contentBounds = detectPreviewContentBounds(type, visibleElement, stageWidth || 1320, stageHeight || 2868);
+      fitPreviewStage(type, contentBounds.width, contentBounds.height);
+
       const styles = getComputedStyle(preview);
       const availableWidth = Math.max(1, preview.clientWidth - parseFloat(styles.paddingLeft) - parseFloat(styles.paddingRight));
       const availableHeight = Math.max(1, preview.clientHeight - parseFloat(styles.paddingTop) - parseFloat(styles.paddingBottom));
@@ -95,9 +226,12 @@
         if (!element) return;
         const intrinsicWidth = element instanceof HTMLCanvasElement ? element.width : (element.naturalWidth || states[type]?.width || 1);
         const intrinsicHeight = element instanceof HTMLCanvasElement ? element.height : (element.naturalHeight || states[type]?.height || 1);
-        const fittedScale = Math.min(availableWidth / intrinsicWidth, availableHeight / intrinsicHeight);
+        const bounds = element === visibleElement
+          ? contentBounds
+          : { x: 0, y: 0, width: intrinsicWidth, height: intrinsicHeight };
+        const fittedScale = Math.min(availableWidth / bounds.width, availableHeight / bounds.height);
         let displayScale = fittedScale;
-        if (select.value === 'detail') displayScale *= 1.35;
+        if (select.value === 'detail') displayScale *= 1.55;
         else if (select.value === 'width') displayScale = availableWidth / intrinsicWidth;
         else if (select.value !== 'fit') displayScale *= Math.max(0.1, Number(select.value) / 100 || 1);
 
@@ -285,8 +419,34 @@
     return output;
   };
 
+  const prepareBinaryAlphaCanvas = canvas => {
+    const output = document.createElement('canvas');
+    output.width = canvas.width;
+    output.height = canvas.height;
+    const context = output.getContext('2d', { willReadFrequently: true });
+    context.drawImage(canvas, 0, 0);
+    const imageData = context.getImageData(0, 0, output.width, output.height);
+    const data = imageData.data;
+    for (let index = 0; index < data.length; index += 4) {
+      const alpha = data[index + 3];
+      if (alpha === 0 || alpha === 255) continue;
+      data[index + 3] = alpha >= 128 ? 255 : 0;
+      if (data[index + 3] === 0) data[index] = data[index + 1] = data[index + 2] = 0;
+    }
+    context.putImageData(imageData, 0, 0);
+    return output;
+  };
+
   const downloadCanvas = (canvas, filename) => {
-    canvas.toBlob(async blob => {
+    let exportCanvas;
+    try {
+      exportCanvas = prepareBinaryAlphaCanvas(canvas);
+    } catch (error) {
+      console.error('No se pudo limpiar la transparencia del PNG:', error);
+      showToast('No se pudo preparar la transparencia para descargar.');
+      return;
+    }
+    exportCanvas.toBlob(async blob => {
       if (!blob) return showToast('No se pudo preparar la descarga.');
       try {
         const png300Dpi = add300DpiMetadata(new Uint8Array(await blob.arrayBuffer()));
@@ -304,6 +464,83 @@
         showToast('No se pudo preparar la descarga.');
       }
     }, 'image/png');
+  };
+
+  const setupPanelDrag = content => {
+    const controller = document.createElement('div');
+    controller.className = 'tool-scroll-controller';
+    controller.setAttribute('aria-label', 'Desplazamiento de estas opciones');
+    const upButton = document.createElement('button');
+    upButton.type = 'button';
+    upButton.className = 'tool-scroll-step';
+    upButton.setAttribute('aria-label', 'Subir opciones');
+    upButton.title = 'Subir opciones';
+    upButton.innerHTML = '<i class="fa-solid fa-chevron-up" aria-hidden="true"></i>';
+    const handle = document.createElement('button');
+    handle.type = 'button';
+    handle.className = 'tool-scroll-hand';
+    handle.setAttribute('aria-label', 'Arrastrar para subir o bajar estas opciones');
+    handle.title = 'Arrastrá para subir o bajar estas opciones';
+    handle.innerHTML = '<i class="fa-solid fa-hand" aria-hidden="true"></i><span>Arrastrá para subir o bajar</span>';
+    const downButton = document.createElement('button');
+    downButton.type = 'button';
+    downButton.className = 'tool-scroll-step';
+    downButton.setAttribute('aria-label', 'Bajar opciones');
+    downButton.title = 'Bajar opciones';
+    downButton.innerHTML = '<i class="fa-solid fa-chevron-down" aria-hidden="true"></i>';
+    controller.append(upButton, handle, downButton);
+    content.parentElement.insertBefore(controller, content);
+    const updateStepButtons = () => {
+      const maximumScroll = Math.max(0, content.scrollHeight - content.clientHeight);
+      upButton.disabled = content.scrollTop <= 1;
+      downButton.disabled = content.scrollTop >= maximumScroll - 1;
+    };
+    const moveOneStep = direction => content.scrollBy({
+      top: direction * Math.max(120, Math.round(content.clientHeight * 0.55)),
+      behavior: 'smooth'
+    });
+    upButton.addEventListener('click', () => moveOneStep(-1));
+    downButton.addEventListener('click', () => moveOneStep(1));
+    content.addEventListener('scroll', updateStepButtons, { passive: true });
+    if ('ResizeObserver' in window) new ResizeObserver(updateStepButtons).observe(content);
+    requestAnimationFrame(updateStepButtons);
+    let pointerId = null;
+    let startY = 0;
+    let startScrollTop = 0;
+    let dragged = false;
+    handle.addEventListener('pointerdown', event => {
+      if (event.button !== 0) return;
+      pointerId = event.pointerId;
+      startY = event.clientY;
+      startScrollTop = content.scrollTop;
+      dragged = false;
+      handle.classList.add('dragging');
+      handle.setPointerCapture(pointerId);
+      event.preventDefault();
+    });
+    handle.addEventListener('pointermove', event => {
+      if (pointerId !== event.pointerId) return;
+      const distance = event.clientY - startY;
+      if (Math.abs(distance) > 3) dragged = true;
+      content.scrollTop = startScrollTop - distance;
+      updateStepButtons();
+      event.preventDefault();
+    });
+    const stopDragging = event => {
+      if (pointerId === null || (event.pointerId !== undefined && pointerId !== event.pointerId)) return;
+      const releasedPointer = pointerId;
+      pointerId = null;
+      handle.classList.remove('dragging');
+      if (handle.hasPointerCapture(releasedPointer)) handle.releasePointerCapture(releasedPointer);
+    };
+    handle.addEventListener('pointerup', stopDragging);
+    handle.addEventListener('pointercancel', stopDragging);
+    handle.addEventListener('lostpointercapture', stopDragging);
+    handle.addEventListener('click', event => {
+      if (!dragged) return;
+      event.preventDefault();
+      dragged = false;
+    });
   };
 
   const drawHalftoneShape = (context, shape, x, y, radius, angle) => {
@@ -589,6 +826,7 @@
     const sourceDpi = Math.round(sourceState.naturalWidth / (requestedWidthCm / 2.54));
     const limitedLabel = state.safetyLimited ? ' · medida limitada por seguridad' : '';
     setStatus('halftone-status', `${state.width} × ${state.height} px · ${state.actualWidthCm.toFixed(1)} × ${state.actualHeightCm.toFixed(1)} cm · ${frequency} LPI · punto máx. ${maximumDotMm.toFixed(2)} mm · origen ${sourceDpi} DPI${limitedLabel}.`);
+    delete previewBoundsCache.halftone;
     applyPreviewZoom('halftone');
     centerPreview('halftone');
   };
@@ -645,6 +883,7 @@
     const action = mode === 'keep' ? 'ocultos para conservar el color' : 'afectados en toda la imagen';
     const previewLabel = maskPreview ? ' · máscara: blanco conserva, negro elimina' : ' · salida 300 DPI';
     setStatus('background-status', `${percentage}% de píxeles ${action}${previewLabel}.`);
+    delete previewBoundsCache.background;
     applyPreviewZoom('background');
     centerPreview('background');
   };
@@ -799,6 +1038,7 @@
       const actualHeightCm = centimetersAt300Dpi(height);
       const limited = safetyScale < 0.999 ? ' · tamaño ajustado para proteger la memoria del dispositivo' : '';
       setStatus('quality-status', `${width} × ${height} px · ${actualWidthCm} × ${actualHeightCm} cm a 300 DPI · detalle y bordes protegidos${limited}.`);
+      delete previewBoundsCache.quality;
       applyPreviewZoom('quality');
       centerPreview('quality');
     } catch (error) {
@@ -938,6 +1178,23 @@
       previewCenterFrames[type] = 0;
       const preview = byId(`${type}-preview`);
       if (!preview) return;
+      const canvas = byId(`${type}-canvas`);
+      const image = byId(`${type}-original`);
+      const visibleElement = canvas && !canvas.hidden ? canvas : image;
+      const cachedBounds = previewBoundsCache[type]?.bounds;
+      if (visibleElement && cachedBounds && visibleElement.getBoundingClientRect().width > 0) {
+        const intrinsicWidth = visibleElement instanceof HTMLCanvasElement ? visibleElement.width : (visibleElement.naturalWidth || states[type]?.width || 1);
+        const intrinsicHeight = visibleElement instanceof HTMLCanvasElement ? visibleElement.height : (visibleElement.naturalHeight || states[type]?.height || 1);
+        const previewRect = preview.getBoundingClientRect();
+        const elementRect = visibleElement.getBoundingClientRect();
+        const elementLeft = elementRect.left - previewRect.left + preview.scrollLeft;
+        const elementTop = elementRect.top - previewRect.top + preview.scrollTop;
+        const scaleX = elementRect.width / Math.max(1, intrinsicWidth);
+        const scaleY = elementRect.height / Math.max(1, intrinsicHeight);
+        preview.scrollLeft = Math.max(0, elementLeft + (cachedBounds.x + cachedBounds.width / 2) * scaleX - preview.clientWidth / 2);
+        preview.scrollTop = Math.max(0, elementTop + (cachedBounds.y + cachedBounds.height / 2) * scaleY - preview.clientHeight / 2);
+        return;
+      }
       preview.scrollLeft = Math.max(0, (preview.scrollWidth - preview.clientWidth) / 2);
       preview.scrollTop = Math.max(0, (preview.scrollHeight - preview.clientHeight) / 2);
     });
@@ -982,6 +1239,7 @@
         return false;
       }
       setToolResultReady(type, false);
+      delete previewBoundsCache[type];
       const previousSourceUrl = states[type]?.sourceUrl;
       previewViews[type] = 'result';
       updatePreviewButtons(type);
@@ -1110,21 +1368,30 @@
     switchTool(initialTarget);
 
     ['halftone', 'background', 'quality'].forEach(setupDropUpload);
-    document.querySelectorAll('.tool-control-group').forEach(group => group.addEventListener('toggle', () => {
-      if (!group.open) return;
-      const controls = group.closest('.tool-controls');
-      controls?.querySelectorAll('.tool-control-group').forEach(sibling => {
-        if (sibling !== group) sibling.open = false;
-      });
+    document.querySelectorAll('.tool-control-group').forEach(group => {
       const content = group.querySelector('.tool-control-content');
-      if (content) content.scrollTop = 0;
-    }));
+      if (content) {
+        content.tabIndex = 0;
+        content.setAttribute('role', 'region');
+        setupPanelDrag(content);
+      }
+      group.addEventListener('toggle', () => {
+        if (!group.open) return;
+        const controls = group.closest('.tool-controls');
+        controls?.querySelectorAll('.tool-control-group').forEach(sibling => {
+          if (sibling !== group) sibling.open = false;
+        });
+        if (content) content.scrollTop = 0;
+      });
+    });
     document.querySelectorAll('[data-control-target]').forEach(button => {
       button.setAttribute('role', 'tab');
       button.setAttribute('aria-controls', button.dataset.controlTarget);
       button.setAttribute('aria-label', button.getAttribute('title') || 'Abrir opciones');
       button.setAttribute('aria-selected', 'false');
-      byId(button.dataset.controlTarget)?.setAttribute('role', 'tabpanel');
+      const controlledPanel = byId(button.dataset.controlTarget);
+      controlledPanel?.setAttribute('role', 'tabpanel');
+      controlledPanel?.querySelector('.tool-control-content')?.setAttribute('aria-label', button.getAttribute('title') || 'Opciones');
       button.addEventListener('click', () => {
         const target = byId(button.dataset.controlTarget);
         const controls = button.closest('.tool-controls');
@@ -1315,8 +1582,30 @@
     }));
     document.querySelectorAll('[data-preview-zoom]').forEach(select => select.addEventListener('change', () => {
       const type = select.dataset.previewZoom;
+      const magnify = document.querySelector(`[data-preview-magnify="${type}"]`);
+      if (magnify) {
+        const active = select.value === '200';
+        magnify.classList.toggle('active', active);
+        magnify.setAttribute('aria-pressed', String(active));
+        const icon = magnify.querySelector('i');
+        icon?.classList.toggle('fa-magnifying-glass-plus', !active);
+        icon?.classList.toggle('fa-magnifying-glass-minus', active);
+      }
       applyPreviewZoom(type);
       centerPreview(type);
+    }));
+    document.querySelectorAll('[data-preview-magnify]').forEach(button => button.addEventListener('click', () => {
+      const type = button.dataset.previewMagnify;
+      const select = document.querySelector(`[data-preview-zoom="${type}"]`);
+      if (!select) return;
+      const active = button.getAttribute('aria-pressed') === 'true';
+      if (!active) {
+        button.dataset.previousZoom = select.value;
+        select.value = '200';
+      } else {
+        select.value = button.dataset.previousZoom || 'detail';
+      }
+      select.dispatchEvent(new Event('change', { bubbles: true }));
     }));
     document.querySelectorAll('[data-preview-background]').forEach(select => select.addEventListener('change', () => {
       const preview = byId(`${select.dataset.previewBackground}-preview`);
