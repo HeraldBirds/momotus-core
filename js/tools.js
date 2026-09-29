@@ -420,19 +420,22 @@
   };
 
   const prepareBinaryAlphaCanvas = canvas => {
-    const output = document.createElement('canvas');
-    output.width = canvas.width;
-    output.height = canvas.height;
-    const context = output.getContext('2d', { willReadFrequently: true });
-    context.drawImage(canvas, 0, 0);
-    const imageData = context.getImageData(0, 0, output.width, output.height);
+    const sourceContext = canvas.getContext('2d', { willReadFrequently: true });
+    const imageData = sourceContext.getImageData(0, 0, canvas.width, canvas.height);
     const data = imageData.data;
+    let hasPartialAlpha = false;
     for (let index = 0; index < data.length; index += 4) {
       const alpha = data[index + 3];
       if (alpha === 0 || alpha === 255) continue;
+      hasPartialAlpha = true;
       data[index + 3] = alpha >= 128 ? 255 : 0;
       if (data[index + 3] === 0) data[index] = data[index + 1] = data[index + 2] = 0;
     }
+    if (!hasPartialAlpha) return canvas;
+    const output = document.createElement('canvas');
+    output.width = canvas.width;
+    output.height = canvas.height;
+    const context = output.getContext('2d');
     context.putImageData(imageData, 0, 0);
     return output;
   };
@@ -464,83 +467,6 @@
         showToast('No se pudo preparar la descarga.');
       }
     }, 'image/png');
-  };
-
-  const setupPanelDrag = content => {
-    const controller = document.createElement('div');
-    controller.className = 'tool-scroll-controller';
-    controller.setAttribute('aria-label', 'Desplazamiento de estas opciones');
-    const upButton = document.createElement('button');
-    upButton.type = 'button';
-    upButton.className = 'tool-scroll-step';
-    upButton.setAttribute('aria-label', 'Subir opciones');
-    upButton.title = 'Subir opciones';
-    upButton.innerHTML = '<i class="fa-solid fa-chevron-up" aria-hidden="true"></i>';
-    const handle = document.createElement('button');
-    handle.type = 'button';
-    handle.className = 'tool-scroll-hand';
-    handle.setAttribute('aria-label', 'Arrastrar para subir o bajar estas opciones');
-    handle.title = 'Arrastrá para subir o bajar estas opciones';
-    handle.innerHTML = '<i class="fa-solid fa-hand" aria-hidden="true"></i><span>Arrastrá para subir o bajar</span>';
-    const downButton = document.createElement('button');
-    downButton.type = 'button';
-    downButton.className = 'tool-scroll-step';
-    downButton.setAttribute('aria-label', 'Bajar opciones');
-    downButton.title = 'Bajar opciones';
-    downButton.innerHTML = '<i class="fa-solid fa-chevron-down" aria-hidden="true"></i>';
-    controller.append(upButton, handle, downButton);
-    content.parentElement.insertBefore(controller, content);
-    const updateStepButtons = () => {
-      const maximumScroll = Math.max(0, content.scrollHeight - content.clientHeight);
-      upButton.disabled = content.scrollTop <= 1;
-      downButton.disabled = content.scrollTop >= maximumScroll - 1;
-    };
-    const moveOneStep = direction => content.scrollBy({
-      top: direction * Math.max(120, Math.round(content.clientHeight * 0.55)),
-      behavior: 'smooth'
-    });
-    upButton.addEventListener('click', () => moveOneStep(-1));
-    downButton.addEventListener('click', () => moveOneStep(1));
-    content.addEventListener('scroll', updateStepButtons, { passive: true });
-    if ('ResizeObserver' in window) new ResizeObserver(updateStepButtons).observe(content);
-    requestAnimationFrame(updateStepButtons);
-    let pointerId = null;
-    let startY = 0;
-    let startScrollTop = 0;
-    let dragged = false;
-    handle.addEventListener('pointerdown', event => {
-      if (event.button !== 0) return;
-      pointerId = event.pointerId;
-      startY = event.clientY;
-      startScrollTop = content.scrollTop;
-      dragged = false;
-      handle.classList.add('dragging');
-      handle.setPointerCapture(pointerId);
-      event.preventDefault();
-    });
-    handle.addEventListener('pointermove', event => {
-      if (pointerId !== event.pointerId) return;
-      const distance = event.clientY - startY;
-      if (Math.abs(distance) > 3) dragged = true;
-      content.scrollTop = startScrollTop - distance;
-      updateStepButtons();
-      event.preventDefault();
-    });
-    const stopDragging = event => {
-      if (pointerId === null || (event.pointerId !== undefined && pointerId !== event.pointerId)) return;
-      const releasedPointer = pointerId;
-      pointerId = null;
-      handle.classList.remove('dragging');
-      if (handle.hasPointerCapture(releasedPointer)) handle.releasePointerCapture(releasedPointer);
-    };
-    handle.addEventListener('pointerup', stopDragging);
-    handle.addEventListener('pointercancel', stopDragging);
-    handle.addEventListener('lostpointercapture', stopDragging);
-    handle.addEventListener('click', event => {
-      if (!dragged) return;
-      event.preventDefault();
-      dragged = false;
-    });
   };
 
   const drawHalftoneShape = (context, shape, x, y, radius, angle) => {
@@ -600,6 +526,107 @@
   };
 
   const clampUnit = value => Math.max(0, Math.min(1, value));
+  const clampNumber = (value, minimum, maximum) => Math.max(minimum, Math.min(maximum, value));
+
+  const analyzeHalftoneColors = state => {
+    if (state.halftoneColorStats) return state.halftoneColorStats;
+    const data = state.imageData.data;
+    const width = state.imageData.width;
+    const height = state.imageData.height;
+    const cornerIndexes = [0, width - 1, (height - 1) * width, height * width - 1];
+    const corners = cornerIndexes.map(pixel => ({
+      r: data[pixel * 4], g: data[pixel * 4 + 1], b: data[pixel * 4 + 2], a: data[pixel * 4 + 3]
+    }));
+    let background = null;
+    let closestDistance = Infinity;
+    for (let first = 0; first < corners.length; first++) {
+      for (let second = first + 1; second < corners.length; second++) {
+        const distance = perceptualColorDistance(corners[first].r, corners[first].g, corners[first].b, corners[second]);
+        if (distance < closestDistance && corners[first].a > 32 && corners[second].a > 32) {
+          closestDistance = distance;
+          background = {
+            r: (corners[first].r + corners[second].r) / 2,
+            g: (corners[first].g + corners[second].g) / 2,
+            b: (corners[first].b + corners[second].b) / 2
+          };
+        }
+      }
+    }
+    if (closestDistance > 24) background = null;
+    const pixelCount = width * height;
+    const step = Math.max(1, Math.floor(pixelCount / 60000));
+    let samples = 0, shadows = 0, midtones = 0, highlights = 0;
+    let luminanceTotal = 0, luminanceSquared = 0, saturationTotal = 0;
+    for (let pixel = 0; pixel < pixelCount; pixel += step) {
+      const index = pixel * 4;
+      const alpha = data[index + 3];
+      if (alpha < 32) continue;
+      const red = data[index], green = data[index + 1], blue = data[index + 2];
+      if (background && perceptualColorDistance(red, green, blue, background) < 18) continue;
+      const luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+      const saturation = Math.max(red, green, blue) - Math.min(red, green, blue);
+      samples++;
+      luminanceTotal += luminance;
+      luminanceSquared += luminance * luminance;
+      saturationTotal += saturation;
+      if (luminance < 85) shadows++;
+      else if (luminance > 180) highlights++;
+      else midtones++;
+    }
+    if (!samples) samples = 1;
+    const mean = luminanceTotal / samples;
+    const spread = Math.sqrt(Math.max(0, luminanceSquared / samples - mean * mean));
+    state.halftoneColorStats = {
+      shadows: shadows / samples,
+      midtones: midtones / samples,
+      highlights: highlights / samples,
+      spread,
+      saturation: saturationTotal / samples
+    };
+    return state.halftoneColorStats;
+  };
+
+  const buildAutomaticHalftonePreset = (state, requestedRange) => {
+    const stats = analyzeHalftoneColors(state);
+    let range = requestedRange;
+    if (range === 'smart') {
+      if (stats.shadows >= 0.46) range = 'shadows';
+      else if (stats.highlights >= 0.48) range = 'highlights';
+      else if (stats.midtones >= 0.5) range = 'midtones';
+      else range = 'transitions';
+    }
+    const baseAmount = { shadows: 42, midtones: 48, highlights: 38, transitions: 54 }[range] || 50;
+    const frequency = clampNumber(Math.round(48 + stats.spread / 7 + stats.saturation / 30), 45, 70);
+    const protection = clampNumber(Math.round(72 + stats.saturation / 3.2), 72, 92);
+    const dotSize = frequency >= 64 ? 0.30 : frequency >= 57 ? 0.35 : 0.40;
+    return {
+      range,
+      amount: clampNumber(Math.round(baseAmount + (stats.spread < 42 ? 5 : 0)), 25, 68),
+      protection,
+      frequency,
+      dotSize,
+      angle: 45,
+      shape: range === 'highlights' ? 'ellipse' : 'circle',
+      contrast: clampNumber(Math.round(8 + (stats.spread - 35) / 4), 6, 24),
+      keepSolids: true
+    };
+  };
+
+  const applyHalftonePreset = (preset, button) => {
+    byId('halftone-range').value = preset.range;
+    byId('halftone-amount').value = preset.amount;
+    byId('halftone-solid-protection').value = preset.protection;
+    byId('halftone-frequency').value = preset.frequency;
+    byId('halftone-dot-size').value = preset.dotSize;
+    byId('halftone-angle').value = preset.angle;
+    byId('halftone-shape').value = preset.shape;
+    byId('halftone-contrast').value = preset.contrast;
+    if (typeof preset.keepSolids === 'boolean') byId('halftone-keep-solids').checked = preset.keepSolids;
+    syncSettingLabels('halftone');
+    document.querySelectorAll('[data-halftone-preset], [data-halftone-auto]').forEach(item => item.classList.toggle('active', item === button));
+    scheduleRender('halftone', renderHalftone, 0);
+    recordHistory('halftone');
+  };
 
   const halftoneSelectionStrength = (range, luminance, variation, protection, amount) => {
     const shadowWeight = clampUnit((175 - luminance) / 145);
@@ -767,6 +794,20 @@
     const amount = Number(byId('halftone-amount').value) / 100;
     const solidProtection = Number(byId('halftone-solid-protection').value) / 100;
     const keepSolids = byId('halftone-keep-solids').checked;
+    const inkColor = byId('halftone-color').value;
+    const backgroundColor = byId('halftone-background-color').value;
+    const renderKey = JSON.stringify({
+      requestedWidthCm, frequency, maximumDotMm, angleDegrees, contrast, invert, transparent,
+      shape, colorMode, maskMode, maskTolerance, tonalRange, amount, solidProtection,
+      keepSolids, inkColor, backgroundColor
+    });
+    if (sourceState.halftoneRenderKey === renderKey && canvas.width === state.width && canvas.height === state.height) {
+      setToolResultReady('halftone', true);
+      if (sourceState.halftoneStatus) setStatus('halftone-status', sourceState.halftoneStatus);
+      applyPreviewZoom('halftone');
+      centerPreview('halftone');
+      return;
+    }
     canvas.width = state.width;
     canvas.height = state.height;
     context.clearRect(0, 0, canvas.width, canvas.height);
@@ -780,7 +821,6 @@
     const centerX = state.width / 2, centerY = state.height / 2;
     const diagonal = Math.hypot(state.width, state.height);
     const backgroundMask = getHalftoneBackgroundMask(state, cellSize, maskTolerance, maskMode);
-    const inkColor = byId('halftone-color').value;
     let gridRow = 0;
     for (let gridY = -diagonal / 2; gridY <= diagonal / 2; gridY += cellSize, gridRow++) {
       let gridColumn = 0;
@@ -815,7 +855,7 @@
       }
     }
     if (!transparent) {
-      context.fillStyle = byId('halftone-background-color').value;
+      context.fillStyle = backgroundColor;
       context.fillRect(0, 0, canvas.width, canvas.height);
     }
     context.drawImage(workCanvas, 0, 0);
@@ -825,7 +865,9 @@
     const rangeLabels = { transitions: 'sombras y transiciones', shadows: 'sombras', midtones: 'medios tonos', highlights: 'luces', all: 'imagen completa' };
     const sourceDpi = Math.round(sourceState.naturalWidth / (requestedWidthCm / 2.54));
     const limitedLabel = state.safetyLimited ? ' · medida limitada por seguridad' : '';
-    setStatus('halftone-status', `${state.width} × ${state.height} px · ${state.actualWidthCm.toFixed(1)} × ${state.actualHeightCm.toFixed(1)} cm · ${frequency} LPI · punto máx. ${maximumDotMm.toFixed(2)} mm · origen ${sourceDpi} DPI${limitedLabel}.`);
+    sourceState.halftoneStatus = `${state.width} × ${state.height} px · ${state.actualWidthCm.toFixed(1)} × ${state.actualHeightCm.toFixed(1)} cm · ${frequency} LPI · punto máx. ${maximumDotMm.toFixed(2)} mm · origen ${sourceDpi} DPI${limitedLabel}.`;
+    setStatus('halftone-status', sourceState.halftoneStatus);
+    sourceState.halftoneRenderKey = renderKey;
     delete previewBoundsCache.halftone;
     applyPreviewZoom('halftone');
     centerPreview('halftone');
@@ -1373,14 +1415,20 @@
       if (content) {
         content.tabIndex = 0;
         content.setAttribute('role', 'region');
-        setupPanelDrag(content);
       }
       group.addEventListener('toggle', () => {
-        if (!group.open) return;
         const controls = group.closest('.tool-controls');
+        const tab = controls?.querySelector(`[data-control-target="${group.id}"]`);
+        if (!group.open) {
+          tab?.classList.remove('active');
+          tab?.setAttribute('aria-selected', 'false');
+          return;
+        }
         controls?.querySelectorAll('.tool-control-group').forEach(sibling => {
           if (sibling !== group) sibling.open = false;
         });
+        tab?.classList.add('active');
+        tab?.setAttribute('aria-selected', 'true');
         if (content) content.scrollTop = 0;
       });
     });
@@ -1437,23 +1485,15 @@
     };
     document.querySelectorAll('[data-halftone-preset]').forEach(button => button.addEventListener('click', () => {
       const preset = halftonePresets[button.dataset.halftonePreset];
-      byId('halftone-range').value = preset.range;
-      byId('halftone-amount').value = preset.amount;
-      byId('halftone-solid-protection').value = preset.protection;
-      byId('halftone-frequency').value = preset.frequency;
-      byId('halftone-dot-size').value = preset.dotSize;
-      byId('halftone-angle').value = preset.angle;
-      byId('halftone-shape').value = preset.shape;
-      byId('halftone-contrast').value = preset.contrast;
-      byId('halftone-frequency-value').textContent = `${preset.frequency} LPI`;
-      byId('halftone-angle-value').textContent = `${preset.angle}°`;
-      byId('halftone-contrast-value').textContent = String(preset.contrast);
-      byId('halftone-amount-value').textContent = `${preset.amount}%`;
-      byId('halftone-solid-protection-value').textContent = `${preset.protection}%`;
-      byId('halftone-dot-size-value').textContent = `${preset.dotSize.toFixed(2)} mm`;
-      document.querySelectorAll('[data-halftone-preset]').forEach(item => item.classList.toggle('active', item === button));
-      scheduleRender('halftone', renderHalftone, 0);
-      recordHistory('halftone');
+      if (preset) applyHalftonePreset(preset, button);
+    }));
+    document.querySelectorAll('[data-halftone-auto]').forEach(button => button.addEventListener('click', () => {
+      const state = states.halftone;
+      if (!state) return showToast('Primero subí una imagen para analizar sus colores.');
+      const preset = buildAutomaticHalftonePreset(state, button.dataset.halftoneAuto);
+      applyHalftonePreset(preset, button);
+      const labels = { shadows: 'sombras', midtones: 'medios tonos', highlights: 'luces', transitions: 'transiciones' };
+      showToast(`Ajuste automático aplicado a ${labels[preset.range] || 'la imagen'}.`);
     }));
     byId('halftone-download').addEventListener('click', () => {
       if (!states.halftone) return;
@@ -1580,16 +1620,22 @@
     document.querySelectorAll('[data-transfer-from][data-transfer-to]').forEach(button => button.addEventListener('click', () => {
       transferResult(button.dataset.transferFrom, button.dataset.transferTo, button);
     }));
+    const magnificationLevels = ['200', '300', '400'];
     document.querySelectorAll('[data-preview-zoom]').forEach(select => select.addEventListener('change', () => {
       const type = select.dataset.previewZoom;
       const magnify = document.querySelector(`[data-preview-magnify="${type}"]`);
       if (magnify) {
-        const active = select.value === '200';
+        const active = magnificationLevels.includes(select.value);
         magnify.classList.toggle('active', active);
         magnify.setAttribute('aria-pressed', String(active));
         const icon = magnify.querySelector('i');
-        icon?.classList.toggle('fa-magnifying-glass-plus', !active);
-        icon?.classList.toggle('fa-magnifying-glass-minus', active);
+        const label = magnify.querySelector('span');
+        if (label) label.textContent = active ? `${Number(select.value) / 100}×` : 'Lupa';
+        icon?.classList.toggle('fa-magnifying-glass-plus', select.value !== '400');
+        icon?.classList.toggle('fa-magnifying-glass-minus', select.value === '400');
+        magnify.title = active
+          ? (select.value === '400' ? 'Volver al encuadre anterior' : 'Aumentar el nivel de detalle')
+          : 'Examinar detalles al 200%, 300% y 400%';
       }
       applyPreviewZoom(type);
       centerPreview(type);
@@ -1598,10 +1644,12 @@
       const type = button.dataset.previewMagnify;
       const select = document.querySelector(`[data-preview-zoom="${type}"]`);
       if (!select) return;
-      const active = button.getAttribute('aria-pressed') === 'true';
-      if (!active) {
+      const currentIndex = magnificationLevels.indexOf(select.value);
+      if (currentIndex === -1) {
         button.dataset.previousZoom = select.value;
         select.value = '200';
+      } else if (currentIndex < magnificationLevels.length - 1) {
+        select.value = magnificationLevels[currentIndex + 1];
       } else {
         select.value = button.dataset.previousZoom || 'detail';
       }
