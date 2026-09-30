@@ -9,6 +9,8 @@
   const MAX_OUTPUT_SIDE = 6000;
   const MAX_HALFTONE_PIXELS = 18000000;
   const MAX_HALFTONE_SIDE = 6000;
+  const MAX_PREVIEW_PIXELS = 3000000;
+  const MAX_PREVIEW_SIDE = 2400;
   const ALLOWED_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
   const states = { halftone: null, background: null, quality: null };
   const previewViews = { halftone: 'result', background: 'result', quality: 'result' };
@@ -17,6 +19,7 @@
   const previewCenterFrames = {};
   const previewBoundsCache = {};
   const uploadTokens = { halftone: 0, background: 0, quality: 0 };
+  const dirtyStates = { halftone: false, background: false, quality: false };
   const histories = {
     halftone: { entries: [], index: -1 },
     background: { entries: [], index: -1 },
@@ -27,8 +30,42 @@
   let qualityRevision = 0;
   let halftoneRenderRevision = 0;
   let backgroundRenderRevision = 0;
+  let pendingPreflightDownload = null;
 
   const byId = id => document.getElementById(id);
+  const setWorkspaceState = (label, tone = 'idle') => {
+    const state = byId('editor-workspace-state');
+    if (!state) return;
+    state.classList.remove('idle', 'processing', 'ready', 'warning');
+    state.classList.add(tone);
+    const text = state.querySelector('strong');
+    if (text) text.textContent = label;
+  };
+  const setProcessingProgress = (type, percentage, heading = null, detail = null) => {
+    const overlay = document.querySelector(`[data-processing="${type}"]`);
+    if (!overlay) return;
+    const progress = Math.max(0, Math.min(100, Math.round(Number(percentage) || 0)));
+    overlay.hidden = false;
+    const bar = overlay.querySelector('[data-progress-bar]');
+    const value = overlay.querySelector('[data-progress-value]');
+    if (bar) bar.style.width = `${progress}%`;
+    if (value) value.textContent = `${progress}%`;
+    if (heading) overlay.querySelector('strong').textContent = heading;
+    if (detail) overlay.querySelector(':scope > span').textContent = detail;
+    if (type === activeTool) setWorkspaceState(`Procesando ${progress}%`, 'processing');
+  };
+  const markToolDirty = type => {
+    if (!states[type]) return;
+    dirtyStates[type] = true;
+    const panelId = { halftone: 'semitonos', background: 'eliminar-fondo', quality: 'mejorar-calidad' }[type];
+    byId(panelId)?.classList.add('has-pending-changes');
+    if (type === activeTool) setWorkspaceState('Cambios pendientes', 'warning');
+  };
+  const markToolClean = type => {
+    dirtyStates[type] = false;
+    const panelId = { halftone: 'semitonos', background: 'eliminar-fondo', quality: 'mejorar-calidad' }[type];
+    byId(panelId)?.classList.remove('has-pending-changes');
+  };
   const setStatus = (id, message) => {
     const element = byId(id);
     if (element) element.textContent = message;
@@ -36,6 +73,32 @@
     if (mirror) {
       mirror.textContent = message;
       mirror.title = message;
+    }
+    if (id.endsWith('-status')) {
+      const type = id.replace('-status', '');
+      const busy = /^(Cargando|Preparando|Analizando|Procesando|Actualizando)/i.test(message);
+      const warning = /(No se pudo|Probá|error|poco detalle|cambiaste los ajustes)/i.test(message);
+      const overlay = document.querySelector(`[data-processing="${type}"]`);
+      if (overlay) {
+        const wasHidden = overlay.hidden;
+        overlay.hidden = !busy;
+        const heading = overlay.querySelector('strong');
+        if (heading && busy) heading.textContent = message.replace(/…+$/, '…');
+        if (busy && wasHidden) setProcessingProgress(type, 0, message);
+      }
+      if (type === activeTool) {
+        if (busy) setWorkspaceState('Procesando', 'processing');
+        else if (warning) setWorkspaceState('Revisar', 'warning');
+        else if (dirtyStates[type]) setWorkspaceState('Cambios pendientes', 'warning');
+        else if (states[type]) {
+          const resultReady = type === 'quality'
+            ? !byId('quality-download')?.disabled
+            : !document.querySelector(`[data-preview-compare="${type}"]`)?.disabled;
+          setWorkspaceState(resultReady ? 'Resultado listo' : 'Archivo cargado', 'ready');
+        }
+        else setWorkspaceState('Sin archivo', 'idle');
+      }
+      window.dispatchEvent(new CustomEvent('momotus:workspace-update', { detail: { type, message } }));
     }
   };
   const hexToRgb = hex => ({ r: parseInt(hex.slice(1, 3), 16), g: parseInt(hex.slice(3, 5), 16), b: parseInt(hex.slice(5, 7), 16) });
@@ -54,6 +117,43 @@
       + (2 + (255 - redMean) / 256) * blueDifference * blueDifference
     ) / 1.5;
   };
+
+  const activeWorkerJobs = new Map();
+  const runWorkerTask = (kind, payload, transfer = [], onProgress = null) => new Promise((resolve, reject) => {
+    if (!('Worker' in window)) return reject(new Error('WORKER_UNAVAILABLE'));
+    const previous = activeWorkerJobs.get(kind);
+    if (previous) {
+      previous.worker.terminate();
+      const error = new Error('WORKER_CANCELLED');
+      error.name = 'AbortError';
+      previous.reject(error);
+    }
+    let worker;
+    try {
+      worker = new Worker('js/tools-worker.js');
+    } catch (error) {
+      reject(error);
+      return;
+    }
+    activeWorkerJobs.set(kind, { worker, reject });
+    worker.onmessage = event => {
+      const message = event.data || {};
+      if (message.type === 'progress') {
+        onProgress?.(message.value);
+        return;
+      }
+      activeWorkerJobs.delete(kind);
+      worker.terminate();
+      if (message.type === 'result') resolve(message.result);
+      else reject(new Error(message.message || 'No se pudo completar el proceso en segundo plano.'));
+    };
+    worker.onerror = event => {
+      activeWorkerJobs.delete(kind);
+      worker.terminate();
+      reject(new Error(event.message || 'Falló el procesamiento en segundo plano.'));
+    };
+    worker.postMessage({ kind, payload }, transfer);
+  });
 
   const loadImageFile = (file, maxSide = 4500, internalTransfer = false) => new Promise((resolve, reject) => {
     if (!file || !ALLOWED_IMAGE_TYPES.has(file.type)) return reject(new Error('Escogé una imagen PNG, JPG o WebP.'));
@@ -89,6 +189,25 @@
     const context = canvas.getContext('2d', { willReadFrequently: true });
     context.drawImage(source.image, 0, 0, source.width, source.height);
     return { imageData: context.getImageData(0, 0, source.width, source.height) };
+  };
+
+  const getLightweightState = (source, cacheName) => {
+    const scale = Math.min(1, MAX_PREVIEW_SIDE / Math.max(source.width, source.height), Math.sqrt(MAX_PREVIEW_PIXELS / (source.width * source.height)));
+    if (scale >= 0.999) return source;
+    const width = Math.max(1, Math.round(source.width * scale));
+    const height = Math.max(1, Math.round(source.height * scale));
+    const cacheKey = `${cacheName}:${width}x${height}`;
+    if (source.lightweightCache?.key === cacheKey) return source.lightweightCache.state;
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = 'high';
+    context.drawImage(source.image, 0, 0, width, height);
+    const state = { ...source, width, height, imageData: context.getImageData(0, 0, width, height), isPreview: true };
+    source.lightweightCache = { key: cacheKey, state };
+    return state;
   };
 
   const fitPreviewStage = (type, intrinsicWidth, intrinsicHeight) => {
@@ -229,7 +348,9 @@
         ? (visibleElement instanceof HTMLCanvasElement ? visibleElement.height : (visibleElement?.naturalHeight || states[type].height))
         : 2868;
       const contentBounds = detectPreviewContentBounds(type, visibleElement, stageWidth || 1320, stageHeight || 2868);
-      fitPreviewStage(type, contentBounds.width, contentBounds.height);
+      const canvasBounds = { x: 0, y: 0, width: stageWidth || 1320, height: stageHeight || 2868 };
+      const fittingBounds = select.value === 'canvas' ? canvasBounds : contentBounds;
+      fitPreviewStage(type, fittingBounds.width, fittingBounds.height);
 
       const styles = getComputedStyle(preview);
       const availableWidth = Math.max(1, preview.clientWidth - parseFloat(styles.paddingLeft) - parseFloat(styles.paddingRight));
@@ -240,7 +361,7 @@
         const intrinsicWidth = element instanceof HTMLCanvasElement ? element.width : (element.naturalWidth || states[type]?.width || 1);
         const intrinsicHeight = element instanceof HTMLCanvasElement ? element.height : (element.naturalHeight || states[type]?.height || 1);
         const bounds = element === visibleElement
-          ? contentBounds
+          ? fittingBounds
           : { x: 0, y: 0, width: intrinsicWidth, height: intrinsicHeight };
         const fittedScale = Math.min(availableWidth / bounds.width, availableHeight / bounds.height);
         let displayScale = fittedScale;
@@ -267,7 +388,7 @@
     const canvas = byId(`${type}-canvas`);
     image.src = state.sourceUrl;
     image.hidden = false;
-    canvas.hidden = true;
+    canvas.hidden = byId(`${type}-preview`)?.classList.contains('compare-active') ? false : true;
     drawHistogram(type);
     applyPreviewZoom(type);
   };
@@ -275,16 +396,69 @@
   const showResult = type => {
     const image = byId(`${type}-original`);
     const canvas = byId(`${type}-canvas`);
-    image.hidden = true;
+    image.hidden = byId(`${type}-preview`)?.classList.contains('compare-active') ? false : true;
     canvas.hidden = false;
     if (canvas.width && canvas.height) drawHistogram(type, canvas);
     applyPreviewZoom(type);
   };
 
+  const setComparePosition = (type, value) => {
+    const percentage = `${Math.max(0, Math.min(100, Number(value) || 0))}%`;
+    byId(`${type}-preview`)?.style.setProperty('--compare-position', percentage);
+    document.querySelector(`[data-compare-control="${type}"]`)?.style.setProperty('--compare-position', percentage);
+  };
+
+  const deactivateCompare = type => {
+    const preview = byId(`${type}-preview`);
+    const control = document.querySelector(`[data-compare-control="${type}"]`);
+    const button = document.querySelector(`[data-preview-compare="${type}"]`);
+    preview?.classList.remove('compare-active');
+    if (control) control.hidden = true;
+    button?.classList.remove('active');
+    button?.setAttribute('aria-pressed', 'false');
+    const image = byId(`${type}-original`);
+    const canvas = byId(`${type}-canvas`);
+    if (image && canvas) {
+      const original = previewViews[type] === 'original';
+      image.hidden = !original;
+      canvas.hidden = original;
+    }
+    applyPreviewZoom(type);
+  };
+
+  const activateCompare = async type => {
+    if (!states[type]) return showToast('Primero subí una imagen.');
+    try {
+      await prepareTransferCanvas(type);
+      previewViews[type] = 'result';
+      updatePreviewButtons(type);
+      const preview = byId(`${type}-preview`);
+      const image = byId(`${type}-original`);
+      const canvas = byId(`${type}-canvas`);
+      const control = document.querySelector(`[data-compare-control="${type}"]`);
+      const button = document.querySelector(`[data-preview-compare="${type}"]`);
+      const range = document.querySelector(`[data-compare-range="${type}"]`);
+      image.src = states[type].sourceUrl;
+      image.hidden = false;
+      canvas.hidden = false;
+      preview.classList.add('compare-active');
+      if (control) control.hidden = false;
+      button?.classList.add('active');
+      button?.setAttribute('aria-pressed', 'true');
+      setComparePosition(type, range?.value || 50);
+      applyPreviewZoom(type);
+      centerPreview(type);
+    } catch (error) {
+      showToast(error.message || 'No se pudo preparar la comparación.');
+    }
+  };
+
   const setToolResultReady = (type, ready) => {
     document.querySelectorAll(`[data-transfer-from="${type}"]`).forEach(button => { button.disabled = !ready; });
-    const compareButton = document.querySelector(`[data-hold-original="${type}"]`);
-    if (compareButton) compareButton.disabled = !ready;
+    const compareToggle = document.querySelector(`[data-preview-compare="${type}"]`);
+    if (compareToggle) compareToggle.disabled = !ready;
+    if (!ready) deactivateCompare(type);
+    window.dispatchEvent(new CustomEvent('momotus:result-ready', { detail: { type, ready } }));
   };
 
   const drawHistogram = (type, renderedCanvas = null) => {
@@ -342,6 +516,7 @@
 
   const scheduleRender = (type, callback, delay = 90) => {
     if (!states[type]) return;
+    markToolDirty(type);
     const pendingView = type === 'background' && previewViews.background === 'mask' ? 'mask' : 'result';
     clearTimeout(renderTimers[type]);
     setStatus(`${type}-status`, 'Actualizando vista previa…');
@@ -505,6 +680,131 @@
         showToast('No se pudo preparar la descarga.');
       }
     }, 'image/png');
+  };
+
+  const analyzeCanvasAlpha = canvas => {
+    const sample = document.createElement('canvas');
+    const scale = Math.min(1, 420 / Math.max(canvas.width, canvas.height));
+    sample.width = Math.max(1, Math.round(canvas.width * scale));
+    sample.height = Math.max(1, Math.round(canvas.height * scale));
+    const context = sample.getContext('2d', { willReadFrequently: true });
+    context.drawImage(canvas, 0, 0, sample.width, sample.height);
+    const data = context.getImageData(0, 0, sample.width, sample.height).data;
+    let transparent = 0;
+    let partial = 0;
+    let opaque = 0;
+    let edgePixels = 0;
+    let lightFringePixels = 0;
+    for (let y = 0; y < sample.height; y++) {
+      for (let x = 0; x < sample.width; x++) {
+        const index = (y * sample.width + x) * 4;
+        const alpha = data[index + 3];
+        if (alpha === 0) transparent++;
+        else if (alpha === 255) opaque++;
+        else partial++;
+        if (alpha === 0) continue;
+        const touchesTransparency = (x > 0 && data[index - 1] === 0)
+          || (x + 1 < sample.width && data[index + 7] === 0)
+          || (y > 0 && data[index - sample.width * 4 + 3] === 0)
+          || (y + 1 < sample.height && data[index + sample.width * 4 + 3] === 0);
+        if (!touchesTransparency) continue;
+        edgePixels++;
+        const maximum = Math.max(data[index], data[index + 1], data[index + 2]);
+        const minimum = Math.min(data[index], data[index + 1], data[index + 2]);
+        const luminance = 0.2126 * data[index] + 0.7152 * data[index + 1] + 0.0722 * data[index + 2];
+        if (maximum - minimum < 28 && luminance > 218) lightFringePixels++;
+      }
+    }
+    return { transparent, partial, opaque, edgePixels, lightFringePixels, total: transparent + partial + opaque };
+  };
+
+  const buildPreflightChecks = (type, canvas) => {
+    const state = states[type];
+    const checks = [];
+    const widthCm = canvas.width / EXPORT_DPI * 2.54;
+    const heightCm = canvas.height / EXPORT_DPI * 2.54;
+    checks.push({ level: 'good', message: `${canvas.width} × ${canvas.height} px · ${widthCm.toFixed(1)} × ${heightCm.toFixed(1)} cm al tamaño final.` });
+    checks.push({ level: 'good', message: 'El PNG llevará metadatos de 300 DPI compatibles con el flujo DTF.' });
+    const alpha = analyzeCanvasAlpha(canvas);
+    const transparentPercentage = alpha.total ? alpha.transparent / alpha.total * 100 : 0;
+    if (transparentPercentage > 0.05) checks.push({ level: 'good', message: `Fondo transparente detectado (${transparentPercentage.toFixed(1)}% de la muestra).` });
+    else if (type === 'background') checks.push({ level: 'warning', message: 'No se detectó transparencia. Revisá el color, la tolerancia y el alcance antes de imprimir.' });
+    else checks.push({ level: 'good', message: 'La imagen ocupa todo el lienzo; verificá que ese fondo completo sea intencional.' });
+    const partialPercentage = alpha.total ? alpha.partial / alpha.total * 100 : 0;
+    if (partialPercentage > 0.3) checks.push({ level: 'warning', message: `${partialPercentage.toFixed(2)}% de píxeles semitransparentes. La descarga los convertirá a transparencia sólida mediante tramado.` });
+    else if (alpha.partial > 0) checks.push({ level: 'good', message: 'Las pocas semitransparencias detectadas se convertirán a píxeles sólidos mediante tramado.' });
+    else checks.push({ level: 'good', message: 'No se detectaron semitransparencias problemáticas.' });
+    const fringePercentage = alpha.edgePixels ? alpha.lightFringePixels / alpha.edgePixels * 100 : 0;
+    if (fringePercentage > 18) checks.push({ level: 'warning', message: `Posible borde claro en ${fringePercentage.toFixed(1)}% del contorno. Revisalo sobre una prenda oscura antes de producir.` });
+    else checks.push({ level: 'good', message: 'El contorno no muestra contaminación clara importante en la muestra analizada.' });
+
+    let sourceDpi = null;
+    let safetyLimited = false;
+    if (type === 'halftone') {
+      const requestedWidthCm = Number(byId('halftone-width-cm').value) || 28;
+      sourceDpi = Math.round(state.naturalWidth / (requestedWidthCm / 2.54));
+      safetyLimited = Boolean(state.halftoneOutputCache?.safetyLimited);
+      const frequency = Number(byId('halftone-frequency').value);
+      const dotSize = Number(byId('halftone-dot-size').value);
+      checks.push({
+        level: frequency >= 45 && frequency <= 70 && dotSize >= 0.28 && dotSize <= 0.6 ? 'good' : 'warning',
+        message: `${frequency} LPI · punto máximo ${dotSize.toFixed(2)} mm. ${frequency >= 45 && frequency <= 70 ? 'Trama adecuada para detalle DTF.' : 'Revisá el detalle a tamaño real antes de producir.'}`
+      });
+    } else if (type === 'quality') {
+      sourceDpi = state.lastOutput?.sourceDpi;
+      safetyLimited = Boolean(state.lastOutput?.safetyLimited);
+    }
+    if (sourceDpi !== null && Number.isFinite(sourceDpi)) {
+      const level = sourceDpi >= 300 ? 'good' : sourceDpi >= 180 ? 'warning' : 'error';
+      const explanation = sourceDpi >= 300
+        ? 'La resolución original alcanza el tamaño escogido.'
+        : sourceDpi >= 180 ? 'Puede funcionar, pero revisá texto y bordes al 100%.' : 'La fuente tiene poco detalle real; ampliar no recupera información perdida.';
+      checks.push({ level, message: `${sourceDpi} DPI efectivos de origen. ${explanation}` });
+    }
+    if (safetyLimited) checks.push({ level: 'warning', message: 'El tamaño solicitado fue reducido para proteger la memoria. Confirmá la medida indicada arriba.' });
+    return checks;
+  };
+
+  const closePreflight = () => {
+    byId('dtf-preflight-modal').hidden = true;
+    pendingPreflightDownload = null;
+  };
+
+  const openPreflight = (type, canvas, filename) => {
+    const checks = buildPreflightChecks(type, canvas);
+    const errors = checks.filter(check => check.level === 'error').length;
+    const warnings = checks.filter(check => check.level === 'warning').length;
+    const summary = byId('dtf-preflight-summary');
+    summary.className = `dtf-preflight-summary${errors ? ' error' : warnings ? ' warning' : ''}`;
+    summary.textContent = errors
+      ? `${errors} punto crítico y ${warnings} aviso(s). Podés descargar, pero conviene ajustar primero.`
+      : warnings ? `Archivo preparado con ${warnings} aviso(s) para revisar.` : 'Archivo verificado y preparado para continuar al flujo DTF.';
+    const list = byId('dtf-preflight-list');
+    list.replaceChildren(...checks.map(check => {
+      const item = document.createElement('li');
+      item.className = check.level;
+      const icon = document.createElement('i');
+      icon.className = `fa-solid ${check.level === 'good' ? 'fa-circle-check' : check.level === 'warning' ? 'fa-triangle-exclamation' : 'fa-circle-xmark'}`;
+      const message = document.createElement('span');
+      message.textContent = check.message;
+      item.append(icon, message);
+      return item;
+    }));
+    pendingPreflightDownload = { canvas, filename };
+    const exportName = byId('dtf-export-name');
+    if (exportName) exportName.value = filename.replace(/\.png$/i, '');
+    const exportPreview = byId('dtf-export-preview-canvas');
+    if (exportPreview) {
+      const previewContext = exportPreview.getContext('2d');
+      previewContext.clearRect(0, 0, exportPreview.width, exportPreview.height);
+      const scale = Math.min(exportPreview.width / canvas.width, exportPreview.height / canvas.height);
+      const width = Math.max(1, canvas.width * scale);
+      const height = Math.max(1, canvas.height * scale);
+      previewContext.drawImage(canvas, (exportPreview.width - width) / 2, (exportPreview.height - height) / 2, width, height);
+    }
+    byId('dtf-preflight-download').innerHTML = `<i class="fa-solid fa-download"></i> ${errors ? 'Descargar de todas formas' : 'Descargar PNG listo'}`;
+    byId('dtf-preflight-modal').hidden = false;
+    byId('dtf-preflight-close').focus();
   };
 
   const drawHalftoneShape = (context, shape, x, y, radius, angle) => {
@@ -752,7 +1052,7 @@
     context.restore();
   };
 
-  const prepareHalftoneOutput = (source, requestedWidthCm) => {
+  const prepareHalftoneOutput = (source, requestedWidthCm, finalOutput = false) => {
     const requestedWidth = Math.round(requestedWidthCm / 2.54 * EXPORT_DPI);
     const requestedHeight = Math.round(requestedWidth * source.naturalHeight / source.naturalWidth);
     const safetyScale = Math.min(
@@ -760,10 +1060,14 @@
       MAX_HALFTONE_SIDE / Math.max(requestedWidth, requestedHeight),
       Math.sqrt(MAX_HALFTONE_PIXELS / (requestedWidth * requestedHeight))
     );
-    const width = Math.max(1, Math.round(requestedWidth * safetyScale));
-    const height = Math.max(1, Math.round(requestedHeight * safetyScale));
-    const cacheKey = `${width}x${height}`;
-    if (source.halftoneOutputCache?.key === cacheKey) return source.halftoneOutputCache;
+    const fullWidth = Math.max(1, Math.round(requestedWidth * safetyScale));
+    const fullHeight = Math.max(1, Math.round(requestedHeight * safetyScale));
+    const previewScale = finalOutput ? 1 : Math.min(1, MAX_PREVIEW_SIDE / Math.max(fullWidth, fullHeight), Math.sqrt(MAX_PREVIEW_PIXELS / (fullWidth * fullHeight)));
+    const width = Math.max(1, Math.round(fullWidth * previewScale));
+    const height = Math.max(1, Math.round(fullHeight * previewScale));
+    const cacheKey = `${finalOutput ? 'final' : 'preview'}:${width}x${height}`;
+    source.halftoneOutputCaches ||= {};
+    if (source.halftoneOutputCaches[cacheKey]) return source.halftoneOutputCaches[cacheKey];
     const sourceCanvas = document.createElement('canvas');
     sourceCanvas.width = width;
     sourceCanvas.height = height;
@@ -771,16 +1075,20 @@
     sourceContext.imageSmoothingEnabled = true;
     sourceContext.imageSmoothingQuality = 'high';
     sourceContext.drawImage(source.image, 0, 0, width, height);
-    source.halftoneOutputCache = {
+    const output = {
       key: cacheKey,
       width,
       height,
-      actualWidthCm: width / EXPORT_DPI * 2.54,
-      actualHeightCm: height / EXPORT_DPI * 2.54,
+      actualWidthCm: fullWidth / EXPORT_DPI * 2.54,
+      actualHeightCm: fullHeight / EXPORT_DPI * 2.54,
+      effectiveDpi: width / (fullWidth / EXPORT_DPI),
+      isPreview: !finalOutput && previewScale < 0.999,
       safetyLimited: safetyScale < 0.999,
       imageData: sourceContext.getImageData(0, 0, width, height)
     };
-    return source.halftoneOutputCache;
+    source.halftoneOutputCaches[cacheKey] = output;
+    if (finalOutput) source.halftoneOutputCache = output;
+    return output;
   };
 
   const estimateHalftoneBackground = (state, cellSize) => {
@@ -868,7 +1176,7 @@
     return state.halftoneMaskCache;
   };
 
-  const renderHalftone = async () => {
+  const renderHalftone = async (finalOutput = false) => {
     const sourceState = states.halftone;
     if (!sourceState) return;
     const renderRevision = ++halftoneRenderRevision;
@@ -880,13 +1188,14 @@
     const requestedWidthCm = Math.max(8, Math.min(38, Number(byId('halftone-width-cm').value) || 28));
     byId('halftone-width-cm').value = String(requestedWidthCm);
     setStatus('halftone-status', 'Preparando la imagen para el semitono…');
+    setProcessingProgress('halftone', 3, finalOutput ? 'Preparando salida completa…' : 'Creando vista rápida…');
     await nextFrame();
     if (renderRevision !== halftoneRenderRevision || sourceState !== states.halftone) return false;
-    const state = prepareHalftoneOutput(sourceState, requestedWidthCm);
+    const state = prepareHalftoneOutput(sourceState, requestedWidthCm, finalOutput);
     const frequency = Number(byId('halftone-frequency').value);
-    const cellSize = EXPORT_DPI / frequency;
+    const cellSize = state.effectiveDpi / frequency;
     const maximumDotMm = Number(byId('halftone-dot-size').value);
-    const maximumDotRadius = maximumDotMm / 25.4 * EXPORT_DPI / 2;
+    const maximumDotRadius = maximumDotMm / 25.4 * state.effectiveDpi / 2;
     const angleDegrees = Number(byId('halftone-angle').value);
     const angle = angleDegrees * Math.PI / 180;
     const contrast = Number(byId('halftone-contrast').value);
@@ -906,16 +1215,20 @@
     const renderKey = JSON.stringify({
       requestedWidthCm, frequency, maximumDotMm, angleDegrees, contrast, invert, transparent,
       shape, colorMode, maskMode, maskTolerance, tonalRange, hueRange, amount, solidProtection,
-      keepSolids, inkColor, backgroundColor
+      keepSolids, inkColor, backgroundColor, finalOutput
     });
-    if (sourceState.halftoneRenderKey === renderKey && canvas.width === state.width && canvas.height === state.height) {
+    const renderKeyName = finalOutput ? 'halftoneRenderKeyFinal' : 'halftoneRenderKeyPreview';
+    const statusName = finalOutput ? 'halftoneStatusFinal' : 'halftoneStatusPreview';
+    if (sourceState[renderKeyName] === renderKey && canvas.width === state.width && canvas.height === state.height) {
       setToolResultReady('halftone', true);
-      if (sourceState.halftoneStatus) setStatus('halftone-status', sourceState.halftoneStatus);
+      markToolClean('halftone');
+      if (sourceState[statusName]) setStatus('halftone-status', sourceState[statusName]);
       applyPreviewZoom('halftone');
       centerPreview('halftone');
       return true;
     }
     setStatus('halftone-status', 'Generando semitono profesional…');
+    setProcessingProgress('halftone', 12, 'Analizando color y máscara…');
     await nextFrame();
     if (renderRevision !== halftoneRenderRevision || sourceState !== states.halftone) return false;
     const workCanvas = document.createElement('canvas');
@@ -935,8 +1248,10 @@
       () => renderRevision !== halftoneRenderRevision || sourceState !== states.halftone
     );
     if (renderRevision !== halftoneRenderRevision || sourceState !== states.halftone) return false;
+    setProcessingProgress('halftone', 25, 'Construyendo la trama…');
     const colorStats = analyzeHalftoneColors(sourceState);
     let gridRow = 0;
+    const totalGridRows = Math.max(1, Math.ceil(diagonal / cellSize) + 1);
     for (let gridY = -diagonal / 2; gridY <= diagonal / 2; gridY += cellSize, gridRow++) {
       let gridColumn = 0;
       for (let gridX = -diagonal / 2; gridX <= diagonal / 2; gridX += cellSize, gridColumn++) {
@@ -970,10 +1285,12 @@
         if (radius >= 0.25) drawHalftoneShape(workContext, shape, x, y, radius, angle);
       }
       if (gridRow > 0 && gridRow % 28 === 0) {
+        setProcessingProgress('halftone', 25 + gridRow / totalGridRows * 70, 'Construyendo la trama…');
         await nextFrame();
         if (renderRevision !== halftoneRenderRevision || sourceState !== states.halftone) return false;
       }
     }
+    setProcessingProgress('halftone', 100, 'Montando el resultado…');
     canvas.width = state.width;
     canvas.height = state.height;
     context.clearRect(0, 0, canvas.width, canvas.height);
@@ -988,9 +1305,11 @@
     const rangeLabels = { transitions: 'sombras y transiciones', shadows: 'sombras', midtones: 'medios tonos', highlights: 'luces', all: 'imagen completa' };
     const sourceDpi = Math.round(sourceState.naturalWidth / (requestedWidthCm / 2.54));
     const limitedLabel = state.safetyLimited ? ' · medida limitada por seguridad' : '';
-    sourceState.halftoneStatus = `${state.width} × ${state.height} px · ${state.actualWidthCm.toFixed(1)} × ${state.actualHeightCm.toFixed(1)} cm · ${frequency} LPI · punto máx. ${maximumDotMm.toFixed(2)} mm · origen ${sourceDpi} DPI${limitedLabel}.`;
-    setStatus('halftone-status', sourceState.halftoneStatus);
-    sourceState.halftoneRenderKey = renderKey;
+    const previewLabel = state.isPreview ? ' · vista rápida; salida completa al descargar' : '';
+    sourceState[statusName] = `${state.width} × ${state.height} px · ${state.actualWidthCm.toFixed(1)} × ${state.actualHeightCm.toFixed(1)} cm · ${frequency} LPI · punto máx. ${maximumDotMm.toFixed(2)} mm · origen ${sourceDpi} DPI${limitedLabel}${previewLabel}.`;
+    setStatus('halftone-status', sourceState[statusName]);
+    sourceState[renderKeyName] = renderKey;
+    markToolClean('halftone');
     delete previewBoundsCache.halftone;
     drawHistogram('halftone', canvas);
     applyPreviewZoom('halftone');
@@ -998,9 +1317,55 @@
     return true;
   };
 
-  const renderBackground = async (maskPreview = false) => {
-    const state = states.background;
-    if (!state) return;
+  const getConnectedBackgroundMask = async (state, color, tolerance, softness, isCancelled) => {
+    const cacheKey = `${color.r},${color.g},${color.b}:${tolerance}:${softness}`;
+    if (state.connectedMaskKey === cacheKey && state.connectedMask) return state.connectedMask;
+    const width = state.width;
+    const height = state.height;
+    const total = width * height;
+    const selected = new Uint8Array(total);
+    const queued = new Uint8Array(total);
+    const queue = new Uint32Array(total);
+    const source = state.imageData.data;
+    const maximumDistance = tolerance + softness;
+    let head = 0;
+    let tail = 0;
+    const tryQueue = pixel => {
+      if (queued[pixel]) return;
+      queued[pixel] = 1;
+      const index = pixel * 4;
+      if (source[index + 3] === 0 || perceptualColorDistance(source[index], source[index + 1], source[index + 2], color) > maximumDistance) return;
+      selected[pixel] = 1;
+      queue[tail++] = pixel;
+    };
+    for (let x = 0; x < width; x++) {
+      tryQueue(x);
+      if (height > 1) tryQueue((height - 1) * width + x);
+    }
+    for (let y = 1; y < height - 1; y++) {
+      tryQueue(y * width);
+      if (width > 1) tryQueue(y * width + width - 1);
+    }
+    while (head < tail) {
+      const pixel = queue[head++];
+      const x = pixel % width;
+      if (x > 0) tryQueue(pixel - 1);
+      if (x + 1 < width) tryQueue(pixel + 1);
+      if (pixel >= width) tryQueue(pixel - width);
+      if (pixel + width < total) tryQueue(pixel + width);
+      if (head % 250000 === 0) {
+        await nextFrame();
+        if (isCancelled()) return null;
+      }
+    }
+    state.connectedMaskKey = cacheKey;
+    state.connectedMask = selected;
+    return selected;
+  };
+
+  const renderBackground = async (maskPreview = false, finalOutput = false) => {
+    const sourceState = states.background;
+    if (!sourceState) return;
     const renderRevision = ++backgroundRenderRevision;
     previewViews.background = maskPreview ? 'mask' : 'result';
     updatePreviewButtons('background');
@@ -1009,59 +1374,90 @@
     const context = canvas.getContext('2d');
     setStatus('background-status', 'Preparando la selección de color…');
     await nextFrame();
-    if (renderRevision !== backgroundRenderRevision || state !== states.background) return false;
-    const output = new ImageData(new Uint8ClampedArray(state.imageData.data), state.width, state.height);
+    if (renderRevision !== backgroundRenderRevision || sourceState !== states.background) return false;
+    const state = finalOutput ? sourceState : getLightweightState(sourceState, 'background');
     const key = hexToRgb(byId('background-color').value);
     const tolerance = Number(byId('background-tolerance').value);
     const softness = Number(byId('background-softness').value);
     const mode = byId('background-mode').value;
+    const scope = byId('background-scope').value;
     const decontaminate = mode === 'remove' && byId('background-decontaminate').checked;
-    const data = output.data;
-    let affected = 0;
     setStatus('background-status', 'Analizando y limpiando el color…');
-    for (let index = 0; index < data.length; index += 4) {
-      const originalAlpha = data[index + 3];
-      const distance = perceptualColorDistance(data[index], data[index + 1], data[index + 2], key);
-      if (mode === 'keep') {
-        if (distance <= tolerance) data[index + 3] = originalAlpha;
-        else if (softness > 0 && distance < tolerance + softness) data[index + 3] = Math.round(originalAlpha * (1 - (distance - tolerance) / softness));
-        else data[index + 3] = 0;
-      } else {
-        if (distance <= tolerance) data[index + 3] = 0;
-        else if (softness > 0 && distance < tolerance + softness) data[index + 3] = Math.round(originalAlpha * (distance - tolerance) / softness);
-      }
-      if (decontaminate && data[index + 3] > 0 && data[index + 3] < originalAlpha) {
-        const coverage = data[index + 3] / originalAlpha;
-        data[index] = clampChannel((data[index] - (1 - coverage) * key.r) / coverage);
-        data[index + 1] = clampChannel((data[index + 1] - (1 - coverage) * key.g) / coverage);
-        data[index + 2] = clampChannel((data[index + 2] - (1 - coverage) * key.b) / coverage);
-      }
-      if (data[index + 3] < originalAlpha) affected++;
-      if (index > 0 && index % 1000000 === 0) {
-        await nextFrame();
-        if (renderRevision !== backgroundRenderRevision || state !== states.background) return false;
-      }
-    }
-    if (maskPreview) {
+    setProcessingProgress('background', 3, finalOutput ? 'Preparando salida completa…' : 'Creando vista rápida…');
+    let output;
+    let affected = 0;
+    try {
+      const workerData = new Uint8ClampedArray(state.imageData.data);
+      const result = await runWorkerTask('background', {
+        buffer: workerData.buffer,
+        width: state.width,
+        height: state.height,
+        target: key,
+        tolerance,
+        softness,
+        mode,
+        scope,
+        decontaminate,
+        maskPreview
+      }, [workerData.buffer], progress => setProcessingProgress('background', progress, 'Analizando y limpiando el color…'));
+      if (renderRevision !== backgroundRenderRevision || sourceState !== states.background) return false;
+      output = new ImageData(new Uint8ClampedArray(result.buffer), state.width, state.height);
+      affected = result.affected;
+    } catch (error) {
+      if (error.name === 'AbortError') return false;
+      console.warn('Procesamiento en segundo plano no disponible; usando respaldo local.', error);
+      output = new ImageData(new Uint8ClampedArray(state.imageData.data), state.width, state.height);
+      const data = output.data;
+      const connectedMask = mode === 'remove' && scope === 'connected'
+        ? await getConnectedBackgroundMask(state, key, tolerance, softness, () => renderRevision !== backgroundRenderRevision || sourceState !== states.background)
+        : null;
+      if (mode === 'remove' && scope === 'connected' && !connectedMask) return false;
       for (let index = 0; index < data.length; index += 4) {
-        const maskValue = data[index + 3];
-        data[index] = maskValue;
-        data[index + 1] = maskValue;
-        data[index + 2] = maskValue;
-        data[index + 3] = 255;
-        if (index > 0 && index % 1600000 === 0) {
+        const pixel = index / 4;
+        const originalAlpha = data[index + 3];
+        const distance = perceptualColorDistance(data[index], data[index + 1], data[index + 2], key);
+        if (mode === 'keep') {
+          if (distance <= tolerance) data[index + 3] = originalAlpha;
+          else if (softness > 0 && distance < tolerance + softness) data[index + 3] = Math.round(originalAlpha * (1 - (distance - tolerance) / softness));
+          else data[index + 3] = 0;
+        } else if (scope === 'global' || connectedMask[pixel]) {
+          if (distance <= tolerance) data[index + 3] = 0;
+          else if (softness > 0 && distance < tolerance + softness) data[index + 3] = Math.round(originalAlpha * (distance - tolerance) / softness);
+        }
+        if (decontaminate && data[index + 3] > 0 && data[index + 3] < originalAlpha) {
+          const coverage = data[index + 3] / originalAlpha;
+          data[index] = clampChannel((data[index] - (1 - coverage) * key.r) / coverage);
+          data[index + 1] = clampChannel((data[index + 1] - (1 - coverage) * key.g) / coverage);
+          data[index + 2] = clampChannel((data[index + 2] - (1 - coverage) * key.b) / coverage);
+        }
+        if (data[index + 3] < originalAlpha) affected++;
+        if (index > 0 && index % 1000000 === 0) {
+          setProcessingProgress('background', 35 + index / data.length * (maskPreview ? 48 : 62), 'Analizando y limpiando el color…');
           await nextFrame();
-          if (renderRevision !== backgroundRenderRevision || state !== states.background) return false;
+          if (renderRevision !== backgroundRenderRevision || sourceState !== states.background) return false;
+        }
+      }
+      if (maskPreview) {
+        for (let index = 0; index < data.length; index += 4) {
+          const maskValue = data[index + 3];
+          data[index] = maskValue;
+          data[index + 1] = maskValue;
+          data[index + 2] = maskValue;
+          data[index + 3] = 255;
         }
       }
     }
+    setProcessingProgress('background', 100, 'Montando el resultado…');
     canvas.width = state.width;
     canvas.height = state.height;
     context.putImageData(output, 0, 0);
     setToolResultReady('background', true);
     const percentage = ((affected / (state.width * state.height)) * 100).toFixed(1);
-    const action = mode === 'keep' ? 'ocultos para conservar el color' : 'afectados en toda la imagen';
-    const previewLabel = maskPreview ? ' · máscara: blanco conserva, negro elimina' : ' · salida 300 DPI';
+    const action = mode === 'keep'
+      ? 'ocultos para conservar el color'
+      : scope === 'connected' ? 'afectados únicamente en el fondo exterior' : 'afectados en toda la imagen';
+    const previewLabel = maskPreview ? ' · máscara: blanco conserva, negro elimina' : finalOutput ? ' · salida completa a 300 DPI' : ' · vista rápida; salida final al descargar';
+    markToolClean('background');
     setStatus('background-status', `${percentage}% de píxeles ${action}${previewLabel}.`);
     delete previewBoundsCache.background;
     drawHistogram('background', canvas);
@@ -1088,12 +1484,15 @@
     if (saveHistory) recordHistory('background');
   };
 
-  const createProgressiveSource = async (state, targetWidth, targetHeight, smoothing) => {
+  const createProgressiveSource = async (state, targetWidth, targetHeight, smoothing, onProgress = null) => {
     let source = document.createElement('canvas');
     source.width = state.width;
     source.height = state.height;
     source.getContext('2d').drawImage(state.image, 0, 0, state.width, state.height);
-    if (smoothing === 'pixel' || (targetWidth <= state.width * 1.35 && targetHeight <= state.height * 1.35)) return source;
+    if (smoothing === 'pixel' || (targetWidth <= state.width * 1.35 && targetHeight <= state.height * 1.35)) {
+      onProgress?.(100);
+      return source;
+    }
 
     while (source.width < targetWidth * 0.82 || source.height < targetHeight * 0.82) {
       const scale = Math.min(1.7, targetWidth / source.width, targetHeight / source.height);
@@ -1108,12 +1507,13 @@
       source.width = 1;
       source.height = 1;
       source = next;
+      onProgress?.(Math.min(100, Math.max(source.width / targetWidth, source.height / targetHeight) * 100));
       await nextFrame();
     }
     return source;
   };
 
-  const enhanceCanvas = async (canvas, sharpness, clarity) => {
+  const enhanceCanvasFallback = async (canvas, sharpness, clarity, onProgress = null) => {
     if (sharpness <= 0 && clarity <= 0) return;
     const context = canvas.getContext('2d');
     const sourceCanvas = copyCanvas(canvas);
@@ -1160,10 +1560,31 @@
       }
       const cropTop = outputTop - sourceTop;
       context.putImageData(output, 0, sourceTop, 0, cropTop, width, outputBottom - outputTop);
+      onProgress?.(outputBottom / height * 100);
       await nextFrame();
     }
     sourceCanvas.width = 1;
     sourceCanvas.height = 1;
+  };
+
+  const enhanceCanvas = async (canvas, sharpness, clarity, onProgress = null) => {
+    if (sharpness <= 0 && clarity <= 0) return;
+    try {
+      const context = canvas.getContext('2d', { willReadFrequently: true });
+      const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+      const result = await runWorkerTask('enhance', {
+        buffer: imageData.data.buffer,
+        width: canvas.width,
+        height: canvas.height,
+        sharpness,
+        clarity
+      }, [imageData.data.buffer], onProgress);
+      context.putImageData(new ImageData(new Uint8ClampedArray(result.buffer), canvas.width, canvas.height), 0, 0);
+    } catch (error) {
+      if (error.name === 'AbortError') throw error;
+      console.warn('Mejora en segundo plano no disponible; usando respaldo local.', error);
+      await enhanceCanvasFallback(canvas, sharpness, clarity, onProgress);
+    }
   };
 
   const updateQualityAssessment = () => {
@@ -1193,7 +1614,7 @@
     }
   };
 
-  const processQuality = async () => {
+  const processQuality = async (finalOutput = false) => {
     const state = states.quality;
     if (!state || qualityProcessing) return;
     const sourceToken = uploadTokens.quality;
@@ -1204,12 +1625,18 @@
     const requestedWidth = Math.round(requestedWidthCm / 2.54 * EXPORT_DPI);
     const requestedHeight = Math.round(requestedWidth * state.naturalHeight / state.naturalWidth);
     const safetyScale = Math.min(1, MAX_OUTPUT_SIDE / Math.max(requestedWidth, requestedHeight), Math.sqrt(MAX_INTERNAL_PIXELS / (requestedWidth * requestedHeight)));
-    const width = Math.max(1, Math.round(requestedWidth * safetyScale));
-    const height = Math.max(1, Math.round(requestedHeight * safetyScale));
+    const fullWidth = Math.max(1, Math.round(requestedWidth * safetyScale));
+    const fullHeight = Math.max(1, Math.round(requestedHeight * safetyScale));
+    const previewScale = finalOutput ? 1 : Math.min(1, MAX_PREVIEW_SIDE / Math.max(fullWidth, fullHeight), Math.sqrt(MAX_PREVIEW_PIXELS / (fullWidth * fullHeight)));
+    const width = Math.max(1, Math.round(fullWidth * previewScale));
+    const height = Math.max(1, Math.round(fullHeight * previewScale));
     setStatus('quality-status', 'Procesando imagen…');
+    setProcessingProgress('quality', 3, finalOutput ? 'Preparando salida completa…' : 'Creando vista rápida…');
     previewViews.quality = 'result';
     updatePreviewButtons('quality');
     showResult('quality');
+    setToolResultReady('quality', false);
+    byId('quality-download').disabled = true;
     byId('quality-process').disabled = true;
     try {
       await nextFrame();
@@ -1221,36 +1648,54 @@
       const brightness = 100 + Number(byId('quality-brightness').value);
       const contrast = 100 + Number(byId('quality-contrast').value);
       const saturation = 100 + Number(byId('quality-saturation').value);
-      const progressiveSource = await createProgressiveSource(state, width, height, smoothing);
-      if (sourceToken !== uploadTokens.quality || renderRevision !== qualityRevision) return;
+      const progressiveSource = await createProgressiveSource(state, width, height, smoothing, progress => setProcessingProgress('quality', 5 + progress * 0.25, 'Escalando la imagen…'));
+      if (sourceToken !== uploadTokens.quality || renderRevision !== qualityRevision) return false;
       context.imageSmoothingEnabled = smoothing !== 'pixel';
       context.imageSmoothingQuality = smoothing === 'logo' ? 'medium' : 'high';
       context.filter = `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%)`;
       context.drawImage(progressiveSource, 0, 0, width, height);
+      setProcessingProgress('quality', 36, 'Ajustando color y contraste…');
       context.filter = 'none';
       progressiveSource.width = 1;
       progressiveSource.height = 1;
       if (smoothing !== 'pixel') {
-        await enhanceCanvas(canvas, Number(byId('quality-sharpness').value), Number(byId('quality-clarity').value));
+        await enhanceCanvas(canvas, Number(byId('quality-sharpness').value), Number(byId('quality-clarity').value), progress => setProcessingProgress('quality', 40 + progress * 0.56, 'Protegiendo detalle y bordes…'));
       }
-      if (sourceToken !== uploadTokens.quality || renderRevision !== qualityRevision) return;
+      if (sourceToken !== uploadTokens.quality || renderRevision !== qualityRevision) return false;
+      setProcessingProgress('quality', 100, 'Montando el resultado…');
       setToolResultReady('quality', true);
       byId('quality-download').disabled = false;
       drawHistogram('quality', canvas);
-      const actualWidthCm = centimetersAt300Dpi(width);
-      const actualHeightCm = centimetersAt300Dpi(height);
+      const actualWidthCm = centimetersAt300Dpi(fullWidth);
+      const actualHeightCm = centimetersAt300Dpi(fullHeight);
+      if (finalOutput) {
+        state.lastOutput = {
+          width: fullWidth,
+          height: fullHeight,
+          actualWidthCm: Number(actualWidthCm),
+          actualHeightCm: Number(actualHeightCm),
+          sourceDpi: Math.round(state.naturalWidth / (requestedWidthCm / 2.54)),
+          safetyLimited: safetyScale < 0.999
+        };
+      }
+      state.qualityPreviewOnly = !finalOutput && previewScale < 0.999;
       const limited = safetyScale < 0.999 ? ' · tamaño ajustado para proteger la memoria del dispositivo' : '';
-      setStatus('quality-status', `${width} × ${height} px · ${actualWidthCm} × ${actualHeightCm} cm a 300 DPI · detalle y bordes protegidos${limited}.`);
+      const previewLabel = state.qualityPreviewOnly ? `Vista rápida ${width} × ${height} px · salida completa ${fullWidth} × ${fullHeight} px al descargar` : `${fullWidth} × ${fullHeight} px`;
+      markToolClean('quality');
+      setStatus('quality-status', `${previewLabel} · ${actualWidthCm} × ${actualHeightCm} cm a 300 DPI · detalle y bordes protegidos${limited}.`);
       delete previewBoundsCache.quality;
       applyPreviewZoom('quality');
       centerPreview('quality');
+      return true;
     } catch (error) {
+      if (error.name === 'AbortError') return false;
       if (sourceToken !== uploadTokens.quality || renderRevision !== qualityRevision) return;
       console.error('No se pudo procesar la imagen:', error);
       setToolResultReady('quality', false);
       byId('quality-download').disabled = true;
       setStatus('quality-status', 'El dispositivo no pudo procesar ese tamaño. Probá con un ancho menor.');
       showToast('Probá con un ancho de impresión menor.');
+      return false;
     } finally {
       qualityProcessing = false;
       byId('quality-process').disabled = false;
@@ -1264,7 +1709,7 @@
 
   const settingIds = {
     halftone: ['halftone-range', 'halftone-hue-range', 'halftone-amount', 'halftone-solid-protection', 'halftone-keep-solids', 'halftone-width-cm', 'halftone-frequency', 'halftone-dot-size', 'halftone-mode', 'halftone-mask-mode', 'halftone-mask-tolerance', 'halftone-angle', 'halftone-contrast', 'halftone-shape', 'halftone-color', 'halftone-background-color', 'halftone-transparent', 'halftone-invert'],
-    background: ['background-mode', 'background-color', 'background-tolerance', 'background-softness', 'background-decontaminate', 'background-trim'],
+    background: ['background-mode', 'background-scope', 'background-color', 'background-tolerance', 'background-softness', 'background-decontaminate', 'background-trim'],
     quality: ['quality-width-cm', 'quality-smoothing', 'quality-brightness', 'quality-contrast', 'quality-saturation', 'quality-clarity', 'quality-sharpness']
   };
 
@@ -1273,10 +1718,13 @@
     return [id, element.type === 'checkbox' ? element.checked : element.value];
   }));
 
-  const updateHistoryButtons = () => {
+  const updateHistoryButtons = (changes = null) => {
     const history = histories[activeTool];
     byId('tool-undo').disabled = history.index <= 0;
     byId('tool-redo').disabled = history.index >= history.entries.length - 1;
+    window.dispatchEvent(new CustomEvent('momotus:history-update', {
+      detail: { type: activeTool, index: history.index, length: history.entries.length, changes }
+    }));
   };
 
   const recordHistory = type => {
@@ -1284,11 +1732,18 @@
     const snapshot = captureSettings(type);
     const serialized = JSON.stringify(snapshot);
     if (history.index >= 0 && JSON.stringify(history.entries[history.index]) === serialized) return;
+    const previous = history.index >= 0 ? history.entries[history.index] : null;
+    const changes = previous
+      ? Object.keys(snapshot).filter(id => previous[id] !== snapshot[id]).map(id => ({ id, from: previous[id], to: snapshot[id] }))
+      : [];
     history.entries = history.entries.slice(0, history.index + 1);
     history.entries.push(snapshot);
     if (history.entries.length > 30) history.entries.shift();
     history.index = history.entries.length - 1;
-    if (type === activeTool) updateHistoryButtons();
+    if (type === activeTool) updateHistoryButtons(changes);
+    else window.dispatchEvent(new CustomEvent('momotus:history-update', {
+      detail: { type, index: history.index, length: history.entries.length, changes }
+    }));
   };
 
   const syncHalftoneMode = () => {
@@ -1301,6 +1756,13 @@
     const toleranceControl = byId('halftone-mask-tolerance-control');
     byId('halftone-mask-tolerance').disabled = !detectsBackground;
     toleranceControl.classList.toggle('is-disabled', !detectsBackground);
+  };
+
+  const syncBackgroundMode = () => {
+    const removesColor = byId('background-mode').value === 'remove';
+    byId('background-scope').disabled = !removesColor;
+    byId('background-scope-control').classList.toggle('is-disabled', !removesColor);
+    byId('background-decontaminate').disabled = !removesColor;
   };
 
   const syncSettingLabels = type => {
@@ -1316,6 +1778,7 @@
     } else if (type === 'background') {
       byId('background-tolerance-value').textContent = byId('background-tolerance').value;
       byId('background-softness-value').textContent = byId('background-softness').value;
+      syncBackgroundMode();
     } else {
       ['brightness', 'contrast', 'saturation', 'clarity', 'sharpness'].forEach(name => {
         byId(`quality-${name}-value`).textContent = byId(`quality-${name}`).value;
@@ -1367,6 +1830,7 @@
 
   const showPreview = (type, view) => {
     if (!states[type]) return;
+    deactivateCompare(type);
     clearTimeout(renderTimers[type]);
     previewViews[type] = view;
     updatePreviewButtons(type);
@@ -1427,6 +1891,8 @@
     });
     updateDocumentInfo(activeTool);
     updateHistoryButtons();
+    const currentStatus = byId(`${activeTool}-status`);
+    if (currentStatus) setStatus(`${activeTool}-status`, currentStatus.textContent);
     if (history.replaceState) history.replaceState(null, '', `#${target}`);
     applyPreviewZoom(activeTool);
     centerPreview(activeTool);
@@ -1447,6 +1913,8 @@
       setToolResultReady(type, false);
       delete previewBoundsCache[type];
       const previousSourceUrl = states[type]?.sourceUrl;
+      const originalImage = byId(`${type}-original`);
+      if (originalImage) originalImage.src = source.sourceUrl;
       previewViews[type] = 'result';
       updatePreviewButtons(type);
       if (type === 'halftone') {
@@ -1465,6 +1933,7 @@
         pickBackgroundColor();
       } else {
         states.quality = source;
+        markToolDirty('quality');
         accepted = true;
         byId('quality-process').disabled = qualityProcessing;
         byId('quality-download').disabled = true;
@@ -1499,12 +1968,12 @@
   const prepareTransferCanvas = async type => {
     if (!states[type]) throw new Error('Primero cargá y procesá una imagen.');
     if (type === 'quality') {
-      if (byId('quality-download').disabled) await processQuality();
+      if (byId('quality-download').disabled || states.quality?.qualityPreviewOnly) await processQuality(true);
       if (byId('quality-download').disabled) throw new Error('No se pudo terminar la mejora de calidad.');
     } else if (type === 'background') {
-      if (!await renderBackground(false)) throw new Error('El resultado cambió mientras se preparaba. Intentá nuevamente.');
+      if (!await renderBackground(false, true)) throw new Error('El resultado cambió mientras se preparaba. Intentá nuevamente.');
     } else {
-      if (!await renderHalftone()) throw new Error('El resultado cambió mientras se preparaba. Intentá nuevamente.');
+      if (!await renderHalftone(true)) throw new Error('El resultado cambió mientras se preparaba. Intentá nuevamente.');
     }
     return byId(`${type}-canvas`);
   };
@@ -1549,6 +2018,7 @@
 
   const resetBackground = () => {
     byId('background-mode').value = 'remove';
+    byId('background-scope').value = 'connected';
     byId('background-color').value = '#ffffff';
     byId('background-tolerance').value = '45';
     byId('background-softness').value = '25';
@@ -1556,12 +2026,14 @@
     byId('background-softness-value').textContent = '25';
     byId('background-decontaminate').checked = true;
     byId('background-trim').checked = false;
+    syncBackgroundMode();
     pickBackgroundColor();
   };
 
   const invalidateQualityResult = () => {
     qualityRevision++;
     if (!states.quality) return;
+    markToolDirty('quality');
     setToolResultReady('quality', false);
     byId('quality-download').disabled = true;
     updateQualityAssessment();
@@ -1578,6 +2050,18 @@
     ['halftone', 'background', 'quality'].forEach(setupDropUpload);
     document.querySelectorAll('.tool-control-group').forEach(group => {
       const content = group.querySelector('.tool-control-content');
+      const closeButton = document.createElement('button');
+      closeButton.type = 'button';
+      closeButton.className = 'tool-panel-close';
+      closeButton.setAttribute('aria-label', 'Cerrar panel de propiedades');
+      closeButton.title = 'Cerrar panel';
+      closeButton.innerHTML = '<i class="fa-solid fa-xmark" aria-hidden="true"></i>';
+      closeButton.addEventListener('click', event => {
+        event.preventDefault();
+        event.stopPropagation();
+        group.open = false;
+      });
+      group.append(closeButton);
       if (content) {
         content.tabIndex = 0;
         content.setAttribute('role', 'region');
@@ -1664,14 +2148,18 @@
     }));
     byId('halftone-download').addEventListener('click', async () => {
       if (!states.halftone) return;
-      const rendered = await renderHalftone();
-      if (rendered) await downloadCanvas(byId('halftone-canvas'), `${states.halftone.filename}-semitono-300dpi.png`);
+      const rendered = await renderHalftone(true);
+      if (rendered) openPreflight('halftone', byId('halftone-canvas'), `${states.halftone.filename}-semitono-300dpi.png`);
     });
 
     bindRange('background-tolerance', 'background-tolerance-value', '', () => scheduleRender('background', renderActiveBackground));
     bindRange('background-softness', 'background-softness-value', '', () => scheduleRender('background', renderActiveBackground));
     byId('background-color').addEventListener('input', () => scheduleRender('background', renderActiveBackground));
-    byId('background-mode').addEventListener('change', () => scheduleRender('background', renderActiveBackground, 0));
+    byId('background-mode').addEventListener('change', () => {
+      syncBackgroundMode();
+      scheduleRender('background', renderActiveBackground, 0);
+    });
+    byId('background-scope').addEventListener('change', () => scheduleRender('background', renderActiveBackground, 0));
     byId('background-decontaminate').addEventListener('change', () => scheduleRender('background', renderActiveBackground, 0));
     document.querySelectorAll('[data-background-color]').forEach(button => button.addEventListener('click', () => {
       byId('background-color').value = button.dataset.backgroundColor;
@@ -1683,10 +2171,10 @@
     byId('background-canvas').addEventListener('click', event => pickBackgroundColor(event.clientX, event.clientY, true));
     byId('background-download').addEventListener('click', async () => {
       if (!states.background) return;
-      const rendered = await renderBackground();
+      const rendered = await renderBackground(false, true);
       if (!rendered) return;
       const canvas = byId('background-trim').checked ? trimTransparentCanvas(byId('background-canvas')) : byId('background-canvas');
-      await downloadCanvas(canvas, `${states.background.filename}-sin-color-300dpi.png`);
+      openPreflight('background', canvas, `${states.background.filename}-sin-color-300dpi.png`);
     });
 
     bindRange('quality-sharpness', 'quality-sharpness-value', '', invalidateQualityResult);
@@ -1720,12 +2208,18 @@
       invalidateQualityResult();
       recordHistory('quality');
     }));
-    byId('quality-process').addEventListener('click', processQuality);
-    byId('quality-download').addEventListener('click', async () => states.quality && await downloadCanvas(byId('quality-canvas'), `${states.quality.filename}-300dpi.png`));
+    byId('quality-process').addEventListener('click', () => processQuality(false));
+    byId('quality-download').addEventListener('click', async () => {
+      if (!states.quality) return;
+      if (states.quality.qualityPreviewOnly && !await processQuality(true)) return;
+      openPreflight('quality', byId('quality-canvas'), `${states.quality.filename}-300dpi.png`);
+    });
 
     Object.entries(settingIds).forEach(([type, ids]) => ids.forEach(id => {
       const element = byId(id);
       element.addEventListener('change', () => recordHistory(type));
+      element.addEventListener('input', () => markToolDirty(type));
+      element.addEventListener('change', () => markToolDirty(type));
       const clearPreset = event => {
         if (!event.isTrusted) return;
         if (type === 'halftone') document.querySelectorAll('[data-halftone-preset], [data-halftone-auto]').forEach(item => item.classList.remove('active'));
@@ -1745,6 +2239,15 @@
       else resetQuality();
       recordHistory(activeTool);
     });
+    const closeShortcutPanel = () => { byId('tool-shortcuts-panel').hidden = true; };
+    byId('tool-shortcuts-help').addEventListener('click', () => {
+      byId('tool-shortcuts-panel').hidden = false;
+      byId('tool-shortcuts-close').focus();
+    });
+    byId('tool-shortcuts-close').addEventListener('click', closeShortcutPanel);
+    byId('tool-shortcuts-panel').addEventListener('click', event => {
+      if (event.target === byId('tool-shortcuts-panel')) closeShortcutPanel();
+    });
     document.addEventListener('keydown', event => {
       if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 'z') return;
       if (['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
@@ -1754,6 +2257,15 @@
 
     document.querySelectorAll('[data-preview-tool]').forEach(button => button.addEventListener('click', () => showPreview(button.dataset.previewTool, button.dataset.previewView)));
     Object.keys(previewViews).forEach(updatePreviewButtons);
+    document.querySelectorAll('[data-preview-compare]').forEach(button => button.addEventListener('click', () => {
+      const type = button.dataset.previewCompare;
+      if (byId(`${type}-preview`).classList.contains('compare-active')) deactivateCompare(type);
+      else activateCompare(type);
+    }));
+    document.querySelectorAll('[data-compare-range]').forEach(range => {
+      setComparePosition(range.dataset.compareRange, range.value);
+      range.addEventListener('input', () => setComparePosition(range.dataset.compareRange, range.value));
+    });
     document.querySelectorAll('[data-preview-expand]').forEach(button => button.addEventListener('click', () => {
       const type = button.dataset.previewExpand;
       const shell = byId(`${type}-preview`)?.closest('.tool-preview-shell');
@@ -1769,38 +2281,20 @@
       applyPreviewZoom(type);
       centerPreview(type);
     }));
-    document.querySelectorAll('[data-hold-original]').forEach(button => {
-      let previousView = null;
-      const reveal = event => {
-        const type = button.dataset.holdOriginal;
-        if (!states[type] || previousView !== null) return;
-        event.preventDefault();
-        previousView = previewViews[type];
-        showOriginal(type);
-        centerPreview(type);
-      };
-      const restore = () => {
-        if (previousView === null) return;
-        const type = button.dataset.holdOriginal;
-        const view = previousView;
-        previousView = null;
-        showPreview(type, view);
-      };
-      button.addEventListener('pointerdown', reveal);
-      button.addEventListener('pointerup', restore);
-      button.addEventListener('pointercancel', restore);
-      button.addEventListener('pointerleave', restore);
-      button.addEventListener('keydown', event => {
-        if (event.key === 'Enter' || event.key === ' ') reveal(event);
-      });
-      button.addEventListener('keyup', event => {
-        if (event.key === 'Enter' || event.key === ' ') restore();
-      });
-      button.addEventListener('blur', restore);
-    });
     document.querySelectorAll('[data-transfer-from][data-transfer-to]').forEach(button => button.addEventListener('click', () => {
       transferResult(button.dataset.transferFrom, button.dataset.transferTo, button);
     }));
+    const zoomSteps = ['fit', 'canvas', '100', '150', '200', '300', '400'];
+    const stepPreviewZoom = (type, direction) => {
+      const select = document.querySelector(`[data-preview-zoom="${type}"]`);
+      if (!select || !states[type]) return;
+      let index = zoomSteps.indexOf(select.value);
+      if (index < 0) index = direction > 0 ? 0 : 1;
+      select.value = zoomSteps[Math.max(0, Math.min(zoomSteps.length - 1, index + direction))];
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+    };
+    document.querySelectorAll('[data-preview-zoom-in]').forEach(button => button.addEventListener('click', () => stepPreviewZoom(button.dataset.previewZoomIn, 1)));
+    document.querySelectorAll('[data-preview-zoom-out]').forEach(button => button.addEventListener('click', () => stepPreviewZoom(button.dataset.previewZoomOut, -1)));
     const magnificationLevels = ['200', '300', '400'];
     document.querySelectorAll('[data-preview-zoom]').forEach(select => select.addEventListener('change', () => {
       const type = select.dataset.previewZoom;
@@ -1836,6 +2330,36 @@
       }
       select.dispatchEvent(new Event('change', { bubbles: true }));
     }));
+    document.addEventListener('keydown', event => {
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName) || !byId('dtf-preflight-modal').hidden || !byId('tool-shortcuts-panel').hidden) return;
+      const select = document.querySelector(`[data-preview-zoom="${activeTool}"]`);
+      if (!select || !states[activeTool]) return;
+      if (event.key === '0') select.value = 'fit';
+      else if (event.key === '1') select.value = '100';
+      else if (event.key === '2') select.value = 'canvas';
+      else if (event.key === '+' || event.key === '=') {
+        event.preventDefault();
+        stepPreviewZoom(activeTool, 1);
+        return;
+      } else if (event.key === '-' || event.key === '_') {
+        event.preventDefault();
+        stepPreviewZoom(activeTool, -1);
+        return;
+      }
+      else return;
+      event.preventDefault();
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    const releaseSpacePan = () => {
+      document.querySelectorAll('.tool-preview.space-pan').forEach(preview => preview.classList.remove('space-pan'));
+    };
+    document.addEventListener('keydown', event => {
+      if (event.code !== 'Space' || event.repeat || ['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON'].includes(document.activeElement?.tagName)) return;
+      event.preventDefault();
+      byId(`${activeTool}-preview`)?.classList.add('space-pan');
+    });
+    document.addEventListener('keyup', event => { if (event.code === 'Space') releaseSpacePan(); });
+    window.addEventListener('blur', releaseSpacePan);
     document.querySelectorAll('.tool-preview').forEach(preview => {
       preview.tabIndex = 0;
       preview.setAttribute('aria-label', `${preview.getAttribute('aria-label') || 'Vista del diseño'}. Usá las flechas o arrastrá para recorrer una imagen ampliada.`);
@@ -1870,6 +2394,14 @@
         event.stopImmediatePropagation();
         moved = false;
       }, true);
+      preview.addEventListener('dblclick', event => {
+        if (!states[activeTool] || preview.id !== `${activeTool}-preview`) return;
+        event.preventDefault();
+        const select = document.querySelector(`[data-preview-zoom="${activeTool}"]`);
+        if (!select) return;
+        select.value = select.value === '100' ? 'fit' : '100';
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+      });
       preview.addEventListener('keydown', event => {
         const distance = event.shiftKey ? 160 : 60;
         const movements = { ArrowLeft: [-distance, 0], ArrowRight: [distance, 0], ArrowUp: [0, -distance], ArrowDown: [0, distance] };
@@ -1885,10 +2417,32 @@
       preview.classList.toggle('preview-light', select.value === 'light');
     }));
     document.addEventListener('keydown', event => {
-      if (event.key !== 'Escape' || !document.body.classList.contains('tool-preview-is-expanded')) return;
-      closeExpandedPreview();
-      applyPreviewZoom(activeTool);
-      centerPreview(activeTool);
+      if (event.key !== 'Escape') return;
+      if (!byId('tool-shortcuts-panel').hidden) closeShortcutPanel();
+      else if (!byId('dtf-preflight-modal').hidden) closePreflight();
+      else if (document.body.classList.contains('tool-preview-is-expanded')) {
+        closeExpandedPreview();
+        applyPreviewZoom(activeTool);
+        centerPreview(activeTool);
+      }
+    });
+    byId('dtf-preflight-close').addEventListener('click', closePreflight);
+    byId('dtf-preflight-back').addEventListener('click', closePreflight);
+    byId('dtf-preflight-modal').addEventListener('click', event => {
+      if (event.target === byId('dtf-preflight-modal')) closePreflight();
+    });
+    byId('dtf-preflight-download').addEventListener('click', async () => {
+      const pending = pendingPreflightDownload;
+      if (!pending) return;
+      const requestedName = byId('dtf-export-name')?.value
+        ?.trim()
+        .replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑüÜ._-]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .replace(/\.png$/i, '')
+        .slice(0, 90);
+      const filename = `${requestedName || pending.filename.replace(/\.png$/i, '')}.png`;
+      closePreflight();
+      await downloadCanvas(pending.canvas, filename);
     });
     let previewResizeFrame = 0;
     window.addEventListener('resize', () => {
@@ -1901,7 +2455,9 @@
     window.addEventListener('beforeunload', () => Object.values(states).forEach(state => {
       if (state?.sourceUrl) URL.revokeObjectURL(state.sourceUrl);
     }));
+    window.addEventListener('beforeunload', () => activeWorkerJobs.forEach(job => job.worker.terminate()));
     Object.keys(histories).forEach(recordHistory);
+    syncBackgroundMode();
     updateHistoryButtons();
   };
 

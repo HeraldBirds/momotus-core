@@ -6,7 +6,7 @@
   <title>Herramientas para DTF | Momotus Core</title>
   <meta name="description" content="Prepará imágenes para DTF con herramientas de semitonos, eliminación de fondo sólido y mejora de tamaño y nitidez.">
   <meta name="theme-color" content="#09090b">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: blob: https:; font-src 'self' https://cdnjs.cloudflare.com; connect-src 'self';">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com 'unsafe-inline'; worker-src 'self'; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: blob: https:; font-src 'self' https://cdnjs.cloudflare.com; connect-src 'self';">
   <script>
     window.MOMOTUS_TOOLS_DESKTOP = window.matchMedia('(min-width: 1024px)').matches;
     if (!window.MOMOTUS_TOOLS_DESKTOP) document.documentElement.classList.add('tools-page-mobile');
@@ -25,6 +25,7 @@
     }
   </script>
   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/tools.css" media="(min-width: 1024px)">
 </head>
 <body class="bg-zinc-950 text-white">
   <section class="tools-mobile-gate" aria-labelledby="tools-desktop-title">
@@ -38,17 +39,17 @@
   </section>
   <div id="navbar-placeholder"></div>
 
-  <header class="tools-hero border-b border-zinc-800">
-    <div class="max-w-6xl mx-auto px-6 py-16 md:py-24 text-center">
+  <header class="tools-hero tools-studio-intro border-b border-zinc-800">
+    <div class="max-w-6xl mx-auto px-6 py-8 text-center">
       <span class="inline-flex items-center gap-2 bg-yellow-400 text-black font-bold px-5 py-2 rounded-3xl mb-6">
         <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> HERRAMIENTAS MOMOTUS
       </span>
-      <h1 class="text-4xl md:text-7xl font-black tracking-tight mb-6">PREPARÁ TU DISEÑO PARA DTF</h1>
-      <p class="text-lg md:text-2xl text-zinc-300 max-w-3xl mx-auto">Subí tu imagen, ajustala a tu manera y descargá el resultado. Todo se procesa en tu dispositivo, sin mandar el archivo a ningún servidor.</p>
+      <h1 class="text-3xl md:text-5xl font-black tracking-tight mb-3">MOMOTUS DTF STUDIO</h1>
+      <p class="text-base md:text-lg text-zinc-300 max-w-3xl mx-auto">Prepará, revisá y exportá tu diseño para DTF. Todo se procesa directamente en tu computadora.</p>
     </div>
   </header>
 
-  <main class="tools-editor-grid max-w-7xl mx-auto px-4 md:px-6 py-10 md:py-16">
+  <main class="tools-editor-grid" aria-label="Editor profesional para impresión DTF">
     <nav aria-label="Herramientas disponibles" class="grid sm:grid-cols-3 gap-4" role="tablist">
       <button type="button" class="tool-shortcut active" data-tool-target="semitonos" role="tab" aria-selected="true"><i class="fa-solid fa-circle-half-stroke"></i><span><strong>Semitonos</strong><small>Trama, tinta y LPI</small></span></button>
       <button type="button" class="tool-shortcut" data-tool-target="eliminar-fondo" role="tab" aria-selected="false"><i class="fa-solid fa-eraser"></i><span><strong>Rango de color</strong><small>Transparencia y máscara</small></span></button>
@@ -56,12 +57,15 @@
     </nav>
 
     <div class="tool-probar" aria-label="Controles del editor">
+      <div class="tool-workspace-brand"><span><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i></span><div><strong>Momotus Studio</strong><small>Editor profesional DTF</small></div></div>
       <div class="tool-history-actions">
         <button id="tool-undo" type="button" disabled title="Deshacer (Ctrl + Z)" aria-label="Deshacer"><i class="fa-solid fa-rotate-left"></i></button>
         <button id="tool-redo" type="button" disabled title="Rehacer (Ctrl + Shift + Z)" aria-label="Rehacer"><i class="fa-solid fa-rotate-right"></i></button>
         <button id="tool-reset-current" type="button" title="Restablecer herramienta"><i class="fa-solid fa-arrow-rotate-left"></i><span>Restablecer</span></button>
+        <button id="tool-shortcuts-help" type="button" title="Ver atajos del editor" aria-label="Ver atajos del editor"><i class="fa-regular fa-keyboard"></i></button>
       </div>
       <div id="editor-image-info" class="tool-document-info">Sin documento abierto</div>
+      <div id="editor-workspace-state" class="tool-workspace-state idle" role="status"><span aria-hidden="true"></span><strong>Sin archivo</strong></div>
       <div class="tool-histogram-wrap"><span>Histograma</span><canvas id="editor-histogram" width="192" height="52" aria-label="Histograma de luminosidad"></canvas></div>
     </div>
 
@@ -141,19 +145,21 @@
             <label class="tool-check"><input id="halftone-invert" type="checkbox"><span>Invertir tamaño tonal</span></label>
             </div>
           </details>
-          <div class="tool-action-dock"><button id="halftone-download" type="button" class="tool-download" disabled><i class="fa-solid fa-download"></i> Descargar PNG</button><p id="halftone-status" class="tool-status" role="status">Subí una imagen para comenzar.</p></div>
+          <div class="tool-action-dock"><button id="halftone-download" type="button" class="tool-download" disabled title="Revisar y descargar PNG"><i class="fa-solid fa-clipboard-check"></i> Revisar y descargar</button><p id="halftone-status" class="tool-status" role="status">Subí una imagen para comenzar.</p></div>
         </div>
         <div class="tool-preview-shell">
           <div class="tool-preview-toolbar">
             <div class="tool-segmented"><button type="button" data-preview-tool="halftone" data-preview-view="original">Original</button><button type="button" data-preview-tool="halftone" data-preview-view="result" class="active">Resultado</button></div>
-            <button type="button" class="tool-hold-compare" data-hold-original="halftone" disabled><i class="fa-solid fa-eye"></i> Mantener para comparar</button>
+            <button type="button" class="tool-compare-toggle" data-preview-compare="halftone" aria-pressed="false" disabled title="Comparar con deslizador"><i class="fa-solid fa-left-right"></i><span>Comparar</span></button>
             <button type="button" class="tool-expand-preview" data-preview-expand="halftone" aria-pressed="false" title="Ampliar lienzo"><i class="fa-solid fa-expand"></i><span>Vista amplia</span></button>
             <button type="button" class="tool-magnify" data-preview-magnify="halftone" aria-pressed="false" title="Revisar detalles grandes"><i class="fa-solid fa-magnifying-glass-plus"></i><span>Lupa</span></button>
-            <label>Zoom <select data-preview-zoom="halftone"><option value="fit">Ajustar</option><option value="detail" selected>Detalle</option><option value="width">Ancho</option><option value="100">100%</option><option value="150">150%</option><option value="200">200%</option><option value="300">300%</option><option value="400">400%</option></select></label>
+            <div class="tool-zoom-controls" aria-label="Controles de zoom"><button type="button" data-preview-zoom-out="halftone" title="Alejar (-)" aria-label="Alejar"><i class="fa-solid fa-minus"></i></button><label>Zoom <select data-preview-zoom="halftone"><option value="fit">Ajustar diseño</option><option value="canvas">Ajustar lienzo</option><option value="detail" selected>Detalle</option><option value="width">Ancho</option><option value="100">100%</option><option value="150">150%</option><option value="200">200%</option><option value="300">300%</option><option value="400">400%</option></select></label><button type="button" data-preview-zoom-in="halftone" title="Acercar (+)" aria-label="Acercar"><i class="fa-solid fa-plus"></i></button></div>
           </div>
           <div class="tool-transfer-actions"><span>Usar este resultado en:</span><button type="button" data-transfer-from="halftone" data-transfer-to="quality" disabled><i class="fa-solid fa-sliders"></i> Calidad</button><button type="button" data-transfer-from="halftone" data-transfer-to="background" disabled><i class="fa-solid fa-eraser"></i> Fondo</button></div>
           <div class="tool-result-strip"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><span id="halftone-result-info" role="status" aria-live="polite">Subí una imagen para comenzar.</span></div>
           <div id="halftone-preview" class="tool-preview"><img id="halftone-original" class="tool-original-image" alt="Imagen original para semitono" hidden><canvas id="halftone-canvas" aria-label="Vista previa del semitono"></canvas></div>
+          <div class="tool-processing-overlay" data-processing="halftone" hidden><i class="fa-solid fa-circle-notch fa-spin" aria-hidden="true"></i><strong>Procesando diseño…</strong><span>Conservá esta ventana abierta.</span><div class="tool-progress-track"><span data-progress-bar></span></div><output data-progress-value>0%</output></div>
+          <div class="tool-compare-control" data-compare-control="halftone" hidden><span data-compare-line="halftone"></span><input type="range" min="0" max="100" value="50" data-compare-range="halftone" aria-label="Mover división entre original y resultado"></div>
         </div>
       </div>
       <p class="tool-note"><i class="fa-solid fa-circle-info"></i> Definí el ancho real antes de descargar: el archivo se genera a 300 DPI para esa medida. El límite en milímetros evita puntos enormes al imprimir una camiseta. No ampliés nuevamente el PNG en el programa de impresión.</p>
@@ -162,7 +168,7 @@
     <section id="eliminar-fondo" class="tool-panel" aria-labelledby="background-title" hidden>
       <div class="tool-panel-heading">
         <div class="tool-number">02</div>
-        <div><p class="text-yellow-400 font-bold">ELIMINACIÓN GLOBAL POR COLOR</p><h2 id="background-title" class="text-3xl md:text-4xl font-black">Eliminar un color completo</h2></div>
+        <div><p class="text-yellow-400 font-bold">ELIMINACIÓN PROFESIONAL POR COLOR</p><h2 id="background-title" class="text-3xl md:text-4xl font-black">Eliminar fondo por color</h2></div>
       </div>
       <div class="tool-layout">
         <div class="tool-controls">
@@ -175,6 +181,7 @@
             <summary><span><i class="fa-solid fa-eye-dropper"></i> Color y selección</span><i class="fa-solid fa-chevron-down"></i></summary>
             <div class="tool-control-content">
               <label class="tool-field-row"><span>Acción</span><select id="background-mode"><option value="remove">Eliminar color escogido</option><option value="keep">Conservar solo ese color</option></select></label>
+              <label id="background-scope-control" class="tool-field-row"><span>Área de eliminación</span><select id="background-scope"><option value="connected">Solo fondo conectado al borde</option><option value="global">Ese color en toda la imagen</option></select></label>
               <label class="tool-field-row"><span>Color que se eliminará</span><input id="background-color" type="color" value="#ffffff"></label>
               <div class="tool-color-presets" aria-label="Colores rápidos">
                 <button type="button" data-background-color="#ffffff" aria-label="Eliminar blanco" title="Blanco" style="--preset-color:#ffffff"></button>
@@ -195,23 +202,25 @@
               <button id="background-reset" type="button" class="tool-secondary" disabled><i class="fa-solid fa-rotate-left"></i> Restablecer ajustes</button>
             </div>
           </details>
-          <div class="tool-action-dock"><button id="background-download" type="button" class="tool-download" disabled><i class="fa-solid fa-download"></i> Descargar PNG sin fondo</button><p id="background-status" class="tool-status" role="status">Funciona mejor con fondos blancos, negros o de un solo color.</p></div>
+          <div class="tool-action-dock"><button id="background-download" type="button" class="tool-download" disabled title="Revisar y descargar PNG sin fondo"><i class="fa-solid fa-clipboard-check"></i> Revisar y descargar</button><p id="background-status" class="tool-status" role="status">Funciona mejor con fondos blancos, negros o de un solo color.</p></div>
         </div>
         <div class="tool-preview-shell">
           <div class="tool-preview-toolbar">
             <div class="tool-segmented"><button type="button" data-preview-tool="background" data-preview-view="original">Original</button><button type="button" data-preview-tool="background" data-preview-view="result" class="active">Resultado</button><button type="button" data-preview-tool="background" data-preview-view="mask">Máscara</button></div>
-            <button type="button" class="tool-hold-compare" data-hold-original="background" disabled><i class="fa-solid fa-eye"></i> Mantener para comparar</button>
+            <button type="button" class="tool-compare-toggle" data-preview-compare="background" aria-pressed="false" disabled title="Comparar con deslizador"><i class="fa-solid fa-left-right"></i><span>Comparar</span></button>
             <button type="button" class="tool-expand-preview" data-preview-expand="background" aria-pressed="false" title="Ampliar lienzo"><i class="fa-solid fa-expand"></i><span>Vista amplia</span></button>
             <button type="button" class="tool-magnify" data-preview-magnify="background" aria-pressed="false" title="Revisar detalles grandes"><i class="fa-solid fa-magnifying-glass-plus"></i><span>Lupa</span></button>
             <label>Vista <select data-preview-background="background"><option value="checkerboard">Cuadrícula</option><option value="dark">Negro</option><option value="light">Blanco</option></select></label>
-            <label>Zoom <select data-preview-zoom="background"><option value="fit">Ajustar</option><option value="detail" selected>Detalle</option><option value="width">Ancho</option><option value="100">100%</option><option value="150">150%</option><option value="200">200%</option><option value="300">300%</option><option value="400">400%</option></select></label>
+            <div class="tool-zoom-controls" aria-label="Controles de zoom"><button type="button" data-preview-zoom-out="background" title="Alejar (-)" aria-label="Alejar"><i class="fa-solid fa-minus"></i></button><label>Zoom <select data-preview-zoom="background"><option value="fit">Ajustar diseño</option><option value="canvas">Ajustar lienzo</option><option value="detail" selected>Detalle</option><option value="width">Ancho</option><option value="100">100%</option><option value="150">150%</option><option value="200">200%</option><option value="300">300%</option><option value="400">400%</option></select></label><button type="button" data-preview-zoom-in="background" title="Acercar (+)" aria-label="Acercar"><i class="fa-solid fa-plus"></i></button></div>
           </div>
           <div class="tool-transfer-actions"><span>Continuar con:</span><button type="button" data-transfer-from="background" data-transfer-to="quality" disabled><i class="fa-solid fa-sliders"></i> Calidad</button><button type="button" data-transfer-from="background" data-transfer-to="halftone" disabled><i class="fa-solid fa-circle-half-stroke"></i> Semitonos</button></div>
           <div class="tool-result-strip"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><span id="background-result-info" role="status" aria-live="polite">Funciona mejor con fondos blancos, negros o de un solo color.</span></div>
           <div id="background-preview" class="tool-preview checkerboard"><img id="background-original" class="tool-original-image" alt="Imagen original antes de eliminar el color" hidden><canvas id="background-canvas" aria-label="Vista previa sin fondo"></canvas></div>
+          <div class="tool-processing-overlay" data-processing="background" hidden><i class="fa-solid fa-circle-notch fa-spin" aria-hidden="true"></i><strong>Analizando el fondo…</strong><span>Protegiendo los detalles del diseño.</span><div class="tool-progress-track"><span data-progress-bar></span></div><output data-progress-value>0%</output></div>
+          <div class="tool-compare-control" data-compare-control="background" hidden><span data-compare-line="background"></span><input type="range" min="0" max="100" value="50" data-compare-range="background" aria-label="Mover división entre original y resultado"></div>
         </div>
       </div>
-      <p class="tool-note"><i class="fa-solid fa-circle-info"></i> La herramienta elimina el color escogido en toda la imagen, aunque aparezca dentro del diseño. Si escogés blanco, quitará todos los blancos similares según la tolerancia. También podés tocar la vista previa para elegir cualquier color.</p>
+      <p class="tool-note"><i class="fa-solid fa-circle-info"></i> Por defecto, la herramienta elimina únicamente el fondo conectado a los bordes y protege colores parecidos dentro del diseño. También podés escoger eliminar ese color en toda la imagen y tocar la vista previa para seleccionarlo.</p>
     </section>
 
     <section id="mejorar-calidad" class="tool-panel" aria-labelledby="quality-title" hidden>
@@ -265,23 +274,35 @@
             <label class="tool-field">Nitidez <span id="quality-sharpness-value">50</span><input id="quality-sharpness" type="range" min="0" max="100" value="50"></label>
             </div>
           </details>
-          <div class="tool-action-dock"><div id="quality-assessment" class="tool-assessment" aria-live="polite">La evaluación aparecerá cuando subás una imagen.</div><button id="quality-process" type="button" class="tool-secondary" disabled><i class="fa-solid fa-wand-magic-sparkles"></i> Aplicar mejora DTF</button><button id="quality-download" type="button" class="tool-download" disabled><i class="fa-solid fa-download"></i> Descargar PNG mejorado</button><p id="quality-status" class="tool-status" role="status">Subí una imagen y escogé el ancho de impresión.</p></div>
+          <div class="tool-action-dock"><div id="quality-assessment" class="tool-assessment" aria-live="polite">La evaluación aparecerá cuando subás una imagen.</div><button id="quality-process" type="button" class="tool-secondary" disabled><i class="fa-solid fa-wand-magic-sparkles"></i> Aplicar mejora DTF</button><button id="quality-download" type="button" class="tool-download" disabled title="Revisar y descargar PNG mejorado"><i class="fa-solid fa-clipboard-check"></i> Revisar y descargar</button><p id="quality-status" class="tool-status" role="status">Subí una imagen y escogé el ancho de impresión.</p></div>
         </div>
         <div class="tool-preview-shell">
           <div class="tool-preview-toolbar">
             <div class="tool-segmented"><button type="button" data-preview-tool="quality" data-preview-view="original">Original</button><button type="button" data-preview-tool="quality" data-preview-view="result" class="active">Resultado</button></div>
-            <button type="button" class="tool-hold-compare" data-hold-original="quality" disabled><i class="fa-solid fa-eye"></i> Mantener para comparar</button>
+            <button type="button" class="tool-compare-toggle" data-preview-compare="quality" aria-pressed="false" disabled title="Comparar con deslizador"><i class="fa-solid fa-left-right"></i><span>Comparar</span></button>
             <button type="button" class="tool-expand-preview" data-preview-expand="quality" aria-pressed="false" title="Ampliar lienzo"><i class="fa-solid fa-expand"></i><span>Vista amplia</span></button>
             <button type="button" class="tool-magnify" data-preview-magnify="quality" aria-pressed="false" title="Revisar detalles grandes"><i class="fa-solid fa-magnifying-glass-plus"></i><span>Lupa</span></button>
-            <label>Zoom <select data-preview-zoom="quality"><option value="fit">Ajustar</option><option value="detail" selected>Detalle</option><option value="width">Ancho</option><option value="100">100%</option><option value="150">150%</option><option value="200">200%</option><option value="300">300%</option><option value="400">400%</option></select></label>
+            <div class="tool-zoom-controls" aria-label="Controles de zoom"><button type="button" data-preview-zoom-out="quality" title="Alejar (-)" aria-label="Alejar"><i class="fa-solid fa-minus"></i></button><label>Zoom <select data-preview-zoom="quality"><option value="fit">Ajustar diseño</option><option value="canvas">Ajustar lienzo</option><option value="detail" selected>Detalle</option><option value="width">Ancho</option><option value="100">100%</option><option value="150">150%</option><option value="200">200%</option><option value="300">300%</option><option value="400">400%</option></select></label><button type="button" data-preview-zoom-in="quality" title="Acercar (+)" aria-label="Acercar"><i class="fa-solid fa-plus"></i></button></div>
           </div>
           <div class="tool-transfer-actions"><span>Continuar con:</span><button type="button" data-transfer-from="quality" data-transfer-to="background" disabled><i class="fa-solid fa-eraser"></i> Eliminar fondo</button><button type="button" data-transfer-from="quality" data-transfer-to="halftone" disabled><i class="fa-solid fa-circle-half-stroke"></i> Semitonos</button></div>
           <div class="tool-result-strip"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><span id="quality-result-info" role="status" aria-live="polite">Subí una imagen y escogé el ancho de impresión.</span><strong id="quality-result-assessment"></strong></div>
           <div id="quality-preview" class="tool-preview checkerboard"><img id="quality-original" class="tool-original-image" alt="Imagen original antes de prepararla a 300 DPI" hidden><canvas id="quality-canvas" aria-label="Vista previa de la imagen mejorada"></canvas></div>
+          <div class="tool-processing-overlay" data-processing="quality" hidden><i class="fa-solid fa-circle-notch fa-spin" aria-hidden="true"></i><strong>Mejorando la imagen…</strong><span>Preparando el tamaño real a 300 DPI.</span><div class="tool-progress-track"><span data-progress-bar></span></div><output data-progress-value>0%</output></div>
+          <div class="tool-compare-control" data-compare-control="quality" hidden><span data-compare-line="quality"></span><input type="range" min="0" max="100" value="50" data-compare-range="quality" aria-label="Mover división entre original y resultado"></div>
         </div>
       </div>
       <p class="tool-note"><i class="fa-solid fa-circle-info"></i> La descarga se guarda como PNG con 300 DPI reales en sus metadatos y los píxeles necesarios para el tamaño indicado. Aumentar una imagen no puede recuperar detalles que no existían en el archivo original.</p>
     </section>
+
+    <footer class="studio-technical-bar" aria-label="Información técnica del documento">
+      <div><span>Documento</span><strong id="studio-tech-document">Sin archivo</strong></div>
+      <div><span>Lienzo</span><strong id="studio-tech-pixels">—</strong></div>
+      <div><span>Salida</span><strong id="studio-tech-size">—</strong></div>
+      <div><span>Resolución</span><strong id="studio-tech-dpi">300 DPI</strong></div>
+      <div><span>Transparencia</span><strong id="studio-tech-alpha">—</strong></div>
+      <div><span>Zoom</span><strong id="studio-tech-zoom">Ajustar</strong></div>
+      <button id="studio-inspect-output" type="button" disabled><i class="fa-solid fa-magnifying-glass-chart" aria-hidden="true"></i> Diagnóstico DTF</button>
+    </footer>
   </main>
 
   <section class="border-t border-zinc-800 bg-black py-14">
@@ -291,6 +312,30 @@
       <a href="disena.html" class="inline-flex items-center gap-3 bg-yellow-400 hover:bg-yellow-300 text-black font-bold px-10 py-5 rounded-3xl transition"><i class="fa-solid fa-shirt"></i> Diseñá la tuya</a>
     </div>
   </section>
+
+  <div id="dtf-preflight-modal" class="dtf-preflight-modal" role="dialog" aria-modal="true" aria-labelledby="dtf-preflight-title" hidden>
+    <div class="dtf-preflight-card">
+      <div class="dtf-preflight-heading"><div><p>CONTROL DE SALIDA</p><h2 id="dtf-preflight-title">Verificación DTF</h2></div><button id="dtf-preflight-close" type="button" aria-label="Cerrar verificación">×</button></div>
+      <div id="dtf-preflight-summary" class="dtf-preflight-summary"></div>
+      <div class="dtf-export-settings">
+        <label><span>Nombre del archivo</span><input id="dtf-export-name" type="text" maxlength="90" autocomplete="off" spellcheck="false"></label>
+        <div class="dtf-export-format"><span>Formato de salida</span><strong><i class="fa-regular fa-file-image" aria-hidden="true"></i> PNG · 300 DPI · transparencia sólida</strong></div>
+      </div>
+      <div class="dtf-export-preview">
+        <div class="dtf-export-preview-stage checkerboard"><canvas id="dtf-export-preview-canvas" width="360" height="220" aria-label="Vista previa del archivo que se descargará"></canvas></div>
+        <div class="dtf-export-preview-controls" aria-label="Fondo de comprobación"><span>Revisar sobre</span><button type="button" data-export-preview-bg="checkerboard" class="active">Transparente</button><button type="button" data-export-preview-bg="dark">Negro</button><button type="button" data-export-preview-bg="light">Blanco</button></div>
+      </div>
+      <ul id="dtf-preflight-list" class="dtf-preflight-list"></ul>
+      <div class="dtf-preflight-actions"><button id="dtf-preflight-back" type="button" class="tool-secondary">Volver a ajustar</button><button id="dtf-preflight-download" type="button" class="tool-download"><i class="fa-solid fa-download"></i> Descargar PNG listo</button></div>
+    </div>
+  </div>
+
+  <div id="tool-shortcuts-panel" class="tool-shortcuts-panel" role="dialog" aria-modal="true" aria-labelledby="tool-shortcuts-title" hidden>
+    <div class="tool-shortcuts-card">
+      <div class="tool-shortcuts-heading"><div><p>CONTROL DEL EDITOR</p><h2 id="tool-shortcuts-title">Atajos de Herramientas</h2></div><button id="tool-shortcuts-close" type="button" aria-label="Cerrar atajos">×</button></div>
+      <dl><div><dt><kbd>0</kbd></dt><dd>Ajustar el contenido del diseño</dd></div><div><dt><kbd>1</kbd></dt><dd>Mostrar al 100%</dd></div><div><dt><kbd>2</kbd></dt><dd>Ajustar el lienzo completo</dd></div><div><dt><kbd>Ctrl</kbd> + rueda</dt><dd>Zoom sobre la posición del cursor</dd></div><div><dt><kbd>+</kbd> <kbd>−</kbd></dt><dd>Acercar o alejar</dd></div><div><dt><kbd>Doble clic</kbd></dt><dd>Restablecer un ajuste o alternar la vista</dd></div><div><dt><kbd>Espacio</kbd> + arrastrar</dt><dd>Mover la vista ampliada</dd></div><div><dt><kbd>Ctrl</kbd> + <kbd>Z</kbd></dt><dd>Deshacer el último ajuste</dd></div><div><dt><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Z</kbd></dt><dd>Rehacer el ajuste</dd></div><div><dt><kbd>Esc</kbd></dt><dd>Cerrar paneles y vistas</dd></div></dl>
+    </div>
+  </div>
 
   <div id="cart-modal-placeholder"></div>
   <script>
@@ -304,6 +349,7 @@
       });
       loadToolsScript('js/tools-shell.js')
         .then(() => loadToolsScript('js/tools.js'))
+        .then(() => loadToolsScript('js/tools-studio.js'))
         .catch(error => {
           console.error('No se pudieron cargar las herramientas:', error);
           const message = document.getElementById('halftone-result-info');
