@@ -3,7 +3,7 @@
 
   const EXPORT_DPI = 300;
   const PIXELS_PER_METER_300_DPI = 11811;
-  const MAX_FILE_SIZE = 12 * 1024 * 1024;
+  const MAX_FILE_SIZE = 24 * 1024 * 1024;
   const MAX_WORKING_PIXELS = 12000000;
   const MAX_INTERNAL_PIXELS = 18000000;
   const MAX_OUTPUT_SIDE = 6000;
@@ -12,6 +12,7 @@
   const MAX_PREVIEW_PIXELS = 3000000;
   const MAX_PREVIEW_SIDE = 2400;
   const ALLOWED_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
+  const ALLOWED_IMAGE_EXTENSION = /\.(?:png|jpe?g|webp)$/i;
   const states = { halftone: null, background: null, quality: null };
   const previewViews = { halftone: 'result', background: 'result', quality: 'result' };
   const renderTimers = {};
@@ -106,6 +107,27 @@
   const nextFrame = () => new Promise(resolve => requestAnimationFrame(resolve));
   const centimetersAt300Dpi = pixels => (pixels / EXPORT_DPI * 2.54).toFixed(1);
   const clampChannel = value => Math.max(0, Math.min(255, Math.round(value)));
+  const adjustAlphaEdge = (data, width, height, shift) => {
+    const radius = Math.min(3, Math.abs(Math.round(shift || 0)));
+    if (!radius) return;
+    const sourceAlpha = new Uint8ClampedArray(width * height);
+    for (let pixel = 0; pixel < sourceAlpha.length; pixel++) sourceAlpha[pixel] = data[pixel * 4 + 3];
+    const expand = shift > 0;
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        let alpha = expand ? 0 : 255;
+        for (let offsetY = -radius; offsetY <= radius; offsetY++) {
+          const sampleY = Math.max(0, Math.min(height - 1, y + offsetY));
+          for (let offsetX = -radius; offsetX <= radius; offsetX++) {
+            const sampleX = Math.max(0, Math.min(width - 1, x + offsetX));
+            const sample = sourceAlpha[sampleY * width + sampleX];
+            alpha = expand ? Math.max(alpha, sample) : Math.min(alpha, sample);
+          }
+        }
+        data[(y * width + x) * 4 + 3] = alpha;
+      }
+    }
+  };
   const perceptualColorDistance = (r, g, b, target) => {
     const redDifference = r - target.r;
     const greenDifference = g - target.g;
@@ -130,7 +152,8 @@
     }
     let worker;
     try {
-      worker = new Worker('js/tools-worker.js');
+      const workerVersion = encodeURIComponent(window.MOMOTUS_TOOLS_VERSION || '1');
+      worker = new Worker(`js/tools-worker.js?v=${workerVersion}`);
     } catch (error) {
       reject(error);
       return;
@@ -155,11 +178,18 @@
     worker.postMessage({ kind, payload }, transfer);
   });
 
+  const isSupportedImageFile = file => Boolean(file && (
+    ALLOWED_IMAGE_TYPES.has(String(file.type || '').toLowerCase())
+    || String(file.type || '').toLowerCase() === 'image/jpg'
+    || ALLOWED_IMAGE_EXTENSION.test(file.name || '')
+  ));
+
   const loadImageFile = (file, maxSide = 4500, internalTransfer = false) => new Promise((resolve, reject) => {
-    if (!file || !ALLOWED_IMAGE_TYPES.has(file.type)) return reject(new Error('Escogé una imagen PNG, JPG o WebP.'));
-    if (!internalTransfer && file.size > MAX_FILE_SIZE) return reject(new Error('La imagen debe pesar 12 MB o menos.'));
+    if (!isSupportedImageFile(file)) return reject(new Error('Escogé una imagen PNG, JPG o WebP.'));
+    if (!internalTransfer && file.size > MAX_FILE_SIZE) return reject(new Error('La imagen debe pesar 24 MB o menos.'));
     const url = URL.createObjectURL(file);
     const image = new Image();
+    image.decoding = 'async';
     image.onload = () => {
       const pixelLimit = internalTransfer ? MAX_INTERNAL_PIXELS : MAX_WORKING_PIXELS;
       const effectiveMaxSide = internalTransfer ? MAX_HALFTONE_SIDE : maxSide;
@@ -220,13 +250,16 @@
     const verticalPadding = parseFloat(shellStyles.paddingTop) + parseFloat(shellStyles.paddingBottom);
     const toolbar = shell.querySelector('.tool-preview-toolbar');
     const transfers = shell.querySelector('.tool-transfer-actions');
+    const resultStrip = shell.querySelector('.tool-result-strip');
     const toolbarHeight = Math.max(toolbar?.offsetHeight || 0, transfers?.offsetHeight || 0);
     const toolbarMargin = Math.max(
       toolbar ? parseFloat(getComputedStyle(toolbar).marginBottom) : 0,
       transfers ? parseFloat(getComputedStyle(transfers).marginBottom) : 0
     );
+    const resultStripHeight = resultStrip?.offsetHeight || 0;
+    const resultStripMargin = resultStrip ? parseFloat(getComputedStyle(resultStrip).marginBottom) || 0 : 0;
     const maximumWidth = Math.max(1, shell.clientWidth - horizontalPadding);
-    const maximumHeight = Math.max(1, shell.clientHeight - verticalPadding - toolbarHeight - toolbarMargin);
+    const maximumHeight = Math.max(1, shell.clientHeight - verticalPadding - toolbarHeight - toolbarMargin - resultStripHeight - resultStripMargin);
     const stageWidth = maximumWidth;
     const stageHeight = maximumHeight;
 
@@ -746,9 +779,11 @@
       safetyLimited = Boolean(state.halftoneOutputCache?.safetyLimited);
       const frequency = Number(byId('halftone-frequency').value);
       const dotSize = Number(byId('halftone-dot-size').value);
+      const minimumDot = Number(byId('halftone-min-dot').value);
+      const dotGain = Number(byId('halftone-dot-gain').value);
       checks.push({
-        level: frequency >= 45 && frequency <= 70 && dotSize >= 0.28 && dotSize <= 0.6 ? 'good' : 'warning',
-        message: `${frequency} LPI · punto máximo ${dotSize.toFixed(2)} mm. ${frequency >= 45 && frequency <= 70 ? 'Trama adecuada para detalle DTF.' : 'Revisá el detalle a tamaño real antes de producir.'}`
+        level: frequency >= 45 && frequency <= 70 && dotSize >= 0.28 && dotSize <= 0.6 && minimumDot <= dotSize ? 'good' : 'warning',
+        message: `${frequency} LPI · punto ${minimumDot.toFixed(2)}–${dotSize.toFixed(2)} mm · ganancia ${dotGain >= 0 ? '+' : ''}${dotGain}%. ${frequency >= 45 && frequency <= 70 && minimumDot <= dotSize ? 'Trama dentro del rango configurado para DTF.' : 'Revisá la frecuencia y los límites del punto antes de producir.'}`
       });
     } else if (type === 'quality') {
       sourceDpi = state.lastOutput?.sourceDpi;
@@ -997,6 +1032,7 @@
     byId('halftone-hue-range').value = preset.hueRange || 'all';
     byId('halftone-amount').value = preset.amount;
     byId('halftone-solid-protection').value = preset.protection;
+    if (Number.isFinite(preset.edgeProtection)) byId('halftone-edge-protection').value = preset.edgeProtection;
     byId('halftone-frequency').value = preset.frequency;
     byId('halftone-dot-size').value = preset.dotSize;
     byId('halftone-angle').value = preset.angle;
@@ -1022,7 +1058,7 @@
     return clampUnit((65 - distance) / 35) * clampUnit(color.saturation / 0.22);
   };
 
-  const halftoneSelectionStrength = (range, luminance, variation, protection, amount, colorStrength = 1) => {
+  const halftoneSelectionStrength = (range, luminance, variation, protection, edgeProtection, amount, colorStrength = 1) => {
     const shadowWeight = clampUnit((175 - luminance) / 145);
     const highlightWeight = clampUnit((luminance - 80) / 155);
     const midtoneWeight = clampUnit(1 - Math.abs(luminance - 128) / 105);
@@ -1033,7 +1069,8 @@
     else if (range === 'midtones') rangeWeight = midtoneWeight;
     else if (range === 'highlights') rangeWeight = highlightWeight;
     const solidProtection = (1 - protection) + protection * Math.max(0.15, detailWeight);
-    return clampUnit(rangeWeight * solidProtection * amount * colorStrength);
+    const fineDetailProtection = 1 - edgeProtection * clampUnit((variation - 18) / 55) * 0.72;
+    return clampUnit(rangeWeight * solidProtection * fineDetailProtection * amount * colorStrength);
   };
 
   const halftoneGridThreshold = (gridX, gridY) => {
@@ -1196,6 +1233,9 @@
     const cellSize = state.effectiveDpi / frequency;
     const maximumDotMm = Number(byId('halftone-dot-size').value);
     const maximumDotRadius = maximumDotMm / 25.4 * state.effectiveDpi / 2;
+    const minimumDotMm = Number(byId('halftone-min-dot').value);
+    const minimumDotRadius = minimumDotMm / 25.4 * state.effectiveDpi / 2;
+    const dotGain = Number(byId('halftone-dot-gain').value) / 100;
     const angleDegrees = Number(byId('halftone-angle').value);
     const angle = angleDegrees * Math.PI / 180;
     const contrast = Number(byId('halftone-contrast').value);
@@ -1209,12 +1249,13 @@
     const hueRange = byId('halftone-hue-range').value;
     const amount = Number(byId('halftone-amount').value) / 100;
     const solidProtection = Number(byId('halftone-solid-protection').value) / 100;
+    const edgeProtection = Number(byId('halftone-edge-protection').value) / 100;
     const keepSolids = byId('halftone-keep-solids').checked;
     const inkColor = byId('halftone-color').value;
     const backgroundColor = byId('halftone-background-color').value;
     const renderKey = JSON.stringify({
-      requestedWidthCm, frequency, maximumDotMm, angleDegrees, contrast, invert, transparent,
-      shape, colorMode, maskMode, maskTolerance, tonalRange, hueRange, amount, solidProtection,
+      requestedWidthCm, frequency, maximumDotMm, minimumDotMm, dotGain, angleDegrees, contrast, invert, transparent,
+      shape, colorMode, maskMode, maskTolerance, tonalRange, hueRange, amount, solidProtection, edgeProtection,
       keepSolids, inkColor, backgroundColor, finalOutput
     });
     const renderKeyName = finalOutput ? 'halftoneRenderKeyFinal' : 'halftoneRenderKeyPreview';
@@ -1273,11 +1314,13 @@
         const blue = Math.max(0, Math.min(255, factor * (sample.b - 128) + 128));
         const luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue;
         const colorStrength = halftoneColorStrength(hueRange, red, green, blue, colorStats);
-        const selectionStrength = halftoneSelectionStrength(tonalRange, luminance, sample.variation, solidProtection, amount, colorStrength);
+        const selectionStrength = halftoneSelectionStrength(tonalRange, luminance, sample.variation, solidProtection, edgeProtection, amount, colorStrength);
         if (selectionStrength < halftoneGridThreshold(gridColumn, gridRow)) continue;
         const tone = invert ? luminance / 255 : 1 - luminance / 255;
-        const coverage = colorMode === 'original' ? Math.max(0.18, tone) : tone;
-        const radius = Math.min(maximumDotRadius, cellSize * 0.46 * Math.sqrt(Math.max(0, coverage * sample.a)));
+        const baseCoverage = colorMode === 'original' ? Math.max(0.18, tone) : tone;
+        const coverage = Math.max(0, Math.min(1, baseCoverage + dotGain));
+        const calculatedRadius = cellSize * 0.46 * Math.sqrt(Math.max(0, coverage * sample.a));
+        const radius = coverage > 0.005 ? Math.min(maximumDotRadius, Math.max(minimumDotRadius, calculatedRadius)) : 0;
         if (keepSolids) clearHalftoneCell(workContext, x, y, cellSize, angle);
         workContext.fillStyle = colorMode === 'original'
           ? `rgb(${Math.round(red)}, ${Math.round(green)}, ${Math.round(blue)})`
@@ -1382,6 +1425,7 @@
     const mode = byId('background-mode').value;
     const scope = byId('background-scope').value;
     const decontaminate = mode === 'remove' && byId('background-decontaminate').checked;
+    const edgeShift = Number(byId('background-edge-shift').value) || 0;
     setStatus('background-status', 'Analizando y limpiando el color…');
     setProcessingProgress('background', 3, finalOutput ? 'Preparando salida completa…' : 'Creando vista rápida…');
     let output;
@@ -1398,7 +1442,8 @@
         mode,
         scope,
         decontaminate,
-        maskPreview
+        maskPreview,
+        edgeShift
       }, [workerData.buffer], progress => setProcessingProgress('background', progress, 'Analizando y limpiando el color…'));
       if (renderRevision !== backgroundRenderRevision || sourceState !== states.background) return false;
       output = new ImageData(new Uint8ClampedArray(result.buffer), state.width, state.height);
@@ -1437,6 +1482,7 @@
           if (renderRevision !== backgroundRenderRevision || sourceState !== states.background) return false;
         }
       }
+      if (edgeShift) adjustAlphaEdge(data, state.width, state.height, edgeShift);
       if (maskPreview) {
         for (let index = 0; index < data.length; index += 4) {
           const maskValue = data[index + 3];
@@ -1513,14 +1559,15 @@
     return source;
   };
 
-  const enhanceCanvasFallback = async (canvas, sharpness, clarity, onProgress = null) => {
-    if (sharpness <= 0 && clarity <= 0) return;
+  const enhanceCanvasFallback = async (canvas, sharpness, clarity, denoise = 0, onProgress = null) => {
+    if (sharpness <= 0 && clarity <= 0 && denoise <= 0) return;
     const context = canvas.getContext('2d');
     const sourceCanvas = copyCanvas(canvas);
     const sourceContext = sourceCanvas.getContext('2d', { willReadFrequently: true });
     const width = canvas.width, height = canvas.height;
     const sharpAmount = Math.min(0.65, sharpness * 0.006);
     const clarityAmount = Math.min(0.32, clarity * 0.0045);
+    const denoiseAmount = Math.min(0.55, Math.max(0, denoise) / 100);
     const tileHeight = 192;
     for (let outputTop = 0; outputTop < height; outputTop += tileHeight) {
       const outputBottom = Math.min(height, outputTop + tileHeight);
@@ -1552,9 +1599,10 @@
               src[index - 8 + channel] + src[index + 8 + channel]
               + src[index - width * 8 + channel] + src[index + width * 8 + channel]
             ) / 4;
-            const fineDetail = Math.abs(center - nearAverage) >= 2 ? center - nearAverage : 0;
-            const localContrast = Math.abs(center - farAverage) >= 4 ? center - farAverage : 0;
-            dst[index + channel] = clampChannel(center + fineDetail * sharpAmount + localContrast * clarityAmount);
+            const cleaned = Math.abs(center - nearAverage) < 24 ? center + (nearAverage - center) * denoiseAmount : center;
+            const fineDetail = Math.abs(cleaned - nearAverage) >= 2 ? cleaned - nearAverage : 0;
+            const localContrast = Math.abs(cleaned - farAverage) >= 4 ? cleaned - farAverage : 0;
+            dst[index + channel] = clampChannel(cleaned + fineDetail * sharpAmount + localContrast * clarityAmount);
           }
         }
       }
@@ -1567,8 +1615,8 @@
     sourceCanvas.height = 1;
   };
 
-  const enhanceCanvas = async (canvas, sharpness, clarity, onProgress = null) => {
-    if (sharpness <= 0 && clarity <= 0) return;
+  const enhanceCanvas = async (canvas, sharpness, clarity, denoise = 0, onProgress = null) => {
+    if (sharpness <= 0 && clarity <= 0 && denoise <= 0) return;
     try {
       const context = canvas.getContext('2d', { willReadFrequently: true });
       const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
@@ -1577,13 +1625,14 @@
         width: canvas.width,
         height: canvas.height,
         sharpness,
-        clarity
+        clarity,
+        denoise
       }, [imageData.data.buffer], onProgress);
       context.putImageData(new ImageData(new Uint8ClampedArray(result.buffer), canvas.width, canvas.height), 0, 0);
     } catch (error) {
       if (error.name === 'AbortError') throw error;
       console.warn('Mejora en segundo plano no disponible; usando respaldo local.', error);
-      await enhanceCanvasFallback(canvas, sharpness, clarity, onProgress);
+      await enhanceCanvasFallback(canvas, sharpness, clarity, denoise, onProgress);
     }
   };
 
@@ -1659,7 +1708,7 @@
       progressiveSource.width = 1;
       progressiveSource.height = 1;
       if (smoothing !== 'pixel') {
-        await enhanceCanvas(canvas, Number(byId('quality-sharpness').value), Number(byId('quality-clarity').value), progress => setProcessingProgress('quality', 40 + progress * 0.56, 'Protegiendo detalle y bordes…'));
+        await enhanceCanvas(canvas, Number(byId('quality-sharpness').value), Number(byId('quality-clarity').value), Number(byId('quality-denoise').value), progress => setProcessingProgress('quality', 40 + progress * 0.56, 'Protegiendo detalle y bordes…'));
       }
       if (sourceToken !== uploadTokens.quality || renderRevision !== qualityRevision) return false;
       setProcessingProgress('quality', 100, 'Montando el resultado…');
@@ -1708,9 +1757,9 @@
   };
 
   const settingIds = {
-    halftone: ['halftone-range', 'halftone-hue-range', 'halftone-amount', 'halftone-solid-protection', 'halftone-keep-solids', 'halftone-width-cm', 'halftone-frequency', 'halftone-dot-size', 'halftone-mode', 'halftone-mask-mode', 'halftone-mask-tolerance', 'halftone-angle', 'halftone-contrast', 'halftone-shape', 'halftone-color', 'halftone-background-color', 'halftone-transparent', 'halftone-invert'],
-    background: ['background-mode', 'background-scope', 'background-color', 'background-tolerance', 'background-softness', 'background-decontaminate', 'background-trim'],
-    quality: ['quality-width-cm', 'quality-smoothing', 'quality-brightness', 'quality-contrast', 'quality-saturation', 'quality-clarity', 'quality-sharpness']
+    halftone: ['halftone-range', 'halftone-hue-range', 'halftone-amount', 'halftone-solid-protection', 'halftone-edge-protection', 'halftone-keep-solids', 'halftone-width-cm', 'halftone-frequency', 'halftone-dot-size', 'halftone-min-dot', 'halftone-dot-gain', 'halftone-mode', 'halftone-mask-mode', 'halftone-mask-tolerance', 'halftone-angle', 'halftone-contrast', 'halftone-shape', 'halftone-color', 'halftone-background-color', 'halftone-transparent', 'halftone-invert'],
+    background: ['background-mode', 'background-scope', 'background-color', 'background-tolerance', 'background-softness', 'background-edge-shift', 'background-decontaminate', 'background-trim'],
+    quality: ['quality-width-cm', 'quality-smoothing', 'quality-brightness', 'quality-contrast', 'quality-saturation', 'quality-clarity', 'quality-sharpness', 'quality-denoise']
   };
 
   const captureSettings = type => Object.fromEntries(settingIds[type].map(id => {
@@ -1773,14 +1822,18 @@
       byId('halftone-mask-tolerance-value').textContent = byId('halftone-mask-tolerance').value;
       byId('halftone-amount-value').textContent = `${byId('halftone-amount').value}%`;
       byId('halftone-solid-protection-value').textContent = `${byId('halftone-solid-protection').value}%`;
+      byId('halftone-edge-protection-value').textContent = `${byId('halftone-edge-protection').value}%`;
       byId('halftone-dot-size-value').textContent = `${Number(byId('halftone-dot-size').value).toFixed(2)} mm`;
+      byId('halftone-min-dot-value').textContent = `${Number(byId('halftone-min-dot').value).toFixed(2)} mm`;
+      byId('halftone-dot-gain-value').textContent = `${byId('halftone-dot-gain').value}%`;
       syncHalftoneMode();
     } else if (type === 'background') {
       byId('background-tolerance-value').textContent = byId('background-tolerance').value;
       byId('background-softness-value').textContent = byId('background-softness').value;
+      byId('background-edge-shift-value').textContent = `${byId('background-edge-shift').value} px`;
       syncBackgroundMode();
     } else {
-      ['brightness', 'contrast', 'saturation', 'clarity', 'sharpness'].forEach(name => {
+      ['brightness', 'contrast', 'saturation', 'clarity', 'sharpness', 'denoise'].forEach(name => {
         byId(`quality-${name}-value`).textContent = byId(`quality-${name}`).value;
       });
     }
@@ -1808,13 +1861,13 @@
   };
 
   const resetHalftone = () => {
-    const defaults = { 'halftone-range': 'transitions', 'halftone-hue-range': 'all', 'halftone-amount': '55', 'halftone-solid-protection': '75', 'halftone-keep-solids': true, 'halftone-width-cm': '28', 'halftone-frequency': '55', 'halftone-dot-size': '0.40', 'halftone-mode': 'original', 'halftone-mask-mode': 'edge', 'halftone-mask-tolerance': '38', 'halftone-angle': '45', 'halftone-contrast': '12', 'halftone-shape': 'circle', 'halftone-color': '#000000', 'halftone-background-color': '#ffffff', 'halftone-transparent': true, 'halftone-invert': false };
+    const defaults = { 'halftone-range': 'transitions', 'halftone-hue-range': 'all', 'halftone-amount': '55', 'halftone-solid-protection': '75', 'halftone-edge-protection': '45', 'halftone-keep-solids': true, 'halftone-width-cm': '28', 'halftone-frequency': '55', 'halftone-dot-size': '0.40', 'halftone-min-dot': '0.10', 'halftone-dot-gain': '0', 'halftone-mode': 'original', 'halftone-mask-mode': 'edge', 'halftone-mask-tolerance': '38', 'halftone-angle': '45', 'halftone-contrast': '12', 'halftone-shape': 'circle', 'halftone-color': '#000000', 'halftone-background-color': '#ffffff', 'halftone-transparent': true, 'halftone-invert': false };
     applySettings('halftone', defaults);
     document.querySelectorAll('[data-halftone-preset], [data-halftone-auto]').forEach(item => item.classList.remove('active'));
   };
 
   const resetQuality = () => {
-    const defaults = { 'quality-width-cm': '30', 'quality-smoothing': 'illustration', 'quality-brightness': '0', 'quality-contrast': '6', 'quality-saturation': '8', 'quality-clarity': '24', 'quality-sharpness': '50' };
+    const defaults = { 'quality-width-cm': '30', 'quality-smoothing': 'illustration', 'quality-brightness': '0', 'quality-contrast': '6', 'quality-saturation': '8', 'quality-clarity': '24', 'quality-sharpness': '50', 'quality-denoise': '12' };
     applySettings('quality', defaults);
     document.querySelectorAll('[data-quality-preset], [data-quality-width]').forEach(item => item.classList.remove('active'));
     document.querySelector('[data-quality-preset="dtf"]')?.classList.add('active');
@@ -1894,8 +1947,10 @@
     const currentStatus = byId(`${activeTool}-status`);
     if (currentStatus) setStatus(`${activeTool}-status`, currentStatus.textContent);
     if (history.replaceState) history.replaceState(null, '', `#${target}`);
-    applyPreviewZoom(activeTool);
-    centerPreview(activeTool);
+    requestAnimationFrame(() => {
+      applyPreviewZoom(activeTool);
+      centerPreview(activeTool);
+    });
   };
 
   const processFile = async (file, type, input = null, internalTransfer = false) => {
@@ -1946,7 +2001,10 @@
       if (previousSourceUrl) URL.revokeObjectURL(previousSourceUrl);
       updateDocumentInfo(type);
       if (input) input.value = '';
-      centerPreview(type);
+      requestAnimationFrame(() => {
+        applyPreviewZoom(type);
+        centerPreview(type);
+      });
       return true;
     } catch (error) {
       if (token !== uploadTokens[type]) return false;
@@ -2013,7 +2071,11 @@
       event.preventDefault();
       dropZone.classList.remove('dragging');
     }));
-    dropZone.addEventListener('drop', event => processFile([...event.dataTransfer.files].find(file => file.type.startsWith('image/')), type, input));
+    dropZone.addEventListener('drop', event => {
+      const file = [...(event.dataTransfer?.files || [])].find(isSupportedImageFile);
+      if (file) processFile(file, type, input);
+      else showToast('Soltá una imagen PNG, JPG o WebP.');
+    });
   };
 
   const resetBackground = () => {
@@ -2022,8 +2084,10 @@
     byId('background-color').value = '#ffffff';
     byId('background-tolerance').value = '45';
     byId('background-softness').value = '25';
+    byId('background-edge-shift').value = '0';
     byId('background-tolerance-value').textContent = '45';
     byId('background-softness-value').textContent = '25';
+    byId('background-edge-shift-value').textContent = '0 px';
     byId('background-decontaminate').checked = true;
     byId('background-trim').checked = false;
     syncBackgroundMode();
@@ -2044,8 +2108,24 @@
     document.querySelectorAll('[data-tool-target]').forEach(button => button.addEventListener('click', () => switchTool(button.dataset.toolTarget)));
     document.querySelectorAll('.tool-shortcut[data-tool-target]').forEach(button => button.setAttribute('aria-controls', button.dataset.toolTarget));
     document.querySelectorAll('.tool-panel').forEach(panel => panel.setAttribute('role', 'tabpanel'));
-    const initialTarget = ['semitonos', 'eliminar-fondo', 'mejorar-calidad'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'semitonos';
+    const initialTarget = ['semitonos', 'eliminar-fondo', 'mejorar-calidad', 'vectorizacion', 'calculadora-dtf'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'semitonos';
     switchTool(initialTarget);
+
+    if ('ResizeObserver' in window) {
+      let resizeFrame = 0;
+      const previewResizeObserver = new ResizeObserver(entries => {
+        const visibleTypes = entries
+          .filter(entry => entry.target.clientWidth > 0 && entry.target.clientHeight > 0)
+          .map(entry => entry.target.querySelector('.tool-preview')?.id.replace('-preview', ''))
+          .filter(type => type && states[type]);
+        if (!visibleTypes.length) return;
+        cancelAnimationFrame(resizeFrame);
+        resizeFrame = requestAnimationFrame(() => {
+          [...new Set(visibleTypes)].forEach(type => applyPreviewZoom(type));
+        });
+      });
+      document.querySelectorAll('.tool-preview-shell').forEach(shell => previewResizeObserver.observe(shell));
+    }
 
     ['halftone', 'background', 'quality'].forEach(setupDropUpload);
     document.querySelectorAll('.tool-control-group').forEach(group => {
@@ -2072,6 +2152,7 @@
         if (!group.open) {
           tab?.classList.remove('active');
           tab?.setAttribute('aria-selected', 'false');
+          tab?.setAttribute('aria-expanded', 'false');
           return;
         }
         controls?.querySelectorAll('.tool-control-group').forEach(sibling => {
@@ -2079,6 +2160,7 @@
         });
         tab?.classList.add('active');
         tab?.setAttribute('aria-selected', 'true');
+        tab?.setAttribute('aria-expanded', 'true');
         if (content) content.scrollTop = 0;
       });
     });
@@ -2087,6 +2169,7 @@
       button.setAttribute('aria-controls', button.dataset.controlTarget);
       button.setAttribute('aria-label', button.getAttribute('title') || 'Abrir opciones');
       button.setAttribute('aria-selected', 'false');
+      button.setAttribute('aria-expanded', 'false');
       const controlledPanel = byId(button.dataset.controlTarget);
       controlledPanel?.setAttribute('role', 'tabpanel');
       controlledPanel?.querySelector('.tool-control-content')?.setAttribute('aria-label', button.getAttribute('title') || 'Opciones');
@@ -2094,16 +2177,26 @@
         const target = byId(button.dataset.controlTarget);
         const controls = button.closest('.tool-controls');
         if (!target || !controls) return;
+        const preview = byId(`${activeTool}-preview`);
+        const preservedViewport = preview ? { left: preview.scrollLeft, top: preview.scrollTop } : null;
         const shouldClose = target.open && button.classList.contains('active');
         controls.querySelectorAll('.tool-control-group').forEach(group => { group.open = !shouldClose && group === target; });
         controls.querySelectorAll('[data-control-target]').forEach(tab => {
           const active = !shouldClose && tab === button;
           tab.classList.toggle('active', active);
           tab.setAttribute('aria-selected', String(active));
+          tab.setAttribute('aria-expanded', String(active));
         });
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          if (!preview || !preservedViewport) return;
+          preview.scrollLeft = preservedViewport.left;
+          preview.scrollTop = preservedViewport.top;
+        }));
       });
     });
     document.addEventListener('paste', event => {
+      const visiblePanel = document.querySelector('.tool-panel:not([hidden])')?.id;
+      if (!['semitonos', 'eliminar-fondo', 'mejorar-calidad'].includes(visiblePanel)) return;
       const image = [...(event.clipboardData?.items || [])].find(item => item.type.startsWith('image/'))?.getAsFile();
       if (image) processFile(image, activeTool, byId(`${activeTool}-file`));
     });
@@ -2114,11 +2207,14 @@
     bindRange('halftone-mask-tolerance', 'halftone-mask-tolerance-value', '', () => scheduleRender('halftone', renderHalftone));
     bindRange('halftone-amount', 'halftone-amount-value', '%', () => scheduleRender('halftone', renderHalftone));
     bindRange('halftone-solid-protection', 'halftone-solid-protection-value', '%', () => scheduleRender('halftone', renderHalftone));
+    bindRange('halftone-edge-protection', 'halftone-edge-protection-value', '%', () => scheduleRender('halftone', renderHalftone));
     const halftoneDotSize = byId('halftone-dot-size');
     halftoneDotSize.addEventListener('input', () => {
       byId('halftone-dot-size-value').textContent = `${Number(halftoneDotSize.value).toFixed(2)} mm`;
       scheduleRender('halftone', renderHalftone, 140);
     });
+    bindRange('halftone-min-dot', 'halftone-min-dot-value', ' mm', () => scheduleRender('halftone', renderHalftone, 140));
+    bindRange('halftone-dot-gain', 'halftone-dot-gain-value', '%', () => scheduleRender('halftone', renderHalftone, 140));
     byId('halftone-width-cm').addEventListener('input', () => scheduleRender('halftone', renderHalftone, 260));
     ['halftone-color', 'halftone-background-color'].forEach(id => byId(id).addEventListener('input', () => scheduleRender('halftone', renderHalftone)));
     ['halftone-range', 'halftone-hue-range', 'halftone-shape', 'halftone-transparent', 'halftone-invert', 'halftone-keep-solids'].forEach(id => byId(id).addEventListener('change', () => scheduleRender('halftone', renderHalftone, 0)));
@@ -2128,10 +2224,10 @@
     }));
     syncHalftoneMode();
     const halftonePresets = {
-      suave: { range: 'shadows', amount: 30, protection: 88, frequency: 48, dotSize: 0.45, angle: 45, shape: 'circle', contrast: 6 },
-      balanceado: { range: 'transitions', amount: 52, protection: 78, frequency: 55, dotSize: 0.40, angle: 45, shape: 'circle', contrast: 12 },
-      fino: { range: 'transitions', amount: 42, protection: 86, frequency: 68, dotSize: 0.30, angle: 45, shape: 'ellipse', contrast: 14 },
-      lineas: { range: 'midtones', amount: 35, protection: 76, frequency: 60, dotSize: 0.35, angle: 45, shape: 'line', contrast: 12 }
+      suave: { range: 'shadows', amount: 30, protection: 88, edgeProtection: 60, frequency: 48, dotSize: 0.45, angle: 45, shape: 'circle', contrast: 6 },
+      balanceado: { range: 'transitions', amount: 52, protection: 78, edgeProtection: 45, frequency: 55, dotSize: 0.40, angle: 45, shape: 'circle', contrast: 12 },
+      fino: { range: 'transitions', amount: 42, protection: 86, edgeProtection: 72, frequency: 68, dotSize: 0.30, angle: 45, shape: 'ellipse', contrast: 14 },
+      lineas: { range: 'midtones', amount: 35, protection: 76, edgeProtection: 52, frequency: 60, dotSize: 0.35, angle: 45, shape: 'line', contrast: 12 }
     };
     document.querySelectorAll('[data-halftone-preset]').forEach(button => button.addEventListener('click', () => {
       const preset = halftonePresets[button.dataset.halftonePreset];
@@ -2154,6 +2250,7 @@
 
     bindRange('background-tolerance', 'background-tolerance-value', '', () => scheduleRender('background', renderActiveBackground));
     bindRange('background-softness', 'background-softness-value', '', () => scheduleRender('background', renderActiveBackground));
+    bindRange('background-edge-shift', 'background-edge-shift-value', ' px', () => scheduleRender('background', renderActiveBackground));
     byId('background-color').addEventListener('input', () => scheduleRender('background', renderActiveBackground));
     byId('background-mode').addEventListener('change', () => {
       syncBackgroundMode();
@@ -2182,6 +2279,7 @@
     bindRange('quality-contrast', 'quality-contrast-value', '', invalidateQualityResult);
     bindRange('quality-saturation', 'quality-saturation-value', '', invalidateQualityResult);
     bindRange('quality-clarity', 'quality-clarity-value', '', invalidateQualityResult);
+    bindRange('quality-denoise', 'quality-denoise-value', '', invalidateQualityResult);
     byId('quality-width-cm').addEventListener('input', invalidateQualityResult);
     byId('quality-smoothing').addEventListener('change', invalidateQualityResult);
     document.querySelectorAll('[data-quality-width]').forEach(button => button.addEventListener('click', () => {
@@ -2191,16 +2289,16 @@
       recordHistory('quality');
     }));
     const qualityPresets = {
-      dtf: { smoothing: 'illustration', brightness: 0, contrast: 6, saturation: 8, clarity: 24, sharpness: 50 },
-      illustration: { smoothing: 'illustration', brightness: 0, contrast: 10, saturation: 14, clarity: 30, sharpness: 58 },
-      photo: { smoothing: 'photo', brightness: 1, contrast: 5, saturation: 6, clarity: 18, sharpness: 42 },
-      logo: { smoothing: 'logo', brightness: 0, contrast: 12, saturation: 6, clarity: 8, sharpness: 68 }
+      dtf: { smoothing: 'illustration', brightness: 0, contrast: 6, saturation: 8, clarity: 24, sharpness: 50, denoise: 12 },
+      illustration: { smoothing: 'illustration', brightness: 0, contrast: 10, saturation: 14, clarity: 30, sharpness: 58, denoise: 8 },
+      photo: { smoothing: 'photo', brightness: 1, contrast: 5, saturation: 6, clarity: 18, sharpness: 42, denoise: 22 },
+      logo: { smoothing: 'logo', brightness: 0, contrast: 12, saturation: 6, clarity: 8, sharpness: 68, denoise: 4 }
     };
     document.querySelectorAll('[data-quality-preset]').forEach(button => button.addEventListener('click', () => {
       const preset = qualityPresets[button.dataset.qualityPreset];
       if (!preset) return;
       byId('quality-smoothing').value = preset.smoothing;
-      ['brightness', 'contrast', 'saturation', 'clarity', 'sharpness'].forEach(name => {
+      ['brightness', 'contrast', 'saturation', 'clarity', 'sharpness', 'denoise'].forEach(name => {
         byId(`quality-${name}`).value = preset[name];
         byId(`quality-${name}-value`).textContent = String(preset[name]);
       });
@@ -2424,6 +2522,9 @@
         closeExpandedPreview();
         applyPreviewZoom(activeTool);
         centerPreview(activeTool);
+      } else {
+        const openProperties = document.querySelector('.tool-panel:not([hidden]) .tool-control-group[open]');
+        if (openProperties) openProperties.open = false;
       }
     });
     byId('dtf-preflight-close').addEventListener('click', closePreflight);
@@ -2460,6 +2561,50 @@
     syncBackgroundMode();
     updateHistoryButtons();
   };
+
+  window.MomotusToolsAPI = Object.freeze({
+    getActiveType: () => activeTool,
+    hasDocument: type => Boolean(states[type || activeTool]),
+    getDocumentInfo: type => {
+      const selected = type || activeTool;
+      const state = states[selected];
+      if (!state) return null;
+      return {
+        type: selected,
+        filename: state.filename || 'momotus',
+        naturalWidth: state.naturalWidth || state.width,
+        naturalHeight: state.naturalHeight || state.height
+      };
+    },
+    getResultCanvas: async type => {
+      const selected = type || activeTool;
+      if (!states[selected]) return null;
+      if (selected === 'quality' && (byId('quality-download').disabled || states.quality.qualityPreviewOnly)) {
+        if (!await processQuality(true)) return null;
+      } else if (selected === 'background') {
+        if (!await renderBackground(false, true)) return null;
+      } else if (selected === 'halftone') {
+        if (!await renderHalftone(true)) return null;
+      }
+      return prepareTransferCanvas(selected);
+    },
+    sendCanvasToTool: async (canvas, type, filename = 'momotus-produccion.png') => {
+      if (!canvas || !['halftone', 'background', 'quality'].includes(type)) return false;
+      const file = await canvasToFile(canvas, filename);
+      const loaded = await processFile(file, type, null, true);
+      if (loaded) switchTool(targetByType[type], true);
+      return Boolean(loaded);
+    },
+    reviewAndDownload: (canvas, filename = 'momotus-dtf-300dpi.png', type = activeTool) => {
+      if (!canvas?.width || !canvas.height) return false;
+      openPreflight(type, canvas, filename);
+      return true;
+    },
+    downloadCanvas,
+    showToast,
+    constants: Object.freeze({ dpi: EXPORT_DPI, maxOutputSide: MAX_OUTPUT_SIDE })
+  });
+  window.dispatchEvent(new CustomEvent('momotus:tools-api-ready'));
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initializeTools);
   else initializeTools();

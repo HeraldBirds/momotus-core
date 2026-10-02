@@ -8,6 +8,7 @@
   <meta name="theme-color" content="#09090b">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com 'unsafe-inline'; worker-src 'self'; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: blob: https:; font-src 'self' https://cdnjs.cloudflare.com; connect-src 'self';">
   <script>
+    window.MOMOTUS_TOOLS_VERSION = '20261002-5';
     window.MOMOTUS_TOOLS_DESKTOP = window.matchMedia('(min-width: 1024px)').matches;
     if (!window.MOMOTUS_TOOLS_DESKTOP) document.documentElement.classList.add('tools-page-mobile');
     if (window.MOMOTUS_TOOLS_DESKTOP) {
@@ -25,9 +26,10 @@
     }
   </script>
   <link rel="stylesheet" href="css/style.css">
-  <link rel="stylesheet" href="css/tools.css" media="(min-width: 1024px)">
+  <link rel="stylesheet" href="css/tools.css?v=20261002-5" media="(min-width: 1024px)">
+  <link rel="stylesheet" href="css/tools-production.css?v=20261002-5" media="(min-width: 1024px)">
 </head>
-<body class="bg-zinc-950 text-white">
+<body class="momotus-studio bg-zinc-950 text-white">
   <section class="tools-mobile-gate" aria-labelledby="tools-desktop-title">
     <div class="tools-mobile-gate-card">
       <div class="tools-mobile-logo">👕 <span>Momotus Core</span></div>
@@ -54,6 +56,8 @@
       <button type="button" class="tool-shortcut active" data-tool-target="semitonos" role="tab" aria-selected="true"><i class="fa-solid fa-circle-half-stroke"></i><span><strong>Semitonos</strong><small>Trama, tinta y LPI</small></span></button>
       <button type="button" class="tool-shortcut" data-tool-target="eliminar-fondo" role="tab" aria-selected="false"><i class="fa-solid fa-eraser"></i><span><strong>Rango de color</strong><small>Transparencia y máscara</small></span></button>
       <button type="button" class="tool-shortcut" data-tool-target="mejorar-calidad" role="tab" aria-selected="false"><i class="fa-solid fa-sliders"></i><span><strong>Calidad y color</strong><small>300 DPI y ajustes</small></span></button>
+      <button type="button" class="tool-shortcut" data-extra-tool="vectorizacion" role="tab" aria-selected="false"><i class="fa-solid fa-bezier-curve"></i><span><strong>Vectorizar</strong><small>SVG por colores</small></span></button>
+      <button type="button" class="tool-shortcut" data-extra-tool="calculadora-dtf" role="tab" aria-selected="false"><i class="fa-solid fa-calculator"></i><span><strong>Cotizador</strong><small>Pliegos y costos</small></span></button>
     </nav>
 
     <div class="tool-probar" aria-label="Controles del editor">
@@ -86,7 +90,7 @@
       </div>
       <div class="tool-layout">
         <div class="tool-controls">
-          <label class="tool-upload" data-drop-type="halftone" title="Subir imagen para semitonos"><i class="fa-solid fa-cloud-arrow-up"></i><span><strong>Subir o arrastrar imagen</strong><small>También podés pegarla con Ctrl + V</small></span><input id="halftone-file" type="file" accept="image/png,image/jpeg,image/webp" class="sr-only" aria-label="Subir imagen para semitonos"></label>
+          <label class="tool-upload" data-drop-type="halftone" title="Subir imagen para semitonos"><i class="fa-solid fa-cloud-arrow-up"></i><span><strong>Subir o arrastrar imagen</strong><small>También podés pegarla con Ctrl + V</small></span><input id="halftone-file" type="file" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp" class="sr-only" aria-label="Subir imagen para semitonos"></label>
           <div class="tool-control-tabs" role="tablist" aria-label="Propiedades del semitono">
             <button type="button" data-control-target="halftone-quick" title="Ajustes rápidos"><i class="fa-solid fa-bolt"></i><span>Rápidos</span></button>
             <button type="button" data-control-target="halftone-selection" title="Aplicación selectiva"><i class="fa-solid fa-bullseye"></i><span>Selección</span></button>
@@ -119,6 +123,7 @@
             <label class="tool-field-row"><span>Rango de color</span><select id="halftone-hue-range"><option value="all">Todos los colores</option><option value="dominant">Color dominante</option><option value="vivid">Colores vivos</option><option value="neutral">Grises y neutros</option><option value="reds">Rojos</option><option value="oranges">Naranjas</option><option value="yellows">Amarillos</option><option value="greens">Verdes</option><option value="cyans">Cian y turquesa</option><option value="blues">Azules</option><option value="purples">Morados y magentas</option></select></label>
             <label class="tool-field">Cantidad de trama <span id="halftone-amount-value">55%</span><input id="halftone-amount" type="range" min="10" max="100" value="55"></label>
             <label class="tool-field">Proteger colores sólidos <span id="halftone-solid-protection-value">75%</span><input id="halftone-solid-protection" type="range" min="0" max="100" value="75"></label>
+            <label class="tool-field">Proteger detalle fino <span id="halftone-edge-protection-value">45%</span><input id="halftone-edge-protection" type="range" min="0" max="100" value="45"></label>
             <label class="tool-check"><input id="halftone-keep-solids" type="checkbox" checked><span>Conservar las zonas sin trama</span></label>
             </div>
           </details>
@@ -128,6 +133,8 @@
             <label class="tool-field-row"><span>Ancho final de impresión</span><span class="tool-number-input"><input id="halftone-width-cm" type="number" min="8" max="38" step="1" value="28"><span>cm</span></span></label>
             <label class="tool-field">Frecuencia <span id="halftone-frequency-value">55 LPI</span><input id="halftone-frequency" type="range" min="45" max="70" value="55"></label>
             <label class="tool-field">Diámetro máximo del punto <span id="halftone-dot-size-value">0.40 mm</span><input id="halftone-dot-size" type="range" min="0.30" max="0.60" step="0.05" value="0.40"></label>
+            <label class="tool-field">Punto mínimo imprimible <span id="halftone-min-dot-value">0.10 mm</span><input id="halftone-min-dot" type="range" min="0.05" max="0.30" step="0.05" value="0.10"></label>
+            <label class="tool-field">Compensación de ganancia <span id="halftone-dot-gain-value">0%</span><input id="halftone-dot-gain" type="range" min="-20" max="20" step="1" value="0"></label>
             <label class="tool-field">Ángulo <span id="halftone-angle-value">45°</span><input id="halftone-angle" type="range" min="-90" max="90" value="45"></label>
             <label class="tool-field">Contraste <span id="halftone-contrast-value">12</span><input id="halftone-contrast" type="range" min="-80" max="100" value="12"></label>
             <label class="tool-field-row"><span>Forma del punto</span><select id="halftone-shape"><option value="circle">Círculo</option><option value="ellipse">Elipse</option><option value="square">Cuadrado</option><option value="diamond">Diamante</option><option value="line">Línea</option></select></label>
@@ -172,7 +179,7 @@
       </div>
       <div class="tool-layout">
         <div class="tool-controls">
-          <label class="tool-upload" data-drop-type="background" title="Subir imagen para eliminar el fondo"><i class="fa-solid fa-cloud-arrow-up"></i><span><strong>Subir o arrastrar imagen</strong><small>También podés pegarla con Ctrl + V</small></span><input id="background-file" type="file" accept="image/png,image/jpeg,image/webp" class="sr-only" aria-label="Subir imagen para eliminar el fondo"></label>
+          <label class="tool-upload" data-drop-type="background" title="Subir imagen para eliminar el fondo"><i class="fa-solid fa-cloud-arrow-up"></i><span><strong>Subir o arrastrar imagen</strong><small>También podés pegarla con Ctrl + V</small></span><input id="background-file" type="file" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp" class="sr-only" aria-label="Subir imagen para eliminar el fondo"></label>
           <div class="tool-control-tabs" role="tablist" aria-label="Propiedades del fondo">
             <button type="button" data-control-target="background-color-panel" title="Color y selección"><i class="fa-solid fa-eye-dropper"></i><span>Color</span></button>
             <button type="button" data-control-target="background-edge-panel" title="Bordes y salida"><i class="fa-solid fa-wand-magic-sparkles"></i><span>Bordes</span></button>
@@ -197,6 +204,8 @@
             <div class="tool-control-content">
               <label class="tool-field">Tolerancia <span id="background-tolerance-value">45</span><input id="background-tolerance" type="range" min="0" max="220" value="45"></label>
               <label class="tool-field">Suavidad del borde <span id="background-softness-value">25</span><input id="background-softness" type="range" min="0" max="100" value="25"></label>
+              <label class="tool-field">Ajustar borde <span id="background-edge-shift-value">0 px</span><input id="background-edge-shift" type="range" min="-3" max="3" step="1" value="0"></label>
+              <small class="tool-field-help">Negativo contrae el borde y quita halos; positivo recupera detalle.</small>
               <label class="tool-check"><input id="background-decontaminate" type="checkbox" checked><span>Limpiar halo del color eliminado</span></label>
               <label class="tool-check"><input id="background-trim" type="checkbox"><span>Recortar espacio transparente al descargar</span></label>
               <button id="background-reset" type="button" class="tool-secondary" disabled><i class="fa-solid fa-rotate-left"></i> Restablecer ajustes</button>
@@ -230,7 +239,7 @@
       </div>
       <div class="tool-layout">
         <div class="tool-controls">
-          <label class="tool-upload" data-drop-type="quality" title="Subir imagen para mejorar su calidad"><i class="fa-solid fa-cloud-arrow-up"></i><span><strong>Subir o arrastrar imagen</strong><small>También podés pegarla con Ctrl + V</small></span><input id="quality-file" type="file" accept="image/png,image/jpeg,image/webp" class="sr-only" aria-label="Subir imagen para mejorar su calidad"></label>
+          <label class="tool-upload" data-drop-type="quality" title="Subir imagen para mejorar su calidad"><i class="fa-solid fa-cloud-arrow-up"></i><span><strong>Subir o arrastrar imagen</strong><small>También podés pegarla con Ctrl + V</small></span><input id="quality-file" type="file" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp" class="sr-only" aria-label="Subir imagen para mejorar su calidad"></label>
           <div class="tool-control-tabs" role="tablist" aria-label="Propiedades de calidad">
             <button type="button" data-control-target="quality-size-panel" title="Tamaño y tipo"><i class="fa-solid fa-ruler-combined"></i><span>Tamaño</span></button>
             <button type="button" data-control-target="quality-quick-panel" title="Ajustes rápidos"><i class="fa-solid fa-bolt"></i><span>Rápidos</span></button>
@@ -272,6 +281,7 @@
             <div class="tool-control-content">
             <label class="tool-field">Claridad local <span id="quality-clarity-value">24</span><input id="quality-clarity" type="range" min="0" max="70" value="24"></label>
             <label class="tool-field">Nitidez <span id="quality-sharpness-value">50</span><input id="quality-sharpness" type="range" min="0" max="100" value="50"></label>
+            <label class="tool-field">Reducir ruido/compresión <span id="quality-denoise-value">12</span><input id="quality-denoise" type="range" min="0" max="60" value="12"></label>
             </div>
           </details>
           <div class="tool-action-dock"><div id="quality-assessment" class="tool-assessment" aria-live="polite">La evaluación aparecerá cuando subás una imagen.</div><button id="quality-process" type="button" class="tool-secondary" disabled><i class="fa-solid fa-wand-magic-sparkles"></i> Aplicar mejora DTF</button><button id="quality-download" type="button" class="tool-download" disabled title="Revisar y descargar PNG mejorado"><i class="fa-solid fa-clipboard-check"></i> Revisar y descargar</button><p id="quality-status" class="tool-status" role="status">Subí una imagen y escogé el ancho de impresión.</p></div>
@@ -292,6 +302,76 @@
         </div>
       </div>
       <p class="tool-note"><i class="fa-solid fa-circle-info"></i> La descarga se guarda como PNG con 300 DPI reales en sus metadatos y los píxeles necesarios para el tamaño indicado. Aumentar una imagen no puede recuperar detalles que no existían en el archivo original.</p>
+    </section>
+
+    <section id="vectorizacion" class="tool-panel extra-tool-panel" aria-labelledby="vector-title" hidden>
+      <div class="extra-studio-grid">
+        <aside class="extra-controls" aria-label="Propiedades de vectorización">
+          <div class="extra-inspector-title"><span>TRAZADO VECTORIAL</span><h2 id="vector-title"><i class="fa-solid fa-bezier-curve"></i> Vectorización</h2><p>Convertí logos e ilustraciones en formas SVG escalables.</p></div>
+          <label class="extra-upload" for="vector-file"><i class="fa-solid fa-cloud-arrow-up"></i><span><strong>Subir imagen</strong><small>PNG, JPG o WebP · máximo 24 MB</small></span><input id="vector-file" type="file" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp" class="sr-only"></label>
+          <div class="extra-preset-grid" aria-label="Ajustes rápidos de vectorización">
+            <button type="button" data-vector-preset="logo" class="active"><i class="fa-solid fa-copyright"></i><span>Logo</span></button>
+            <button type="button" data-vector-preset="illustration"><i class="fa-solid fa-palette"></i><span>Ilustración</span></button>
+            <button type="button" data-vector-preset="mono"><i class="fa-solid fa-circle-half-stroke"></i><span>Una tinta</span></button>
+          </div>
+          <div class="extra-control-scroll">
+            <label class="extra-field-row"><span>Colores finales</span><span><input id="vector-colors" type="number" min="2" max="16" value="4"><small>2–16</small></span></label>
+            <label class="extra-field"><span>Detalle del trazado <output id="vector-detail-value">420 px</output></span><input id="vector-detail" type="range" min="180" max="650" step="10" value="420"></label>
+            <label class="extra-field"><span>Suavizado previo <output id="vector-smoothing-value">1.0 px</output></span><input id="vector-smoothing" type="range" min="0" max="2.5" step="0.25" value="1"></label>
+            <label class="extra-field"><span>Eliminar ruido <output id="vector-noise-value">4 px</output></span><input id="vector-noise" type="range" min="0" max="30" step="1" value="4"></label>
+            <label class="extra-field"><span>Eliminar blancos <output id="vector-white-value">245</output></span><input id="vector-white" type="range" min="200" max="255" step="1" value="245"></label>
+            <label class="extra-check"><input id="vector-ignore-white" type="checkbox" checked><span>Convertir el blanco en transparencia</span></label>
+            <label class="extra-field-row"><span>Ancho físico</span><span><input id="vector-width-cm" type="number" min="2" max="57" step="0.5" value="30"><small>cm</small></span></label>
+            <label class="extra-check"><input id="vector-optimize" type="checkbox" checked><span>Optimizar y unir formas contiguas</span></label>
+          </div>
+          <div class="extra-action-dock"><button id="vector-process" type="button" class="extra-secondary" disabled><i class="fa-solid fa-wand-magic-sparkles"></i> Vectorizar imagen</button><button id="vector-download" type="button" class="extra-primary" disabled><i class="fa-solid fa-download"></i> Descargar SVG</button></div>
+        </aside>
+        <div class="extra-workspace">
+          <div class="extra-toolbar"><div class="tool-segmented"><button type="button" data-vector-view="original">Original</button><button type="button" data-vector-view="result" class="active">Vector</button></div><span id="vector-document-info">Sin documento</span><button id="vector-fit" type="button" title="Ajustar a la mesa"><i class="fa-solid fa-expand"></i> Ajustar</button></div>
+          <div id="vector-viewport" class="extra-viewport checkerboard"><canvas id="vector-canvas" width="900" height="600" aria-label="Vista previa de la vectorización"></canvas><div id="vector-empty" class="extra-empty"><i class="fa-solid fa-bezier-curve"></i><strong>Prepará un SVG para DTF</strong><span>Funciona mejor con logos, tipografías e ilustraciones de colores definidos.</span></div></div>
+          <div class="extra-statusbar"><span id="vector-status" role="status">Subí una imagen para comenzar.</span><strong id="vector-result-info">SVG editable</strong></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="calculadora-dtf" class="tool-panel extra-tool-panel" aria-labelledby="calculator-title" hidden>
+      <div class="extra-studio-grid">
+        <aside class="extra-controls" aria-label="Datos para cotizar DTF">
+          <div class="extra-inspector-title"><span>PRODUCCIÓN Y COTIZACIÓN</span><h2 id="calculator-title"><i class="fa-solid fa-calculator"></i> Calculadora DTF</h2><p>Calculá capacidad, pliegos, costos y precio sugerido.</p></div>
+          <div class="extra-control-scroll calculator-fields">
+            <h3>Datos de la cotización</h3>
+            <label class="extra-field-row"><span>Cliente</span><span><input id="calc-customer" type="text" maxlength="60" placeholder="Nombre del cliente"></span></label>
+            <div class="extra-two-columns"><label class="extra-field-row"><span>Cotización</span><span><input id="calc-reference" type="text" maxlength="30" placeholder="MC-001"></span></label><label class="extra-field-row"><span>Vigencia</span><span><input id="calc-valid-days" type="number" min="1" max="90" step="1" value="7"><small>días</small></span></label></div>
+            <h3>Pliego o tramo</h3>
+            <div class="extra-two-columns"><label class="extra-field-row"><span>Ancho</span><span><input id="calc-sheet-width" type="number" min="10" max="200" step="0.1" value="57"><small>cm</small></span></label><label class="extra-field-row"><span>Largo</span><span><input id="calc-sheet-height" type="number" min="10" max="1000" step="0.1" value="100"><small>cm</small></span></label></div>
+            <div class="extra-two-columns"><label class="extra-field-row"><span>Margen</span><span><input id="calc-margin" type="number" min="0" max="10" step="0.1" value="0.5"><small>cm</small></span></label><label class="extra-field-row"><span>Separación</span><span><input id="calc-gap" type="number" min="0" max="10" step="0.1" value="1"><small>cm</small></span></label></div>
+            <h3>Diseño y pedido</h3>
+            <div class="extra-two-columns"><label class="extra-field-row"><span>Ancho</span><span><input id="calc-design-width" type="number" min="1" max="150" step="0.1" value="32"><small>cm</small></span></label><label class="extra-field-row"><span>Alto</span><span><input id="calc-design-height" type="number" min="1" max="300" step="0.1" value="32"><small>cm</small></span></label></div>
+            <div class="extra-two-columns"><label class="extra-field-row"><span>Cantidad</span><span><input id="calc-quantity" type="number" min="1" max="10000" step="1" value="10"><small>uds.</small></span></label><label class="extra-check"><input id="calc-rotate" type="checkbox" checked><span>Permitir rotación</span></label></div>
+            <h3>Costos en córdobas</h3>
+            <div class="extra-two-columns"><label class="extra-field-row"><span>Película/pliego</span><span><small>C$</small><input id="calc-sheet-cost" type="number" min="0" step="0.01" value="0"></span></label><label class="extra-field-row"><span>Tinta + polvo/pliego</span><span><small>C$</small><input id="calc-consumables-cost" type="number" min="0" step="0.01" value="0"></span></label></div>
+            <label class="extra-field-row"><span>Preparación del pedido</span><span><small>C$</small><input id="calc-setup-cost" type="number" min="0" step="0.01" value="0"></span></label>
+            <div class="extra-two-columns"><label class="extra-field-row"><span>Acabado/unidad</span><span><small>C$</small><input id="calc-unit-cost" type="number" min="0" step="0.01" value="0"></span></label><label class="extra-field-row"><span>Merma</span><span><input id="calc-waste" type="number" min="0" max="100" step="0.5" value="5"><small>%</small></span></label></div>
+            <label class="extra-field-row"><span>Margen comercial</span><span><input id="calc-profit" type="number" min="0" max="90" step="0.5" value="30"><small>%</small></span></label>
+            <div class="calc-profile-actions"><button id="calc-save-profile" type="button"><i class="fa-solid fa-floppy-disk"></i> Guardar costos</button><button id="calc-load-profile" type="button"><i class="fa-solid fa-folder-open"></i> Cargar costos</button></div>
+          </div>
+          <div class="extra-action-dock"><button id="calc-reset" type="button" class="extra-secondary"><i class="fa-solid fa-rotate-left"></i> Restablecer</button><button id="calc-whatsapp" type="button" class="extra-secondary"><i class="fa-brands fa-whatsapp"></i> Compartir</button><button id="calc-print" type="button" class="extra-primary"><i class="fa-solid fa-file-invoice-dollar"></i> Imprimir cotización</button></div>
+        </aside>
+        <div class="extra-workspace calculator-workspace">
+          <div class="extra-toolbar"><strong>Distribución optimizada</strong><span id="calc-layout-label">57 × 100 cm</span><button id="calc-example" type="button"><i class="fa-solid fa-shapes"></i> Ejemplo 32 × 32</button></div>
+          <div class="calculator-main">
+            <div class="calculator-sheet-wrap"><canvas id="calc-canvas" width="900" height="600" aria-label="Distribución de diseños sobre el pliego"></canvas></div>
+            <div class="calculator-results" aria-live="polite">
+              <article><span>Capacidad por pliego</span><strong id="calc-capacity">3</strong><small>diseños</small></article>
+              <article><span>Pliegos necesarios</span><strong id="calc-sheets">4</strong><small>para el pedido</small></article>
+              <article><span>Aprovechamiento</span><strong id="calc-efficiency">—</strong><small>del área imprimible</small></article>
+              <article><span>Costo calculado</span><strong id="calc-base-cost">C$ 0.00</strong><small>producción + merma</small></article>
+              <article class="highlight"><span>Cotización sugerida</span><strong id="calc-quote-total">C$ 0.00</strong><small id="calc-quote-unit">C$ 0.00 por diseño</small></article>
+            </div>
+          </div>
+          <div class="extra-statusbar"><span id="calc-status">Ingresá las medidas reales del diseño, incluyendo cualquier borde transparente.</span><strong id="calc-arrangement">1 columna × 3 filas</strong></div>
+        </div>
+      </div>
     </section>
 
     <footer class="studio-technical-bar" aria-label="Información técnica del documento">
@@ -342,7 +422,8 @@
     if (window.MOMOTUS_TOOLS_DESKTOP) {
       const loadToolsScript = src => new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = src;
+        const version = encodeURIComponent(window.MOMOTUS_TOOLS_VERSION || '1');
+        script.src = `${src}?v=${version}`;
         script.onload = resolve;
         script.onerror = reject;
         document.body.appendChild(script);
@@ -350,6 +431,8 @@
       loadToolsScript('js/tools-shell.js')
         .then(() => loadToolsScript('js/tools.js'))
         .then(() => loadToolsScript('js/tools-studio.js'))
+        .then(() => loadToolsScript('js/tools-extra.js'))
+        .then(() => loadToolsScript('js/tools-production.js'))
         .catch(error => {
           console.error('No se pudieron cargar las herramientas:', error);
           const message = document.getElementById('halftone-result-info');

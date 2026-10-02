@@ -76,6 +76,59 @@
         button.append(level);
       });
 
+      const tabs = controls.querySelector('.tool-control-tabs');
+      const groups = [...controls.querySelectorAll(':scope > .tool-control-group')];
+      if (tabs && groups.length && !controls.querySelector(':scope > .tool-control-panels')) {
+        tabs.classList.add('tool-options-menu');
+        tabs.hidden = true;
+
+        const optionsTrigger = document.createElement('button');
+        optionsTrigger.type = 'button';
+        optionsTrigger.className = 'tool-options-trigger';
+        optionsTrigger.setAttribute('aria-expanded', 'false');
+        optionsTrigger.innerHTML = '<span><i class="fa-solid fa-sliders" aria-hidden="true"></i><strong>Opciones</strong><small>Elegí qué querés ajustar</small></span><i class="fa-solid fa-chevron-down" aria-hidden="true"></i>';
+        tabs.before(optionsTrigger);
+
+        const panels = document.createElement('div');
+        panels.className = 'tool-control-panels';
+        panels.setAttribute('aria-label', 'Opciones de la herramienta');
+        tabs.after(panels);
+        groups.forEach(group => panels.append(group));
+
+        const backdrop = document.createElement('button');
+        backdrop.type = 'button';
+        backdrop.className = 'tool-options-backdrop';
+        backdrop.setAttribute('aria-label', 'Cerrar opciones');
+        backdrop.hidden = true;
+        controls.append(backdrop);
+
+        const closeMenu = () => {
+          tabs.hidden = true;
+          optionsTrigger.classList.remove('active');
+          optionsTrigger.setAttribute('aria-expanded', 'false');
+        };
+        const closePanel = () => {
+          controls.querySelectorAll('.tool-control-group[open]').forEach(group => { group.open = false; });
+          backdrop.hidden = true;
+        };
+
+        optionsTrigger.addEventListener('click', () => {
+          const willOpen = tabs.hidden;
+          tabs.hidden = !willOpen;
+          optionsTrigger.classList.toggle('active', willOpen);
+          optionsTrigger.setAttribute('aria-expanded', String(willOpen));
+          if (!willOpen) closePanel();
+        });
+        propertyTabs.forEach(button => button.addEventListener('click', () => {
+          closeMenu();
+          requestAnimationFrame(() => { backdrop.hidden = !controls.querySelector('.tool-control-group[open]'); });
+        }));
+        backdrop.addEventListener('click', closePanel);
+        groups.forEach(group => group.addEventListener('toggle', () => {
+          backdrop.hidden = !controls.querySelector('.tool-control-group[open]');
+        }));
+      }
+
       const heading = document.createElement('div');
       heading.className = 'studio-inspector-heading';
       heading.innerHTML = `
@@ -591,13 +644,39 @@
     applyBackground(remembered);
   };
 
+  const bindInspectorScrolling = () => {
+    document.querySelectorAll('.tool-control-content').forEach(content => {
+      /* Conserva el desplazamiento nativo. Solo evita que la rueda llegue al lienzo. */
+      content.addEventListener('wheel', event => event.stopPropagation(), { passive: true });
+      content.addEventListener('keydown', event => {
+        if (event.target !== content) return;
+        const steps = {
+          ArrowUp: -48,
+          ArrowDown: 48,
+          PageUp: -content.clientHeight * 0.8,
+          PageDown: content.clientHeight * 0.8,
+          Home: -content.scrollHeight,
+          End: content.scrollHeight
+        };
+        if (!(event.key in steps)) return;
+        content.scrollBy({ top: steps[event.key], behavior: 'auto' });
+        event.preventDefault();
+      });
+    });
+  };
+
   const bindStudioControls = () => {
     document.querySelectorAll('[data-tool-target]').forEach(button => button.addEventListener('click', () => {
       window.setTimeout(() => {
         activeType = getActiveType();
         document.querySelectorAll('[data-studio-pipeline]').forEach(step => step.classList.toggle('active', step.dataset.studioPipeline === toolMeta[activeType].panel));
         const controls = byId(toolMeta[activeType].panel)?.querySelector('.tool-controls');
-        if (controls && !controls.querySelector('.tool-control-group[open]')) controls.querySelector('[data-control-target]')?.click();
+        controls?.querySelectorAll('.tool-control-group[open]').forEach(group => { group.open = false; });
+        const menu = controls?.querySelector('.tool-options-menu');
+        const trigger = controls?.querySelector('.tool-options-trigger');
+        if (menu) menu.hidden = true;
+        trigger?.classList.remove('active');
+        trigger?.setAttribute('aria-expanded', 'false');
         scheduleTechnicalUpdate();
       }, 0);
     }));
@@ -620,8 +699,8 @@
     bindHistory();
     bindCanvasInteractions();
     bindExportPreview();
+    bindInspectorScrolling();
     bindStudioControls();
-    document.querySelector('.tool-panel:not([hidden]) .tool-controls [data-control-target]')?.click();
     document.querySelector(`[data-studio-pipeline="${toolMeta[getActiveType()].panel}"]`)?.classList.add('active');
     scheduleTechnicalUpdate();
   };

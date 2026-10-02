@@ -50,8 +50,30 @@
     return selected;
   };
 
+  const adjustAlphaEdge = (data, width, height, shift) => {
+    const radius = Math.min(3, Math.abs(Math.round(shift || 0)));
+    if (!radius) return;
+    const sourceAlpha = new Uint8ClampedArray(width * height);
+    for (let pixel = 0; pixel < sourceAlpha.length; pixel++) sourceAlpha[pixel] = data[pixel * 4 + 3];
+    const expand = shift > 0;
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        let alpha = expand ? 0 : 255;
+        for (let offsetY = -radius; offsetY <= radius; offsetY++) {
+          const sampleY = Math.max(0, Math.min(height - 1, y + offsetY));
+          for (let offsetX = -radius; offsetX <= radius; offsetX++) {
+            const sampleX = Math.max(0, Math.min(width - 1, x + offsetX));
+            const sample = sourceAlpha[sampleY * width + sampleX];
+            alpha = expand ? Math.max(alpha, sample) : Math.min(alpha, sample);
+          }
+        }
+        data[(y * width + x) * 4 + 3] = alpha;
+      }
+    }
+  };
+
   const removeBackground = payload => {
-    const { width, height, target, tolerance, softness, mode, scope, decontaminate, maskPreview } = payload;
+    const { width, height, target, tolerance, softness, mode, scope, decontaminate, maskPreview, edgeShift = 0 } = payload;
     const data = new Uint8ClampedArray(payload.buffer);
     const original = new Uint8ClampedArray(data);
     const mask = mode === 'remove' && scope === 'connected'
@@ -80,6 +102,7 @@
       if (data[index + 3] < originalAlpha) affected++;
       if (pixel > 0 && pixel % 250000 === 0) self.postMessage({ type: 'progress', value: 35 + pixel / pixels * (maskPreview ? 48 : 62) });
     }
+    adjustAlphaEdge(data, width, height, edgeShift);
     if (maskPreview) {
       for (let pixel = 0; pixel < pixels; pixel++) {
         const index = pixel * 4;
@@ -95,11 +118,12 @@
   };
 
   const enhance = payload => {
-    const { width, height, sharpness, clarity } = payload;
+    const { width, height, sharpness, clarity, denoise = 0 } = payload;
     const source = new Uint8ClampedArray(payload.buffer);
     const output = new Uint8ClampedArray(source);
     const sharpAmount = Math.min(0.65, sharpness * 0.006);
     const clarityAmount = Math.min(0.32, clarity * 0.0045);
+    const denoiseAmount = Math.min(0.55, Math.max(0, denoise) / 100);
     const rowStride = width * 4;
     for (let y = 2; y < height - 2; y++) {
       for (let x = 2; x < width - 2; x++) {
@@ -116,9 +140,10 @@
           const center = source[index + channel];
           const nearAverage = (source[index - 4 + channel] + source[index + 4 + channel] + source[index - rowStride + channel] + source[index + rowStride + channel]) / 4;
           const farAverage = (source[index - 8 + channel] + source[index + 8 + channel] + source[index - rowStride * 2 + channel] + source[index + rowStride * 2 + channel]) / 4;
-          const fineDetail = Math.abs(center - nearAverage) >= 2 ? center - nearAverage : 0;
-          const localContrast = Math.abs(center - farAverage) >= 4 ? center - farAverage : 0;
-          output[index + channel] = clampChannel(center + fineDetail * sharpAmount + localContrast * clarityAmount);
+          const cleaned = Math.abs(center - nearAverage) < 24 ? center + (nearAverage - center) * denoiseAmount : center;
+          const fineDetail = Math.abs(cleaned - nearAverage) >= 2 ? cleaned - nearAverage : 0;
+          const localContrast = Math.abs(cleaned - farAverage) >= 4 ? cleaned - farAverage : 0;
+          output[index + channel] = clampChannel(cleaned + fineDetail * sharpAmount + localContrast * clarityAmount);
         }
       }
       if (y % 48 === 0) self.postMessage({ type: 'progress', value: y / Math.max(1, height - 1) * 100 });
