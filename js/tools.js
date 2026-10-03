@@ -2108,7 +2108,7 @@
     document.querySelectorAll('[data-tool-target]').forEach(button => button.addEventListener('click', () => switchTool(button.dataset.toolTarget)));
     document.querySelectorAll('.tool-shortcut[data-tool-target]').forEach(button => button.setAttribute('aria-controls', button.dataset.toolTarget));
     document.querySelectorAll('.tool-panel').forEach(panel => panel.setAttribute('role', 'tabpanel'));
-    const initialTarget = ['semitonos', 'eliminar-fondo', 'mejorar-calidad', 'vectorizacion', 'calculadora-dtf'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'semitonos';
+    const initialTarget = ['semitonos', 'eliminar-fondo', 'mejorar-calidad', 'extractor-disenos', 'vectorizacion', 'calculadora-dtf'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'semitonos';
     switchTool(initialTarget);
 
     if ('ResizeObserver' in window) {

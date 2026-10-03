@@ -5,7 +5,7 @@
 
   const byId = id => document.getElementById(id);
   const CORE_PANELS = new Set(['semitonos', 'eliminar-fondo', 'mejorar-calidad']);
-  const EXTRA_PANELS = new Set(['vectorizacion', 'calculadora-dtf']);
+  const EXTRA_PANELS = new Set(['extractor-disenos', 'vectorizacion', 'calculadora-dtf']);
   const MAX_FILE_SIZE = 24 * 1024 * 1024;
   const SUPPORTED_EXTENSION = /\.(?:png|jpe?g|webp)$/i;
   const currency = new Intl.NumberFormat('es-NI', { style: 'currency', currency: 'NIO', minimumFractionDigits: 2 });
@@ -23,6 +23,24 @@
 
   const closeAllExtraOptions = () => {
     document.querySelectorAll('.extra-options-dialog').forEach(closeExtraOptions);
+  };
+
+  const enableReliableWheelScroll = element => {
+    if (!element || element.dataset.wheelScrollReady) return;
+    element.dataset.wheelScrollReady = 'true';
+    element.addEventListener('wheel', event => {
+      if (event.ctrlKey || event.metaKey || Math.abs(event.deltaY) < Math.abs(event.deltaX)) return;
+      const maximum = element.scrollHeight - element.clientHeight;
+      const numberInput = event.target instanceof Element && event.target.closest('input[type="number"]');
+      if (maximum <= 1) {
+        if (numberInput) event.preventDefault();
+        return;
+      }
+      const previous = element.scrollTop;
+      const unit = event.deltaMode === WheelEvent.DOM_DELTA_LINE ? 18 : event.deltaMode === WheelEvent.DOM_DELTA_PAGE ? element.clientHeight : 1;
+      element.scrollTop = Math.max(0, Math.min(maximum, previous + event.deltaY * unit));
+      if (element.scrollTop !== previous || numberInput) event.preventDefault();
+    }, { passive: false });
   };
 
   const initializeExtraOptions = () => {
@@ -43,13 +61,16 @@
       const dialog = document.createElement('section');
       dialog.id = `extra-options-${index + 1}`;
       dialog.className = 'extra-options-dialog';
+      const isExtractor = panel?.id === 'extractor-disenos';
+      if (isExtractor) dialog.classList.add('extractor-options-dialog');
       dialog.setAttribute('role', 'dialog');
       dialog.setAttribute('aria-modal', 'true');
       dialog.setAttribute('aria-label', `Opciones de ${title}`);
       dialog.hidden = true;
-      dialog.innerHTML = `<header><div><small>AJUSTES DE HERRAMIENTA</small><h2>${title}</h2></div><button type="button" class="extra-options-close" aria-label="Cerrar opciones"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button></header><div class="extra-options-dialog-body"></div>`;
+      dialog.innerHTML = `<header><div><small>AJUSTES DE HERRAMIENTA</small><h2>${title}</h2></div><button type="button" class="extra-options-close" aria-label="Cerrar opciones"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button></header><div class="extra-options-dialog-body">${isExtractor ? `<section class="extractor-options-preview-pane" aria-label="Vista previa durante el ajuste"><div class="extractor-options-preview-heading"><div><small>VISTA EN TIEMPO REAL</small><strong>Revisá el recorte mientras ajustás</strong></div><div class="tool-segmented"><button type="button" data-extractor-dialog-view="original">Original</button><button type="button" data-extractor-dialog-view="result" class="active">Resultado</button><button type="button" data-extractor-dialog-view="mask">Máscara</button></div></div><div id="extractor-dialog-viewport" class="extractor-dialog-viewport checkerboard"><canvas id="extractor-dialog-canvas" width="720" height="720" aria-label="Vista previa ampliada del extractor"></canvas><div id="extractor-dialog-empty"><i class="fa-solid fa-image"></i><strong>Subí una imagen para verla aquí</strong></div></div><div class="extractor-mask-editor" aria-label="Corrección manual de máscara"><span>Corregir máscara</span><button type="button" data-extractor-brush="remove" class="active"><i class="fa-solid fa-eraser"></i> Quitar</button><button type="button" data-extractor-brush="keep"><i class="fa-solid fa-paintbrush"></i> Conservar</button><label>Tamaño <input id="extractor-brush-size" type="range" min="3" max="100" value="28"><output id="extractor-brush-size-value">28 px</output></label><button id="extractor-clear-mask" type="button"><i class="fa-solid fa-rotate-left"></i> Limpiar retoques</button></div><p class="extractor-preview-help"><i class="fa-solid fa-circle-info"></i> Usá el pincel sobre la vista para quitar restos de la prenda o recuperar partes del diseño.</p></section><div class="extractor-options-settings"></div>` : ''}</div>`;
       const body = dialog.querySelector('.extra-options-dialog-body');
-      movable.forEach(element => body.append(element));
+      const settings = isExtractor ? body.querySelector('.extractor-options-settings') : body;
+      movable.forEach(element => settings.append(element));
 
       const backdrop = document.createElement('button');
       backdrop.type = 'button';
@@ -67,6 +88,8 @@
         backdrop.hidden = false;
         trigger.classList.add('active');
         trigger.setAttribute('aria-expanded', 'true');
+        (settings || body).scrollTop = 0;
+        window.dispatchEvent(new CustomEvent('momotus:extra-options-open', { detail: { panel: panel?.id || '' } }));
         requestAnimationFrame(() => dialog.querySelector('.extra-options-close')?.focus());
       };
       trigger.addEventListener('click', () => dialog.hidden ? open() : closeExtraOptions(dialog));
@@ -79,10 +102,14 @@
           trigger.focus();
         }
       });
+      enableReliableWheelScroll(body);
+      if (settings !== body) enableReliableWheelScroll(settings);
     });
   };
 
   initializeExtraOptions();
+  enableReliableWheelScroll(document.querySelector('.calculator-sheet-wrap'));
+  document.querySelectorAll('.calculator-results, .extra-control-scroll').forEach(enableReliableWheelScroll);
 
   const setStudioState = (name, status = 'Listo') => {
     const info = byId('editor-image-info');
@@ -105,7 +132,12 @@
       button.setAttribute('aria-selected', String(selected));
     });
     document.body.classList.add('extra-tool-active');
-    setStudioState(target === 'vectorizacion' ? 'Vectorización SVG' : 'Calculadora de cotizaciones');
+    const workspaceNames = {
+      'extractor-disenos': 'Extractor de diseños',
+      vectorizacion: 'Vectorización SVG',
+      'calculadora-dtf': 'Calculadora de cotizaciones'
+    };
+    setStudioState(workspaceNames[target] || 'Herramientas DTF');
     if (history.replaceState) history.replaceState(null, '', `#${target}`);
     window.dispatchEvent(new CustomEvent('momotus:extra-tool', { detail: { target } }));
   };

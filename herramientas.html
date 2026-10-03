@@ -4,11 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Herramientas para DTF | Momotus Core</title>
-  <meta name="description" content="Prepará imágenes para DTF con herramientas de semitonos, eliminación de fondo sólido y mejora de tamaño y nitidez.">
+  <meta name="description" content="Prepará imágenes para DTF con extracción de diseños, semitonos, eliminación de fondo, vectorización y mejora a 300 DPI.">
   <meta name="theme-color" content="#09090b">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com 'unsafe-inline'; worker-src 'self'; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: blob: https:; font-src 'self' https://cdnjs.cloudflare.com; connect-src 'self';">
   <script>
-    window.MOMOTUS_TOOLS_VERSION = '20261002-6';
+    window.MOMOTUS_TOOLS_VERSION = '20261003-4';
     window.MOMOTUS_TOOLS_DESKTOP = window.matchMedia('(min-width: 1024px)').matches;
     if (!window.MOMOTUS_TOOLS_DESKTOP) document.documentElement.classList.add('tools-page-mobile');
     if (window.MOMOTUS_TOOLS_DESKTOP) {
@@ -26,8 +26,9 @@
     }
   </script>
   <link rel="stylesheet" href="css/style.css">
-  <link rel="stylesheet" href="css/tools.css?v=20261002-6" media="(min-width: 1024px)">
-  <link rel="stylesheet" href="css/tools-production.css?v=20261002-6" media="(min-width: 1024px)">
+  <link rel="stylesheet" href="css/tools.css?v=20261003-3" media="(min-width: 1024px)">
+  <link rel="stylesheet" href="css/tools-extractor.css?v=20261003-4" media="(min-width: 1024px)">
+  <link rel="stylesheet" href="css/tools-production.css?v=20261003-3" media="(min-width: 1024px)">
 </head>
 <body class="momotus-studio bg-zinc-950 text-white">
   <section class="tools-mobile-gate" aria-labelledby="tools-desktop-title">
@@ -56,6 +57,7 @@
       <button type="button" class="tool-shortcut active" data-tool-target="semitonos" role="tab" aria-selected="true"><i class="fa-solid fa-circle-half-stroke"></i><span><strong>Semitonos</strong><small>Trama, tinta y LPI</small></span></button>
       <button type="button" class="tool-shortcut" data-tool-target="eliminar-fondo" role="tab" aria-selected="false"><i class="fa-solid fa-eraser"></i><span><strong>Rango de color</strong><small>Transparencia y máscara</small></span></button>
       <button type="button" class="tool-shortcut" data-tool-target="mejorar-calidad" role="tab" aria-selected="false"><i class="fa-solid fa-sliders"></i><span><strong>Calidad y color</strong><small>300 DPI y ajustes</small></span></button>
+      <button type="button" class="tool-shortcut" data-extra-tool="extractor-disenos" role="tab" aria-selected="false"><i class="fa-solid fa-wand-magic-sparkles"></i><span><strong>Extractor</strong><small>Diseño y color</small></span></button>
       <button type="button" class="tool-shortcut" data-extra-tool="vectorizacion" role="tab" aria-selected="false"><i class="fa-solid fa-bezier-curve"></i><span><strong>Vectorizar</strong><small>SVG por colores</small></span></button>
       <button type="button" class="tool-shortcut" data-extra-tool="calculadora-dtf" role="tab" aria-selected="false"><i class="fa-solid fa-calculator"></i><span><strong>Cotizador</strong><small>Pliegos y costos</small></span></button>
     </nav>
@@ -304,6 +306,56 @@
       <p class="tool-note"><i class="fa-solid fa-circle-info"></i> La descarga se guarda como PNG con 300 DPI reales en sus metadatos y los píxeles necesarios para el tamaño indicado. Aumentar una imagen no puede recuperar detalles que no existían en el archivo original.</p>
     </section>
 
+    <section id="extractor-disenos" class="tool-panel extra-tool-panel" aria-labelledby="extractor-title" hidden>
+      <div class="extra-studio-grid">
+        <aside class="extra-controls" aria-label="Propiedades del extractor de diseños">
+          <div class="extra-inspector-title"><span>EXTRACCIÓN Y ADAPTACIÓN DTF</span><h2 id="extractor-title"><i class="fa-solid fa-wand-magic-sparkles"></i> Extractor de diseños</h2><p>Separá el diseño y adaptá sus colores al fondo sin volverlo blanco y negro.</p></div>
+          <label class="extra-upload extractor-drop" for="extractor-file"><i class="fa-solid fa-cloud-arrow-up"></i><span><strong>Subir imagen</strong><small>PNG, JPG o WebP · máximo 24 MB</small></span><input id="extractor-file" type="file" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp" class="sr-only"></label>
+          <div class="extra-preset-grid extractor-presets" aria-label="Ajustes rápidos de extracción">
+            <button type="button" data-extractor-preset="auto" class="active"><i class="fa-solid fa-wand-magic-sparkles"></i><span>Automático</span></button>
+            <button type="button" data-extractor-preset="white"><i class="fa-regular fa-sun"></i><span>Fondo blanco</span></button>
+            <button type="button" data-extractor-preset="black"><i class="fa-regular fa-moon"></i><span>Fondo negro</span></button>
+            <button type="button" data-extractor-preset="photo"><i class="fa-solid fa-shirt"></i><span>Foto de prenda</span></button>
+          </div>
+          <div class="extra-control-scroll extractor-fields">
+            <h3>Separar el diseño</h3>
+            <label class="extra-field-row"><span>Fondo de origen</span><span><select id="extractor-source-bg"><option value="auto">Detectar en esquinas</option><option value="white">Blanco</option><option value="black">Negro</option><option value="custom">Color escogido</option></select></span></label>
+            <label class="extra-field-row extractor-sample-row"><span>Colores que se quitarán</span><span><input id="extractor-source-color" type="color" value="#ffffff"><button id="extractor-picker" type="button" title="Reemplazar el color con el gotero" aria-label="Reemplazar el color con el gotero"><i class="fa-solid fa-eye-dropper"></i></button><button id="extractor-add-sample" type="button" title="Agregar otro tono del fondo" aria-label="Agregar otro tono del fondo"><i class="fa-solid fa-plus"></i></button><button id="extractor-clear-samples" type="button" title="Borrar muestras adicionales" aria-label="Borrar muestras adicionales"><span id="extractor-sample-count">0</span><i class="fa-solid fa-xmark"></i></button></span></label>
+            <label class="extra-field-row"><span>Alcance</span><span><select id="extractor-scope"><option value="connected">Solo fondo conectado al borde</option><option value="global">Ese color en toda la imagen</option></select></span></label>
+            <label class="extra-field"><span>Tolerancia <output id="extractor-tolerance-value">42</output></span><input id="extractor-tolerance" type="range" min="0" max="180" step="1" value="42"></label>
+            <label class="extra-field"><span>Suavidad del borde <output id="extractor-softness-value">18</output></span><input id="extractor-softness" type="range" min="0" max="80" step="1" value="18"></label>
+            <label class="extra-field"><span>Refinar máscara <output id="extractor-refine-value">1 nivel</output></span><input id="extractor-refine" type="range" min="0" max="2" step="1" value="1"></label>
+            <label class="extra-field"><span>Ajustar contorno <output id="extractor-edge-value">0 px</output></span><input id="extractor-edge" type="range" min="-4" max="4" step="1" value="0"></label>
+            <label class="extra-field"><span>Limpiar partículas <output id="extractor-specks-value">4 px</output></span><input id="extractor-specks" type="range" min="0" max="80" step="1" value="4"></label>
+            <label class="extra-check"><input id="extractor-decontaminate" type="checkbox" checked><span>Limpiar el color del fondo en los bordes</span></label>
+            <h3>Adaptar colores al fondo final</h3>
+            <label class="extra-field-row"><span>Color de la prenda</span><span><select id="extractor-output-bg"><option value="black" selected>Negra</option><option value="white">Blanca</option><option value="custom">Otro color</option><option value="transparent">Sin adaptar</option></select></span></label>
+            <label id="extractor-output-color-row" class="extra-field-row" hidden><span>Color de la prenda</span><span><input id="extractor-output-color" type="color" value="#202020"></span></label>
+            <label class="extra-check"><input id="extractor-auto-profile" type="checkbox" checked><span>Ajustar automáticamente según la prenda</span></label>
+            <label class="extra-field"><span>Adaptación cromática <output id="extractor-adapt-value">45%</output></span><input id="extractor-adapt" type="range" min="0" max="100" step="1" value="45"></label>
+            <label class="extra-field"><span>Luminosidad <output id="extractor-brightness-value">+2</output></span><input id="extractor-brightness" type="range" min="-40" max="40" step="1" value="2"></label>
+            <label class="extra-field"><span>Contraste <output id="extractor-contrast-value">+10</output></span><input id="extractor-contrast" type="range" min="-40" max="60" step="1" value="10"></label>
+            <label class="extra-field"><span>Saturación <output id="extractor-saturation-value">112%</output></span><input id="extractor-saturation" type="range" min="50" max="170" step="1" value="112"></label>
+            <label class="extra-field"><span>Viveza selectiva <output id="extractor-vibrance-value">22%</output></span><input id="extractor-vibrance" type="range" min="0" max="100" step="1" value="22"></label>
+            <label class="extra-field"><span>Nitidez de salida <output id="extractor-sharpen-value">24%</output></span><input id="extractor-sharpen" type="range" min="0" max="100" step="1" value="24"></label>
+            <label class="extra-field-row"><span>Borde de contraste</span><span><select id="extractor-outline"><option value="auto" selected>Automático</option><option value="none">Ninguno</option><option value="white">Blanco</option><option value="black">Negro</option><option value="custom">Otro color</option></select></span></label>
+            <label id="extractor-outline-color-row" class="extra-field-row" hidden><span>Color del borde</span><span><input id="extractor-outline-color" type="color" value="#ffffff"></span></label>
+            <label class="extra-field"><span>Grosor del borde <output id="extractor-outline-width-value">0.6 mm</output></span><input id="extractor-outline-width" type="range" min="0.2" max="2.5" step="0.1" value="0.6"></label>
+            <h3>Archivo DTF</h3>
+            <label class="extra-field-row"><span>Ancho de impresión</span><span><input id="extractor-width-cm" type="number" min="2" max="57" step="0.5" value="28"><small>cm</small></span></label>
+            <label class="extra-check"><input id="extractor-trim" type="checkbox" checked><span>Recortar espacio transparente</span></label>
+            <label class="extra-check extractor-warning-check"><input id="extractor-include-bg" type="checkbox"><span>Incluir el fondo elegido dentro del PNG</span></label>
+          </div>
+          <div class="extra-action-dock extractor-actions"><button id="extractor-reset" type="button" class="extra-secondary" disabled><i class="fa-solid fa-rotate-left"></i> Restablecer</button><button id="extractor-process" type="button" class="extra-secondary" disabled><i class="fa-solid fa-wand-magic-sparkles"></i> Extraer diseño</button><button id="extractor-download" type="button" class="extra-primary" disabled><i class="fa-solid fa-download"></i> Descargar PNG</button></div>
+        </aside>
+        <div class="extra-workspace extractor-workspace">
+          <div class="extra-toolbar extractor-toolbar"><div class="tool-segmented"><button type="button" data-extractor-view="original">Original</button><button type="button" data-extractor-view="result" class="active">Resultado</button><button type="button" data-extractor-view="mask">Máscara</button></div><button id="extractor-fit-design" type="button" class="active" aria-pressed="true" title="Encuadrar automáticamente el diseño"><i class="fa-solid fa-crop-simple"></i> Encuadrar</button><span id="extractor-document-info">Sin documento</span><label>Enviar a <select id="extractor-send-target"><option value="quality">Calidad</option><option value="halftone">Semitonos</option><option value="background">Fondo</option></select></label><button id="extractor-send" type="button" disabled><i class="fa-solid fa-arrow-right"></i> Enviar</button></div>
+          <div id="extractor-viewport" class="extra-viewport checkerboard extractor-viewport"><canvas id="extractor-canvas" width="900" height="600" aria-label="Vista previa del diseño extraído"></canvas><div id="extractor-empty" class="extra-empty"><i class="fa-solid fa-wand-magic-sparkles"></i><strong>Extraé el diseño sin perder sus colores</strong><span>Subí una imagen y elegí el color del fondo o detectalo automáticamente desde las esquinas.</span></div><div id="extractor-busy" class="extractor-busy" hidden><i class="fa-solid fa-circle-notch fa-spin"></i><strong>Analizando el diseño…</strong><span>Separando el fondo y protegiendo los colores.</span></div></div>
+          <div class="extra-statusbar"><span id="extractor-status" role="status">Subí una imagen para comenzar.</span><strong id="extractor-result-info">PNG · 300 DPI</strong></div>
+        </div>
+      </div>
+    </section>
+
     <section id="vectorizacion" class="tool-panel extra-tool-panel" aria-labelledby="vector-title" hidden>
       <div class="extra-studio-grid">
         <aside class="extra-controls" aria-label="Propiedades de vectorización">
@@ -432,6 +484,7 @@
         .then(() => loadToolsScript('js/tools.js'))
         .then(() => loadToolsScript('js/tools-studio.js'))
         .then(() => loadToolsScript('js/tools-extra.js'))
+        .then(() => loadToolsScript('js/tools-extractor.js'))
         .then(() => loadToolsScript('js/tools-production.js'))
         .catch(error => {
           console.error('No se pudieron cargar las herramientas:', error);
