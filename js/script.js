@@ -14,7 +14,7 @@ let quickViewSelectedSize = null;
 const catalogProducts = window.MomotusCatalog?.products;
 
 if (!Array.isArray(catalogProducts)) {
-  throw new Error('No fue posible cargar js/products.js antes de js/script.js');
+  throw new Error('No fue posible cargar tienda/js/catalogo.js antes de js/script.js');
 }
 
 const products = catalogProducts.filter(product => product.published !== false);
@@ -321,7 +321,7 @@ const toggleCartModal = () => {
         <i class="fa-solid fa-shopping-bag text-7xl text-zinc-600 mb-6"></i>
         <h4 class="text-2xl font-semibold mb-2">Tu carrito está vacío</h4>
         <p class="text-zinc-400 mb-8 max-w-[240px]">¡Aún no has elegido ninguna camiseta! Explora los diseños más nicas.</p>
-        <button onclick="toggleCartModal(); window.location.href='tienda.html'" 
+        <button onclick="toggleCartModal(); window.location.href='tienda/'" 
                 class="bg-yellow-400 text-black font-bold px-10 py-4 rounded-3xl flex items-center gap-3 hover:scale-105 transition">
           <i class="fa-solid fa-shirt"></i>
           Ir a la tienda
@@ -517,7 +517,12 @@ const removeFromWishlist = (id) => {
 
 // ==================== NAVBAR ====================
 const renderCommonNavbar = () => {
-  const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+  const pathname = window.location.pathname.replace(/\/+$/, '');
+  const currentPage = pathname.endsWith('/tienda') || pathname.endsWith('/tienda/index.html')
+    ? 'tienda'
+    : pathname.endsWith('/herramientas') || pathname.endsWith('/herramientas/index.html')
+      ? 'herramientas'
+      : pathname.split('/').pop() || 'index.html';
   const navbarHTML = `
     <nav class="bg-black sticky top-0 z-50 border-b border-zinc-800">
       <div class="max-w-7xl mx-auto px-4 md:px-6 py-5 flex items-center justify-between">
@@ -527,10 +532,10 @@ const renderCommonNavbar = () => {
         </div>
         <div class="hidden lg:flex items-center gap-6 text-base font-medium">
           <a href="index.html" class="${currentPage === 'index.html' ? 'text-yellow-400 font-bold' : 'hover:text-yellow-400 transition'}">Inicio</a>
-          <a href="tienda.html" class="${currentPage === 'tienda.html' ? 'text-yellow-400 font-bold' : 'hover:text-yellow-400 transition'}">Tienda</a>
+          <a href="tienda/" class="${currentPage === 'tienda' ? 'text-yellow-400 font-bold' : 'hover:text-yellow-400 transition'}">Tienda</a>
           <a href="disena.html" class="${currentPage === 'disena.html' ? 'text-yellow-400 font-bold' : 'hover:text-yellow-400 transition'}">Diseña la Tuya</a>
           <a href="comunidad.html" class="${currentPage === 'comunidad.html' ? 'text-yellow-400 font-bold' : 'hover:text-yellow-400 transition'}">Comunidad</a>
-          <a href="herramientas.html" class="desktop-tools-link ${currentPage === 'herramientas.html' ? 'text-yellow-400 font-bold' : 'hover:text-yellow-400 transition'}">Herramientas</a>
+          <a href="herramientas/" class="desktop-tools-link ${currentPage === 'herramientas' ? 'text-yellow-400 font-bold' : 'hover:text-yellow-400 transition'}">Herramientas</a>
         </div>
         <div class="flex items-center gap-6">
           <button onclick="toggleCartModal()" aria-label="Abrir carrito" class="relative text-2xl hover:text-yellow-400 transition">
@@ -544,10 +549,10 @@ const renderCommonNavbar = () => {
       <div id="mobile-menu" class="hidden lg:hidden bg-black border-t border-zinc-800 py-4">
         <div class="flex flex-col items-center gap-6 text-lg font-medium">
           <a href="index.html" class="hover:text-yellow-400">Inicio</a>
-          <a href="tienda.html" class="hover:text-yellow-400">Tienda</a>
+          <a href="tienda/" class="hover:text-yellow-400">Tienda</a>
           <a href="disena.html" class="hover:text-yellow-400">Diseña la Tuya</a>
           <a href="comunidad.html" class="hover:text-yellow-400">Comunidad</a>
-          <a href="herramientas.html" class="desktop-tools-link hover:text-yellow-400">Herramientas</a>
+          <a href="herramientas/" class="desktop-tools-link hover:text-yellow-400">Herramientas</a>
         </div>
       </div>
     </nav>
@@ -666,7 +671,7 @@ const closeQuickView = (updateURL = true) => {
 const shareProduct = async (id) => {
   const product = products.find(item => item.id === id);
   if (!product) return;
-  const url = new URL('tienda.html', window.location.href);
+  const url = new URL('tienda/', document.baseURI);
   url.searchParams.set('producto', id);
   const shareData = { title: product.name, text: `${product.name} - Momotus Core`, url: url.href };
   try {
@@ -847,7 +852,7 @@ const sortProducts = () => {
 
 const injectStoreStructuredData = () => {
   if (!document.getElementById('products-grid') || document.getElementById('store-products-schema')) return;
-  const baseUrl = new URL('tienda.html', window.location.href);
+  const baseUrl = new URL('tienda/', document.baseURI);
   const schema = {
     '@context': 'https://schema.org',
     '@type': 'ItemList',
@@ -862,7 +867,7 @@ const injectStoreStructuredData = () => {
         item: {
           '@type': 'Product',
           name: product.name,
-          image: new URL(product.img, window.location.href).href,
+          image: new URL(product.img, document.baseURI).href,
           category: categoryLabels[product.category] || product.category,
           url: productUrl.href,
           offers: {

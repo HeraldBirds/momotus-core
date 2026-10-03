@@ -1,0 +1,10 @@
+.filter-icon {
+  width: 28px;
+  height: 28px;
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.filter-btn:hover .filter-icon,
+.filter-btn.active .filter-icon {
+  transform: rotate(360deg);
+}
