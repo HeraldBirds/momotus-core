@@ -419,6 +419,12 @@
   };
 
   byId('vector-file').addEventListener('change', event => acceptVectorFile(event.target.files?.[0]));
+  window.addEventListener('momotus:vector-import', event => {
+    const file = event.detail?.file;
+    if (!file) return;
+    openExtraTool('vectorizacion');
+    acceptVectorFile(file);
+  });
   byId('vector-process').addEventListener('click', processVector);
   byId('vector-download').addEventListener('click', () => {
     if (!vectorState.svg) return;
@@ -460,10 +466,23 @@
   const costProfileIds = ['calc-sheet-cost', 'calc-consumables-cost', 'calc-setup-cost', 'calc-unit-cost', 'calc-waste', 'calc-profit'];
   const COST_PROFILE_KEY = 'momotusDtfCostProfileV1';
   let latestQuote = null;
+  let sheetQuoteOverride = null;
 
   const numberValue = (id, fallback = 0) => {
     const value = Number(byId(id).value);
     return Number.isFinite(value) ? value : fallback;
+  };
+
+  const calculateQuoteCosts = (quantity, sheets) => {
+    const sheetCost = Math.max(0, numberValue('calc-sheet-cost'));
+    const consumablesCost = Math.max(0, numberValue('calc-consumables-cost'));
+    const setupCost = Math.max(0, numberValue('calc-setup-cost'));
+    const unitCost = Math.max(0, numberValue('calc-unit-cost'));
+    const waste = Math.max(0, numberValue('calc-waste')) / 100;
+    const marginRate = Math.min(0.9, Math.max(0, numberValue('calc-profit')) / 100);
+    const productionCost = (sheets * (sheetCost + consumablesCost)) * (1 + waste) + setupCost + quantity * unitCost;
+    const quoteTotal = marginRate < 1 ? productionCost / (1 - marginRate) : productionCost;
+    return { productionCost, quoteTotal, unitQuote: quoteTotal / Math.max(1, quantity) };
   };
 
   const cleanText = value => String(value || '').replace(/[<>\u0000-\u001f]/g, '').trim();
@@ -565,6 +584,28 @@
       quantity: Math.max(1, Math.round(numberValue('calc-quantity', 1))),
       rotate: byId('calc-rotate').checked
     };
+    if (sheetQuoteOverride) {
+      const quantity = sheetQuoteOverride.pieces;
+      const sheets = 1;
+      const costs = calculateQuoteCosts(quantity, sheets);
+      byId('calc-layout-label').textContent = `${sheetQuoteOverride.sheetWidth} × ${sheetQuoteOverride.sheetHeight} cm · multidiseño`;
+      byId('calc-capacity').textContent = quantity;
+      byId('calc-sheets').textContent = sheets;
+      byId('calc-efficiency').textContent = `${sheetQuoteOverride.efficiency.toFixed(1)}%`;
+      byId('calc-base-cost').textContent = currency.format(costs.productionCost);
+      byId('calc-quote-total').textContent = currency.format(costs.quoteTotal);
+      byId('calc-quote-unit').textContent = `${currency.format(costs.unitQuote)} promedio por pieza`;
+      byId('calc-arrangement').textContent = `${quantity} piezas distintas en una plancha`;
+      byId('calc-status').textContent = 'Cotización vinculada a la plancha multidiseño preparada en Producción DTF.';
+      latestQuote = {
+        sheetWidth: sheetQuoteOverride.sheetWidth, sheetHeight: sheetQuoteOverride.sheetHeight,
+        designWidth: null, designHeight: null, designLabel: 'Plancha multidiseño', quantity,
+        capacity: quantity, sheets, efficiency: sheetQuoteOverride.efficiency,
+        productionCost: costs.productionCost, quoteTotal: costs.quoteTotal, unitQuote: costs.unitQuote,
+        arrangement: `${quantity} piezas distintas`
+      };
+      return;
+    }
     const layout = optimizeLayout(settings);
     drawSheet(settings, layout);
     byId('calc-layout-label').textContent = `${settings.sheetWidth} × ${settings.sheetHeight} cm`;
@@ -581,15 +622,7 @@
     const usedArea = layout.capacity * settings.designWidth * settings.designHeight;
     const printableArea = layout.usableWidth * layout.usableHeight;
     const efficiency = printableArea > 0 ? usedArea / printableArea * 100 : 0;
-    const sheetCost = Math.max(0, numberValue('calc-sheet-cost'));
-    const consumablesCost = Math.max(0, numberValue('calc-consumables-cost'));
-    const setupCost = Math.max(0, numberValue('calc-setup-cost'));
-    const unitCost = Math.max(0, numberValue('calc-unit-cost'));
-    const waste = Math.max(0, numberValue('calc-waste')) / 100;
-    const marginRate = Math.min(0.9, Math.max(0, numberValue('calc-profit')) / 100);
-    const productionCost = (sheets * (sheetCost + consumablesCost)) * (1 + waste) + setupCost + settings.quantity * unitCost;
-    const quoteTotal = marginRate < 1 ? productionCost / (1 - marginRate) : productionCost;
-    const unitQuote = quoteTotal / settings.quantity;
+    const { productionCost, quoteTotal, unitQuote } = calculateQuoteCosts(settings.quantity, sheets);
     byId('calc-capacity').textContent = layout.capacity;
     byId('calc-sheets').textContent = sheets;
     byId('calc-efficiency').textContent = `${efficiency.toFixed(1)}%`;
@@ -605,8 +638,45 @@
     setStudioState('Calculadora de cotizaciones', 'Cálculo listo');
   };
 
-  calcIds.forEach(id => byId(id).addEventListener(id === 'calc-rotate' ? 'change' : 'input', calculate));
+  const drawSheetQuotePreview = dataUrl => {
+    if (!dataUrl) return;
+    const image = new Image();
+    image.onload = () => {
+      const canvas = byId('calc-canvas');
+      const scale = Math.min(900 / image.naturalWidth, 600 / image.naturalHeight, 1);
+      canvas.width = Math.max(260, Math.round(image.naturalWidth * scale));
+      canvas.height = Math.max(260, Math.round(image.naturalHeight * scale));
+      const context = canvas.getContext('2d');
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+    };
+    image.src = dataUrl;
+  };
+
+  window.addEventListener('momotus:quote-sheet', event => {
+    const detail = event.detail;
+    if (!detail || !Number.isFinite(detail.pieces) || detail.pieces < 1) return;
+    sheetQuoteOverride = {
+      sheetWidth: Math.max(1, Number(detail.sheetWidth) || 57),
+      sheetHeight: Math.max(1, Number(detail.sheetHeight) || 100),
+      pieces: Math.max(1, Math.round(detail.pieces)),
+      efficiency: Math.max(0, Math.min(100, Number(detail.efficiency) || 0)),
+      preview: detail.preview || ''
+    };
+    byId('calc-sheet-width').value = sheetQuoteOverride.sheetWidth;
+    byId('calc-sheet-height').value = sheetQuoteOverride.sheetHeight;
+    byId('calc-quantity').value = sheetQuoteOverride.pieces;
+    openExtraTool('calculadora-dtf');
+    calculate();
+    drawSheetQuotePreview(sheetQuoteOverride.preview);
+  });
+
+  calcIds.forEach(id => byId(id).addEventListener(id === 'calc-rotate' ? 'change' : 'input', () => {
+    if (!costProfileIds.includes(id)) sheetQuoteOverride = null;
+    calculate();
+  }));
   byId('calc-example').addEventListener('click', () => {
+    sheetQuoteOverride = null;
     byId('calc-sheet-width').value = 57;
     byId('calc-sheet-height').value = 100;
     byId('calc-margin').value = 0.5;
@@ -617,6 +687,7 @@
     calculate();
   });
   byId('calc-reset').addEventListener('click', () => {
+    sheetQuoteOverride = null;
     const defaults = { 'calc-sheet-width': 57, 'calc-sheet-height': 100, 'calc-margin': 0.5, 'calc-gap': 1, 'calc-design-width': 32, 'calc-design-height': 32, 'calc-quantity': 10, 'calc-sheet-cost': 0, 'calc-consumables-cost': 0, 'calc-setup-cost': 0, 'calc-unit-cost': 0, 'calc-waste': 5, 'calc-profit': 30 };
     Object.entries(defaults).forEach(([id, value]) => { byId(id).value = value; });
     byId('calc-rotate').checked = true;
@@ -650,7 +721,7 @@
     const message = [
       `*Cotización DTF ${metadata.reference}*`,
       `Cliente: ${metadata.customer}`,
-      `Diseño: ${latestQuote.designWidth} × ${latestQuote.designHeight} cm`,
+      `Diseño: ${latestQuote.designLabel || `${latestQuote.designWidth} × ${latestQuote.designHeight} cm`}`,
       `Cantidad: ${latestQuote.quantity}`,
       `Pliegos: ${latestQuote.sheets} de ${latestQuote.sheetWidth} × ${latestQuote.sheetHeight} cm`,
       `Precio unitario: ${currency.format(latestQuote.unitQuote)}`,
@@ -665,7 +736,7 @@
     const metadata = quoteMetadata();
     const report = window.open('', '_blank', 'width=820,height=900');
     if (!report) return;
-    report.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Cotización DTF</title><style>body{font-family:Arial,sans-serif;margin:36px;color:#18181b}h1{margin:0 0 4px}small{color:#71717a}.brand{border-bottom:4px solid #facc15;padding-bottom:16px;margin-bottom:24px}.meta{display:flex;justify-content:space-between;gap:16px;margin-bottom:18px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.card{border:1px solid #d4d4d8;border-radius:10px;padding:14px}.card b{display:block;font-size:22px;margin-top:6px}.total{background:#facc15;border:0}table{width:100%;border-collapse:collapse;margin:22px 0}td{padding:9px;border-bottom:1px solid #e4e4e7}td:last-child{text-align:right;font-weight:bold}@media print{button{display:none}}</style></head><body><div class="brand"><h1>Momotus Core</h1><small>Cotización de producción DTF · momotuscore@gmail.com · 5501-0044</small></div><div class="meta"><div><b>${escapeHtml(metadata.customer)}</b><br><small>Cliente</small></div><div><b>${escapeHtml(metadata.reference)}</b><br><small>Válida hasta ${escapeHtml(metadata.validUntil)}</small></div></div><div class="grid"><div class="card">Pliego<b>${latestQuote.sheetWidth} × ${latestQuote.sheetHeight} cm</b></div><div class="card">Diseño<b>${latestQuote.designWidth} × ${latestQuote.designHeight} cm</b></div><div class="card">Capacidad<b>${latestQuote.capacity} por pliego</b></div><div class="card">Pedido<b>${latestQuote.quantity} diseños · ${latestQuote.sheets} pliegos</b></div></div><table><tr><td>Distribución</td><td>${latestQuote.arrangement}</td></tr><tr><td>Aprovechamiento</td><td>${latestQuote.efficiency.toFixed(1)}%</td></tr><tr><td>Costo calculado</td><td>${currency.format(latestQuote.productionCost)}</td></tr><tr><td>Precio por diseño</td><td>${currency.format(latestQuote.unitQuote)}</td></tr></table><div class="card total">Cotización sugerida<b>${currency.format(latestQuote.quoteTotal)}</b></div><p><small>Estimación basada en las medidas, separación, costos, merma y margen ingresados. Confirmar consumos reales antes de producir.</small></p><button onclick="print()">Imprimir</button></body></html>`);
+    report.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Cotización DTF</title><style>body{font-family:Arial,sans-serif;margin:36px;color:#18181b}h1{margin:0 0 4px}small{color:#71717a}.brand{border-bottom:4px solid #facc15;padding-bottom:16px;margin-bottom:24px}.meta{display:flex;justify-content:space-between;gap:16px;margin-bottom:18px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.card{border:1px solid #d4d4d8;border-radius:10px;padding:14px}.card b{display:block;font-size:22px;margin-top:6px}.total{background:#facc15;border:0}table{width:100%;border-collapse:collapse;margin:22px 0}td{padding:9px;border-bottom:1px solid #e4e4e7}td:last-child{text-align:right;font-weight:bold}@media print{button{display:none}}</style></head><body><div class="brand"><h1>Momotus Core</h1><small>Cotización de producción DTF · momotuscore@gmail.com · 5501-0044</small></div><div class="meta"><div><b>${escapeHtml(metadata.customer)}</b><br><small>Cliente</small></div><div><b>${escapeHtml(metadata.reference)}</b><br><small>Válida hasta ${escapeHtml(metadata.validUntil)}</small></div></div><div class="grid"><div class="card">Pliego<b>${latestQuote.sheetWidth} × ${latestQuote.sheetHeight} cm</b></div><div class="card">Diseño<b>${escapeHtml(latestQuote.designLabel || `${latestQuote.designWidth} × ${latestQuote.designHeight} cm`)}</b></div><div class="card">Capacidad<b>${latestQuote.capacity} por pliego</b></div><div class="card">Pedido<b>${latestQuote.quantity} diseños · ${latestQuote.sheets} pliegos</b></div></div><table><tr><td>Distribución</td><td>${latestQuote.arrangement}</td></tr><tr><td>Aprovechamiento</td><td>${latestQuote.efficiency.toFixed(1)}%</td></tr><tr><td>Costo calculado</td><td>${currency.format(latestQuote.productionCost)}</td></tr><tr><td>Precio por diseño</td><td>${currency.format(latestQuote.unitQuote)}</td></tr></table><div class="card total">Cotización sugerida<b>${currency.format(latestQuote.quoteTotal)}</b></div><p><small>Estimación basada en las medidas, separación, costos, merma y margen ingresados. Confirmar consumos reales antes de producir.</small></p><button onclick="print()">Imprimir</button></body></html>`);
     report.document.close();
   });
   calculate();

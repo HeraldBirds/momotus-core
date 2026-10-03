@@ -21,12 +21,15 @@
     brushMode: 'erase',
     drawing: false,
     changedDuringStroke: false,
+    lastBrushPoint: null,
+    maskView: 'result',
     palette: [],
     sheetItems: [],
     batchFiles: [],
     projectId: null,
     profileName: 'Sin perfil asignado',
-    autosaveTimer: 0
+    autosaveTimer: 0,
+    displayFrame: 0
   };
 
   const cloneCanvas = source => {
@@ -94,6 +97,30 @@
 
   const getDisplayCanvas = () => byId('production-canvas');
 
+  const renderWorkingDisplay = () => {
+    const display = getDisplayCanvas();
+    if (!display || !state.canvas) return;
+    const displayContext = display.getContext('2d');
+    displayContext.clearRect(0, 0, display.width, display.height);
+    if (state.maskView === 'mask') {
+      const source = state.canvas.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, state.canvas.width, state.canvas.height);
+      const mask = new ImageData(state.canvas.width, state.canvas.height);
+      for (let index = 0; index < source.data.length; index += 4) {
+        const alpha = source.data[index + 3];
+        mask.data[index] = alpha;
+        mask.data[index + 1] = alpha;
+        mask.data[index + 2] = alpha;
+        mask.data[index + 3] = 255;
+      }
+      displayContext.putImageData(mask, 0, 0);
+    } else displayContext.drawImage(state.canvas, 0, 0);
+  };
+
+  const queueWorkingDisplay = () => {
+    cancelAnimationFrame(state.displayFrame);
+    state.displayFrame = requestAnimationFrame(renderWorkingDisplay);
+  };
+
   const drawWorkingCanvas = (runAnalysis = true) => {
     const display = getDisplayCanvas();
     const empty = byId('production-empty');
@@ -107,7 +134,7 @@
     }
     display.width = state.canvas.width;
     display.height = state.canvas.height;
-    display.getContext('2d').drawImage(state.canvas, 0, 0);
+    queueWorkingDisplay();
     display.hidden = false;
     empty.hidden = true;
     applyZoom();
@@ -239,16 +266,15 @@
     };
   };
 
-  const paintBrush = event => {
-    if (!state.drawing || !state.canvas) return;
-    const { x, y, scale } = brushPoint(event);
-    const size = Number(byId('production-brush-size').value) * scale;
+  const stampBrush = ({ x, y, scale, pressure = 1 }) => {
+    const size = Number(byId('production-brush-size').value) * scale * Math.max(0.35, pressure || 1);
     const hardness = Number(byId('production-brush-hardness').value) / 100;
     const context = state.canvas.getContext('2d');
     context.save();
     if (state.brushMode === 'erase') {
       context.globalCompositeOperation = 'destination-out';
-      const gradient = context.createRadialGradient(x, y, size * hardness * 0.48, x, y, size / 2);
+      const inner = Math.min(size / 2 - 0.01, size * hardness * 0.48);
+      const gradient = context.createRadialGradient(x, y, Math.max(0, inner), x, y, size / 2);
       gradient.addColorStop(0, 'rgba(0,0,0,1)');
       gradient.addColorStop(1, 'rgba(0,0,0,0)');
       context.fillStyle = gradient;
@@ -263,10 +289,28 @@
       context.drawImage(state.recovery, 0, 0);
     }
     context.restore();
+    return size;
+  };
+
+  const paintBrush = event => {
+    if (!state.drawing || !state.canvas) return;
+    const point = { ...brushPoint(event), pressure: event.pointerType === 'pen' ? event.pressure : 1 };
+    const previous = state.lastBrushPoint;
+    const estimatedSize = Number(byId('production-brush-size').value) * point.scale;
+    const distance = previous ? Math.hypot(point.x - previous.x, point.y - previous.y) : 0;
+    const steps = previous ? Math.max(1, Math.ceil(distance / Math.max(1, estimatedSize * 0.18))) : 1;
+    for (let step = 1; step <= steps; step++) {
+      const ratio = step / steps;
+      stampBrush(previous ? {
+        x: previous.x + (point.x - previous.x) * ratio,
+        y: previous.y + (point.y - previous.y) * ratio,
+        scale: point.scale,
+        pressure: previous.pressure + (point.pressure - previous.pressure) * ratio
+      } : point);
+    }
+    state.lastBrushPoint = point;
     state.changedDuringStroke = true;
-    const display = getDisplayCanvas();
-    display.getContext('2d').clearRect(0, 0, display.width, display.height);
-    display.getContext('2d').drawImage(state.canvas, 0, 0);
+    queueWorkingDisplay();
   };
 
   const trimCanvas = source => {
@@ -403,7 +447,13 @@
       const download = createButton('<i class="fa-solid fa-download"></i>', 'production-icon-button');
       download.title = `Descargar canal ${index + 1}`;
       download.addEventListener('click', () => downloadColorChannel(index));
-      row.append(download);
+      const halftone = createButton('<i class="fa-solid fa-circle-half-stroke"></i>', 'production-icon-button');
+      halftone.title = `Crear semitono del canal ${index + 1}`;
+      halftone.addEventListener('click', async () => {
+        const sent = await api().sendCanvasToTool(buildColorChannel(index), 'halftone', `${state.filename}-canal-${index + 1}.png`);
+        if (sent) { closeProduction(); toast(`Canal ${index + 1} enviado a Semitonos.`); }
+      });
+      row.append(halftone, download);
       return row;
     }));
   };
@@ -441,12 +491,13 @@
     const context = sample.getContext('2d', { willReadFrequently: true });
     context.drawImage(state.canvas, 0, 0, sample.width, sample.height);
     const data = context.getImageData(0, 0, sample.width, sample.height).data;
-    let transparent = 0, partial = 0, opaque = 0, lightEdges = 0, edge = 0, isolated = 0;
+    let transparent = 0, partial = 0, opaque = 0, lightEdges = 0, edge = 0, isolated = 0, clipped = 0;
     for (let y = 0; y < sample.height; y++) for (let x = 0; x < sample.width; x++) {
       const i = (y * sample.width + x) * 4;
       const alpha = data[i + 3];
       if (!alpha) transparent++; else if (alpha < 255) partial++; else opaque++;
       if (!alpha) continue;
+      if (x === 0 || y === 0 || x === sample.width - 1 || y === sample.height - 1) clipped++;
       let neighbours = 0, touchesClear = false;
       [[-1, 0], [1, 0], [0, -1], [0, 1]].forEach(([dx, dy]) => {
         const nx = x + dx, ny = y + dy;
@@ -464,13 +515,19 @@
       }
     }
     const total = transparent + partial + opaque;
+    const partialRate = partial / Math.max(1, total);
+    const haloRate = edge ? lightEdges / edge : 0;
+    const printableWidthCm = state.canvas.width / DPI * 2.54;
+    const memoryMb = state.canvas.width * state.canvas.height * 4 / 1024 / 1024;
     const values = [
       ['Resolución', `${state.canvas.width} × ${state.canvas.height} px`, 'good'],
-      ['Tamaño a 300 DPI', `${(state.canvas.width / DPI * 2.54).toFixed(1)} × ${(state.canvas.height / DPI * 2.54).toFixed(1)} cm`, 'good'],
+      ['Tamaño a 300 DPI', `${printableWidthCm.toFixed(1)} × ${(state.canvas.height / DPI * 2.54).toFixed(1)} cm`, printableWidthCm <= 60 ? 'good' : 'warning'],
       ['Transparencia', `${(transparent / total * 100).toFixed(1)}% libre`, transparent ? 'good' : 'warning'],
-      ['Semitransparencia', `${(partial / total * 100).toFixed(2)}%`, partial / total > 0.003 ? 'warning' : 'good'],
-      ['Posible halo claro', `${edge ? (lightEdges / edge * 100).toFixed(1) : '0.0'}% del borde`, edge && lightEdges / edge > 0.18 ? 'warning' : 'good'],
-      ['Píxeles aislados', `${isolated} en muestra`, isolated > total * 0.003 ? 'warning' : 'good']
+      ['Semitransparencia', `${(partialRate * 100).toFixed(2)}%`, partialRate > 0.003 ? 'warning' : 'good'],
+      ['Posible halo claro', `${(haloRate * 100).toFixed(1)}% del borde`, haloRate > 0.18 ? 'warning' : 'good'],
+      ['Píxeles aislados', `${isolated} en muestra`, isolated > total * 0.003 ? 'warning' : 'good'],
+      ['Contenido cortado', clipped ? `${clipped} puntos tocan el límite` : 'Sin contacto con el límite', clipped ? 'warning' : 'good'],
+      ['Memoria estimada', `${memoryMb.toFixed(1)} MB por capa`, memoryMb > 110 ? 'warning' : 'good']
     ];
     target.replaceChildren(...values.map(([label, value, level]) => {
       const row = document.createElement('div');
@@ -497,19 +554,40 @@
     }
     list.replaceChildren(...state.sheetItems.map((item, index) => {
       const row = document.createElement('div');
-      row.innerHTML = `<strong>${item.name}</strong><span>${item.quantity} × ${item.widthCm} cm</span>`;
+      const identity = document.createElement('span');
+      const name = document.createElement('strong');
+      name.textContent = item.name;
+      const dimensions = document.createElement('small');
+      dimensions.textContent = `${item.canvas.width} × ${item.canvas.height} px`;
+      identity.append(name, dimensions);
+      const controls = document.createElement('span');
+      controls.className = 'sheet-item-controls';
+      const width = document.createElement('input');
+      width.type = 'number'; width.min = '2'; width.max = '55'; width.step = '0.5'; width.value = item.widthCm;
+      width.title = 'Ancho en centímetros'; width.setAttribute('aria-label', `Ancho de ${item.name} en centímetros`);
+      const quantity = document.createElement('input');
+      quantity.type = 'number'; quantity.min = '1'; quantity.max = '99'; quantity.step = '1'; quantity.value = item.quantity;
+      quantity.title = 'Cantidad'; quantity.setAttribute('aria-label', `Cantidad de ${item.name}`);
+      [width, quantity].forEach(input => input.addEventListener('change', () => {
+        item.widthCm = Math.max(2, Math.min(55, Number(width.value) || 2));
+        item.quantity = Math.max(1, Math.min(99, Math.round(Number(quantity.value) || 1)));
+        width.value = item.widthCm; quantity.value = item.quantity;
+        buildSheetPreview();
+      }));
+      controls.append(width, quantity);
       const remove = createButton('<i class="fa-solid fa-xmark"></i>', 'production-icon-button');
       remove.title = 'Quitar de la plancha';
       remove.addEventListener('click', () => { state.sheetItems.splice(index, 1); renderSheetItems(); buildSheetPreview(); });
-      row.append(remove);
+      row.append(identity, controls, remove);
       return row;
     }));
   };
 
   const buildSheetCanvas = (preview = false) => {
     const widthCm = Math.max(20, Math.min(60, Number(byId('sheet-width').value) || 56));
-    const heightCm = Math.max(10, Math.min(45, Number(byId('sheet-height').value) || 30));
+    const heightCm = Math.max(10, Math.min(100, Number(byId('sheet-height').value) || 30));
     const marginMm = Math.max(0, Math.min(20, Number(byId('sheet-margin').value) || 5));
+    const gapMm = Math.max(0, Math.min(20, Number(byId('sheet-gap').value) || 0));
     const scale = preview ? Math.min(1, 900 / (widthCm / 2.54 * DPI)) : 1;
     const pixelsPerCm = DPI / 2.54 * scale;
     const width = Math.round(widthCm * pixelsPerCm);
@@ -519,32 +597,50 @@
     output.width = width;
     output.height = height;
     const context = output.getContext('2d');
-    const gap = marginMm / 10 * pixelsPerCm;
-    let x = gap, y = gap, rowHeight = 0, placed = 0;
-    state.sheetItems.forEach(item => {
-      for (let copy = 0; copy < item.quantity; copy++) {
-        let itemWidth = item.widthCm * pixelsPerCm;
-        let itemHeight = itemWidth * item.canvas.height / item.canvas.width;
-        let rotated = false;
-        if (x + itemWidth + gap > width && x + itemHeight + gap <= width && byId('sheet-auto-rotate').checked) {
-          [itemWidth, itemHeight] = [itemHeight, itemWidth];
-          rotated = true;
-        }
-        if (x + itemWidth + gap > width) { x = gap; y += rowHeight + gap; rowHeight = 0; }
-        if (y + itemHeight + gap > height) continue;
-        context.save();
-        if (rotated) {
-          context.translate(x + itemWidth, y);
-          context.rotate(Math.PI / 2);
-          context.drawImage(item.canvas, 0, 0, itemHeight, itemWidth);
-        } else context.drawImage(item.canvas, x, y, itemWidth, itemHeight);
-        context.restore();
-        x += itemWidth + gap;
-        rowHeight = Math.max(rowHeight, itemHeight);
-        placed++;
-      }
+    const edge = marginMm / 10 * pixelsPerCm;
+    const gap = gapMm / 10 * pixelsPerCm;
+    const freeRectangles = [{ x: edge, y: edge, width: Math.max(0, width - edge * 2), height: Math.max(0, height - edge * 2) }];
+    const pieces = state.sheetItems.flatMap((item, itemIndex) => Array.from({ length: item.quantity }, (_, copy) => {
+      const pieceWidth = item.widthCm * pixelsPerCm;
+      return { item, itemIndex, copy, width: pieceWidth, height: pieceWidth * item.canvas.height / item.canvas.width };
+    })).sort((first, second) => Math.max(second.width, second.height) - Math.max(first.width, first.height) || second.width * second.height - first.width * first.height);
+    const placements = [];
+    const allowRotate = byId('sheet-auto-rotate').checked;
+    pieces.forEach(piece => {
+      let best = null;
+      freeRectangles.forEach((rectangle, rectangleIndex) => {
+        const orientations = [{ width: piece.width, height: piece.height, rotated: false }];
+        if (allowRotate && Math.abs(piece.width - piece.height) > 0.5) orientations.push({ width: piece.height, height: piece.width, rotated: true });
+        orientations.forEach(orientation => {
+          if (orientation.width > rectangle.width + 0.01 || orientation.height > rectangle.height + 0.01) return;
+          const areaWaste = rectangle.width * rectangle.height - orientation.width * orientation.height;
+          const shortWaste = Math.min(rectangle.width - orientation.width, rectangle.height - orientation.height);
+          const score = areaWaste + shortWaste * Math.max(width, height);
+          if (!best || score < best.score) best = { ...orientation, rectangleIndex, rectangle, score };
+        });
+      });
+      if (!best) return;
+      const rectangle = freeRectangles.splice(best.rectangleIndex, 1)[0];
+      placements.push({ ...piece, x: rectangle.x, y: rectangle.y, width: best.width, height: best.height, rotated: best.rotated });
+      const rightWidth = rectangle.width - best.width - gap;
+      const bottomHeight = rectangle.height - best.height - gap;
+      if (rightWidth > 1) freeRectangles.push({ x: rectangle.x + best.width + gap, y: rectangle.y, width: rightWidth, height: rectangle.height });
+      if (bottomHeight > 1) freeRectangles.push({ x: rectangle.x, y: rectangle.y + best.height + gap, width: best.width, height: bottomHeight });
     });
-    output.dataset.placed = String(placed);
+    placements.forEach(placement => {
+      context.save();
+      if (placement.rotated) {
+        context.translate(placement.x + placement.width, placement.y);
+        context.rotate(Math.PI / 2);
+        context.drawImage(placement.item.canvas, 0, 0, placement.height, placement.width);
+      } else context.drawImage(placement.item.canvas, placement.x, placement.y, placement.width, placement.height);
+      context.restore();
+    });
+    const printableArea = Math.max(1, (width - edge * 2) * (height - edge * 2));
+    const usedArea = placements.reduce((sum, placement) => sum + placement.width * placement.height, 0);
+    output.dataset.placed = String(placements.length);
+    output.dataset.requested = String(pieces.length);
+    output.dataset.efficiency = String(usedArea / printableArea * 100);
     return output;
   };
 
@@ -556,7 +652,13 @@
       canvas.width = preview.width;
       canvas.height = preview.height;
       canvas.getContext('2d').drawImage(preview, 0, 0);
-      byId('sheet-status').textContent = `${preview.dataset.placed || 0} pieza(s) colocadas · vista proporcional`;
+      const placed = Number(preview.dataset.placed || 0);
+      const requested = Number(preview.dataset.requested || 0);
+      const efficiency = Number(preview.dataset.efficiency || 0);
+      byId('sheet-metrics').innerHTML = `<span>${placed}/${requested} piezas</span><span>${efficiency.toFixed(1)}% aprovechado</span>`;
+      byId('sheet-status').textContent = placed < requested
+        ? `${requested - placed} pieza(s) no caben. Aumentá el largo, reducí medidas o descargá otra plancha.`
+        : `${placed} pieza(s) colocadas con separación segura · vista proporcional.`;
     } catch (error) {
       byId('sheet-status').textContent = error.message;
     }
@@ -568,6 +670,7 @@
     await nextFrame();
     try {
       const sheet = buildSheetCanvas(false);
+      if (Number(sheet.dataset.placed || 0) < Number(sheet.dataset.requested || 0)) throw new Error('La plancha no puede descargarse incompleta. Ajustá medidas o cantidades hasta colocar todas las piezas.');
       await api().downloadCanvas(sheet, `plancha-dtf-${byId('sheet-width').value}x${byId('sheet-height').value}cm-300dpi.png`);
     } catch (error) {
       toast(error.message);
@@ -699,6 +802,7 @@
       canvas: await canvasToBlob(state.canvas),
       recovery: await canvasToBlob(state.recovery || state.canvas),
       palette: state.palette,
+      sheetItems: await Promise.all(state.sheetItems.map(async item => ({ name: item.name, widthCm: item.widthCm, quantity: item.quantity, canvas: await canvasToBlob(item.canvas) }))),
       settings: captureSettings(),
       profileName: state.profileName
     };
@@ -718,7 +822,10 @@
     if (!projects.length) { list.innerHTML = '<p>No hay proyectos guardados todavía.</p>'; return; }
     list.replaceChildren(...projects.map(project => {
       const row = document.createElement('div');
-      row.innerHTML = `<span><strong>${project.name}</strong><small>${new Date(project.updatedAt).toLocaleString('es-NI')}</small></span>`;
+      const identity = document.createElement('span');
+      const name = document.createElement('strong'); name.textContent = project.name;
+      const date = document.createElement('small'); date.textContent = new Date(project.updatedAt).toLocaleString('es-NI');
+      identity.append(name, date); row.append(identity);
       const load = createButton('<i class="fa-solid fa-folder-open"></i>', 'production-icon-button');
       load.title = 'Abrir proyecto';
       load.addEventListener('click', () => loadProject(project));
@@ -738,6 +845,7 @@
       state.filename = project.name;
       state.projectId = project.id;
       state.palette = project.palette || [];
+      state.sheetItems = await Promise.all((project.sheetItems || []).map(async item => ({ ...item, canvas: await blobToCanvas(item.canvas) })));
       state.profileName = project.profileName || 'Sin perfil asignado';
       Object.entries(project.settings || {}).forEach(([id, value]) => {
         const element = byId(id);
@@ -745,7 +853,7 @@
         if (element.type === 'checkbox') element.checked = Boolean(value); else element.value = value;
       });
       state.history = []; state.historyIndex = -1;
-      drawWorkingCanvas(); pushHistory('Proyecto recuperado'); renderPalette();
+      drawWorkingCanvas(); pushHistory('Proyecto recuperado'); renderPalette(); renderSheetItems(); buildSheetPreview();
       byId('production-profile-name').textContent = state.profileName;
       toast('Proyecto recuperado.');
     } catch (error) { toast('No se pudo recuperar el proyecto.'); }
@@ -756,8 +864,9 @@
     if (!state.canvas) return toast('No hay un proyecto para exportar.');
     const toDataUrl = canvas => canvas.toDataURL('image/png');
     const project = {
-      format: 'momotus-dtf-project', version: 1, name: state.filename, createdAt: new Date().toISOString(),
+      format: 'momotus-dtf-project', version: 2, name: state.filename, createdAt: new Date().toISOString(),
       canvas: toDataUrl(state.canvas), recovery: toDataUrl(state.recovery || state.canvas), palette: state.palette,
+      sheetItems: state.sheetItems.map(item => ({ name: item.name, widthCm: item.widthCm, quantity: item.quantity, canvas: toDataUrl(item.canvas) })),
       settings: captureSettings(), profileName: state.profileName
     };
     triggerBlob(new Blob([JSON.stringify(project)], { type: 'application/json' }), `${state.filename}.momotus`);
@@ -779,9 +888,10 @@
       state.canvas = await blobToCanvas(dataUrlToBlob(project.canvas));
       state.recovery = project.recovery ? await blobToCanvas(dataUrlToBlob(project.recovery)) : cloneCanvas(state.canvas);
       state.filename = project.name || 'momotus-proyecto'; state.palette = project.palette || []; state.projectId = null;
+      state.sheetItems = await Promise.all((project.sheetItems || []).map(async item => ({ ...item, canvas: await blobToCanvas(dataUrlToBlob(item.canvas)) })));
       state.profileName = project.profileName || 'Sin perfil asignado'; state.history = []; state.historyIndex = -1;
       Object.entries(project.settings || {}).forEach(([id, value]) => { const element = byId(id); if (!element) return; if (element.type === 'checkbox') element.checked = Boolean(value); else element.value = value; });
-      drawWorkingCanvas(); pushHistory('Proyecto importado'); renderPalette();
+      drawWorkingCanvas(); pushHistory('Proyecto importado'); renderPalette(); renderSheetItems(); buildSheetPreview();
       toast('Proyecto importado correctamente.');
     } catch (error) { toast(error.message || 'No se pudo abrir el proyecto.'); }
   };
@@ -867,12 +977,13 @@
             <div id="production-empty" class="production-empty"><i class="fa-solid fa-file-circle-plus"></i><strong>Abrí un documento de producción</strong><span>Importá el resultado activo o seleccioná una imagen.</span></div>
             <canvas id="production-canvas" hidden></canvas>
           </div>
-          <div class="production-statusbar"><span>300 DPI</span><span>PNG transparente</span><span id="production-profile-name">Sin perfil asignado</span><label>Continuar en <select id="production-send-target"><option value="quality">Calidad</option><option value="background">Fondo</option><option value="halftone">Semitonos</option></select></label><button id="production-send" type="button"><i class="fa-solid fa-arrow-up-right-from-square"></i> Enviar</button><button id="production-review" type="button"><i class="fa-solid fa-magnifying-glass-chart"></i> Revisar y exportar</button></div>
+          <div class="production-statusbar"><span>300 DPI</span><span>PNG transparente</span><span id="production-profile-name">Sin perfil asignado</span><label>Continuar en <select id="production-send-target"><option value="quality">Calidad</option><option value="background">Fondo</option><option value="halftone">Semitonos</option><option value="vector">Vectorización</option></select></label><button id="production-send" type="button"><i class="fa-solid fa-arrow-up-right-from-square"></i> Enviar</button><button id="production-review" type="button"><i class="fa-solid fa-magnifying-glass-chart"></i> Revisar y exportar</button></div>
           <div id="production-busy" class="production-busy" hidden><div><i></i></div><strong>Procesando…</strong><span></span></div>
         </main>
         <aside class="production-inspector">
           <section data-production-panel="mask">
             <div class="production-panel-heading"><span>MÁSCARA MANUAL</span><h2>Corregir fondo</h2><p>Borrá o recuperá detalles sin modificar el archivo de origen.</p></div>
+            <div class="production-toggle production-mask-view"><button type="button" class="active" data-mask-view="result"><i class="fa-solid fa-image"></i> Resultado</button><button type="button" data-mask-view="mask"><i class="fa-solid fa-circle-half-stroke"></i> Máscara</button></div>
             <div class="production-toggle"><button type="button" class="active" data-brush-mode="erase"><i class="fa-solid fa-eraser"></i> Borrar</button><button type="button" data-brush-mode="restore"><i class="fa-solid fa-rotate-left"></i> Recuperar</button></div>
             <label class="production-field">Tamaño del pincel <output id="production-brush-size-value">40 px</output><input id="production-brush-size" type="range" min="4" max="240" value="40"></label>
             <label class="production-field">Dureza <output id="production-brush-hardness-value">80%</output><input id="production-brush-hardness" type="range" min="10" max="100" value="80"></label>
@@ -899,12 +1010,14 @@
           </section>
           <section data-production-panel="sheet" hidden>
             <div class="production-panel-heading"><span>ARMADO DTF</span><h2>Plancha de impresión</h2><p>Organizá diseños con medidas y separación controladas.</p></div>
-            <div class="production-inline-fields"><label>Ancho<input id="sheet-width" type="number" min="20" max="60" value="56"><small>cm</small></label><label>Largo<input id="sheet-height" type="number" min="10" max="45" value="30"><small>cm</small></label><label>Margen<input id="sheet-margin" type="number" min="0" max="20" value="5"><small>mm</small></label></div>
+            <div class="production-inline-fields"><label>Ancho<input id="sheet-width" type="number" min="20" max="60" value="56"><small>cm</small></label><label>Largo<input id="sheet-height" type="number" min="10" max="100" value="30"><small>cm</small></label><label>Margen<input id="sheet-margin" type="number" min="0" max="20" value="5"><small>mm</small></label><label>Separación<input id="sheet-gap" type="number" min="0" max="20" step="0.5" value="5"><small>mm</small></label></div>
             <label class="production-check"><input id="sheet-auto-rotate" type="checkbox" checked><span>Girar automáticamente para aprovechar espacio</span></label>
             <div class="production-inline-fields"><label>Ancho del diseño<input id="sheet-item-width" type="number" min="2" max="55" value="20"><small>cm</small></label><label>Cantidad<input id="sheet-item-quantity" type="number" min="1" max="30" value="1"></label></div>
             <button id="sheet-add-current" type="button" class="production-primary"><i class="fa-solid fa-plus"></i> Agregar diseño actual</button>
+            <label class="production-drop production-sheet-drop"><i class="fa-solid fa-images"></i><strong>Agregar varios diseños</strong><span>Cada archivo se agrega como una pieza independiente</span><input id="sheet-files" type="file" accept="image/png,image/jpeg,image/webp" multiple hidden></label>
             <div id="sheet-items" class="sheet-items"><p>No hay diseños agregados.</p></div>
-            <div class="sheet-preview-wrap checkerboard"><canvas id="sheet-preview"></canvas></div><p id="sheet-status" class="production-tip">Configurá la plancha y agregá diseños.</p>
+            <div class="sheet-preview-wrap checkerboard"><canvas id="sheet-preview"></canvas></div><div id="sheet-metrics" class="sheet-metrics"><span>0 piezas</span><span>0% aprovechado</span></div><p id="sheet-status" class="production-tip">Configurá la plancha y agregá diseños.</p>
+            <button id="sheet-quote" type="button" class="production-secondary"><i class="fa-solid fa-calculator"></i> Enviar plancha al cotizador</button>
             <button id="sheet-download" type="button" class="production-primary"><i class="fa-solid fa-download"></i> Descargar plancha 300 DPI</button>
           </section>
           <section data-production-panel="batch" hidden>
@@ -941,24 +1054,63 @@
     byId('production-undo').addEventListener('click', () => restoreHistory(state.historyIndex - 1));
     byId('production-redo').addEventListener('click', () => restoreHistory(state.historyIndex + 1));
     document.querySelectorAll('[data-brush-mode]').forEach(button => button.addEventListener('click', () => { state.brushMode = button.dataset.brushMode; document.querySelectorAll('[data-brush-mode]').forEach(item => item.classList.toggle('active', item === button)); }));
+    document.querySelectorAll('[data-mask-view]').forEach(button => button.addEventListener('click', () => {
+      state.maskView = button.dataset.maskView;
+      document.querySelectorAll('[data-mask-view]').forEach(item => item.classList.toggle('active', item === button));
+      renderWorkingDisplay();
+    }));
     [['production-brush-size', 'production-brush-size-value', ' px'], ['production-brush-hardness', 'production-brush-hardness-value', '%']].forEach(([input, output, suffix]) => byId(input).addEventListener('input', () => { byId(output).textContent = `${byId(input).value}${suffix}`; }));
     const canvas = getDisplayCanvas();
-    canvas.addEventListener('pointerdown', event => { if (!state.canvas || event.button !== 0) return; state.drawing = true; state.changedDuringStroke = false; canvas.setPointerCapture(event.pointerId); paintBrush(event); });
+    canvas.addEventListener('pointerdown', event => { if (!state.canvas || event.button !== 0) return; state.drawing = true; state.changedDuringStroke = false; state.lastBrushPoint = null; canvas.setPointerCapture(event.pointerId); paintBrush(event); });
     canvas.addEventListener('pointermove', paintBrush);
-    const finishStroke = event => { if (!state.drawing) return; state.drawing = false; if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId); if (state.changedDuringStroke) { analyzeCurrent(); pushHistory(state.brushMode === 'erase' ? 'Máscara borrada' : 'Detalle recuperado'); } };
+    const finishStroke = event => { if (!state.drawing) return; state.drawing = false; state.lastBrushPoint = null; if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId); if (state.changedDuringStroke) { analyzeCurrent(); pushHistory(state.brushMode === 'erase' ? 'Máscara borrada' : 'Detalle recuperado'); } };
     canvas.addEventListener('pointerup', finishStroke); canvas.addEventListener('pointercancel', finishStroke);
     document.querySelectorAll('[data-transform]').forEach(button => button.addEventListener('click', () => applyTransform(button.dataset.transform)));
     byId('production-resize').addEventListener('click', resizePhysical);
     byId('production-separate').addEventListener('click', quantizeColors);
     byId('production-softproof').addEventListener('change', event => setSoftProof(event.target.value));
     byId('production-profile').addEventListener('change', event => { const file = event.target.files?.[0]; if (!file) return; state.profileName = file.name; byId('production-profile-name').textContent = file.name; toast('Perfil registrado para la ficha. La conversión se realizará en el RIP.'); });
-    ['sheet-width', 'sheet-height', 'sheet-margin', 'sheet-auto-rotate'].forEach(id => byId(id).addEventListener('change', buildSheetPreview));
+    ['sheet-width', 'sheet-height', 'sheet-margin', 'sheet-gap', 'sheet-auto-rotate'].forEach(id => byId(id).addEventListener('change', buildSheetPreview));
     byId('sheet-add-current').addEventListener('click', () => addSheetItem());
+    byId('sheet-files').addEventListener('change', async event => {
+      const files = [...(event.target.files || [])].filter(file => file.type.startsWith('image/')).slice(0, 30);
+      if (!files.length) return;
+      setBusy(true, 'Agregando diseños a la plancha…', 0);
+      try {
+        for (let index = 0; index < files.length; index++) {
+          const canvas = await fileToCanvas(files[index]);
+          addSheetItem(canvas, files[index].name.replace(/\.[^.]+$/, ''));
+          setBusy(true, `Agregando ${files[index].name}…`, (index + 1) / files.length * 100);
+          await nextFrame();
+        }
+      } catch (error) { toast(error.message || 'No se pudieron agregar todos los diseños.'); }
+      finally { setBusy(false); event.target.value = ''; }
+    });
     byId('sheet-download').addEventListener('click', downloadSheet);
+    byId('sheet-quote').addEventListener('click', () => {
+      if (!state.sheetItems.length) return toast('Agregá diseños antes de cotizar la plancha.');
+      const preview = buildSheetCanvas(true);
+      const placed = Number(preview.dataset.placed || 0);
+      const requested = Number(preview.dataset.requested || 0);
+      if (placed < requested) return toast('La plancha está incompleta. Ajustala antes de enviarla al cotizador.');
+      window.dispatchEvent(new CustomEvent('momotus:quote-sheet', { detail: {
+        sheetWidth: Number(byId('sheet-width').value),
+        sheetHeight: Number(byId('sheet-height').value),
+        pieces: placed,
+        efficiency: Number(preview.dataset.efficiency || 0),
+        preview: byId('sheet-preview').toDataURL('image/png')
+      } }));
+      closeProduction();
+    });
     byId('batch-files').addEventListener('change', event => {
       state.batchFiles = [...event.target.files].filter(file => file.type.startsWith('image/')).slice(0, 30);
       const list = byId('batch-list');
-      list.replaceChildren(...state.batchFiles.map(file => { const row = document.createElement('div'); row.innerHTML = `<strong>${file.name}</strong><span>${(file.size / 1024 / 1024).toFixed(1)} MB</span>`; return row; }));
+      list.replaceChildren(...state.batchFiles.map(file => {
+        const row = document.createElement('div');
+        const name = document.createElement('strong'); name.textContent = file.name;
+        const size = document.createElement('span'); size.textContent = `${(file.size / 1024 / 1024).toFixed(1)} MB`;
+        row.append(name, size); return row;
+      }));
       if (!state.batchFiles.length) list.innerHTML = '<p>No hay archivos seleccionados.</p>';
     });
     byId('batch-process').addEventListener('click', prepareBatch);
@@ -976,7 +1128,13 @@
       const target = byId('production-send-target').value;
       setBusy(true, 'Enviando al flujo principal…');
       try {
-        const sent = await api().sendCanvasToTool(state.canvas, target, `${state.filename}.png`);
+        let sent;
+        if (target === 'vector') {
+          const blob = await canvasToBlob(state.canvas);
+          const file = new File([blob], `${state.filename}.png`, { type: 'image/png' });
+          window.dispatchEvent(new CustomEvent('momotus:vector-import', { detail: { file } }));
+          sent = true;
+        } else sent = await api().sendCanvasToTool(state.canvas, target, `${state.filename}.png`);
         if (!sent) throw new Error('No se pudo enviar el documento.');
         closeProduction();
         toast('Documento enviado sin perder el proyecto de producción.');
