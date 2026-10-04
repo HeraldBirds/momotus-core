@@ -9,7 +9,7 @@
   <meta name="theme-color" content="#09090b">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com 'unsafe-inline'; worker-src 'self'; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: blob: https:; font-src 'self' https://cdnjs.cloudflare.com; connect-src 'self';">
   <script>
-    window.MOMOTUS_TOOLS_VERSION = '20261003-6';
+    window.MOMOTUS_TOOLS_VERSION = '20261003-7';
     window.MOMOTUS_TOOLS_DESKTOP = window.matchMedia('(min-width: 1024px)').matches;
     if (!window.MOMOTUS_TOOLS_DESKTOP) document.documentElement.classList.add('tools-page-mobile');
     if (window.MOMOTUS_TOOLS_DESKTOP) {
@@ -29,6 +29,7 @@
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="herramientas/css/tools.css?v=20261003-6" media="(min-width: 1024px)">
   <link rel="stylesheet" href="herramientas/css/tools-production.css?v=20261003-6" media="(min-width: 1024px)">
+  <link rel="stylesheet" href="herramientas/css/tools-mockup.css?v=20261003-7" media="(min-width: 1024px)">
 </head>
 <body class="momotus-studio bg-zinc-950 text-white">
   <section class="tools-mobile-gate" aria-labelledby="tools-desktop-title">
@@ -429,11 +430,13 @@
         script.onerror = reject;
         document.body.appendChild(script);
       });
-      loadToolsScript('herramientas/js/tools-shell.js')
+      loadToolsScript('js/workflow-bridge.js')
+        .then(() => loadToolsScript('herramientas/js/tools-shell.js'))
         .then(() => loadToolsScript('herramientas/js/tools.js'))
         .then(() => loadToolsScript('herramientas/js/tools-studio.js'))
         .then(() => loadToolsScript('herramientas/js/tools-extra.js'))
         .then(() => loadToolsScript('herramientas/js/tools-production.js'))
+        .then(() => loadToolsScript('herramientas/js/tools-mockup.js'))
         .catch(error => {
           console.error('No se pudieron cargar las herramientas:', error);
           const message = document.getElementById('halftone-result-info');

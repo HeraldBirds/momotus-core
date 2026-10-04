@@ -292,6 +292,29 @@ const initDragListeners = () => {
 };
 
 // ==================== RESTO DE FUNCIONES ====================
+const applyDesignSource = (src, side, message = '') => {
+  if (!isSafeDesignSource(src) || ![0, 1].includes(side)) return false;
+  const style = getDesignStyle(currentColor);
+  const preview = document.getElementById(side === 0 ? 'design-preview' : 'design-preview-back');
+  const id = side === 0 ? 'draggable-design-front' : 'draggable-design-back';
+  if (!preview) return false;
+
+  preview.innerHTML = `<img src="${src}" id="${id}" class="max-w-full max-h-full object-contain rounded-3xl" style="${style}">`;
+  preview.classList.add('design-loaded');
+  const uploadedImage = document.getElementById(id);
+  makeDraggable(uploadedImage);
+  applyDesignLayout(uploadedImage, side);
+
+  if (side === 0) designFront = src;
+  else designBack = src;
+
+  if (uploadedImage.complete) updateImageQuality(uploadedImage, side);
+  else uploadedImage.addEventListener('load', () => updateImageQuality(uploadedImage, side), { once: true });
+  if (message) showToast(message);
+  saveCurrentDesign();
+  return true;
+};
+
 const handleDesignUpload = (e, side) => {
   const file = e.target.files[0];
   if (!file) return;
@@ -299,27 +322,12 @@ const handleDesignUpload = (e, side) => {
   if (file.size > 5 * 1024 * 1024) return showToast("❌ Máximo 5 MB");
 
   const reader = new FileReader();
-  reader.onload = (ev) => {
-    const src = ev.target.result;
-    const style = getDesignStyle(currentColor);
-    const preview = side === 0 ? document.getElementById('design-preview') : document.getElementById('design-preview-back');
-    const id = side === 0 ? 'draggable-design-front' : 'draggable-design-back';
-
-    preview.innerHTML = `<img src="${src}" id="${id}" class="max-w-full max-h-full object-contain rounded-3xl" style="${style}">`;
-    preview.classList.add('design-loaded');
-    makeDraggable(document.getElementById(id));
-    applyDesignLayout(document.getElementById(id), side);
-
-    if (side === 0) designFront = src;
-    else designBack = src;
-
-    const uploadedImage = document.getElementById(id);
-    if (uploadedImage.complete) updateImageQuality(uploadedImage, side);
-    else uploadedImage.addEventListener('load', () => updateImageQuality(uploadedImage, side), { once: true });
-
-    showToast(side === 0 ? "✅ Diseño Frente cargado" : "✅ Diseño Espalda cargado");
-    saveCurrentDesign();
-  };
+  reader.onload = event => applyDesignSource(
+    event.target.result,
+    side,
+    side === 0 ? '✅ Diseño Frente cargado' : '✅ Diseño Espalda cargado'
+  );
+  reader.onerror = () => showToast('❌ No se pudo leer la imagen');
   reader.readAsDataURL(file);
 };
 
@@ -572,10 +580,96 @@ const cerrarModalEliminarFondo = () => {
   if (typeof deactivateModal === 'function') deactivateModal(modal);
   else modal.classList.add('hidden');
 };
-const abrirRemoveBg = () => {
+
+const abrirEliminadorFondoInterno = async (sendCurrentDesign = true) => {
   cerrarModalEliminarFondo();
-  window.open('https://remove.bg', '_blank', 'noopener,noreferrer');
-  showToast("🪄 remove.bg abierto");
+  if (!window.matchMedia('(min-width: 1024px)').matches) {
+    showToast('💻 Las Herramientas DTF están disponibles desde computadora');
+    return;
+  }
+
+  const destination = 'herramientas/?importar=disenador#eliminar-fondo';
+  if (!sendCurrentDesign) {
+    window.location.href = destination;
+    return;
+  }
+
+  const source = currentTab === 0 ? designFront : designBack;
+  if (!source) {
+    showToast(`Subí un diseño en ${currentTab === 0 ? 'Frente' : 'Espalda'} o abrí la herramienta sin enviarlo`);
+    return;
+  }
+  if (!window.MomotusWorkflowBridge) {
+    showToast('No se pudo iniciar la transferencia local. Actualizá la página.');
+    return;
+  }
+
+  try {
+    const blob = await window.MomotusWorkflowBridge.sourceToBlob(source);
+    await window.MomotusWorkflowBridge.put(
+      window.MomotusWorkflowBridge.keys.designerToTools,
+      blob,
+      {
+        side: currentTab,
+        garment: shirtTypes[currentShirtType],
+        filename: `momotus-${currentTab === 0 ? 'frente' : 'espalda'}.${blob.type.split('/')[1] || 'png'}`
+      }
+    );
+    showToast('Preparando el diseño en Herramientas…');
+    window.location.href = destination;
+  } catch (error) {
+    console.error('No se pudo enviar el diseño a Herramientas:', error);
+    showToast(error.message || 'No se pudo transferir el diseño');
+  }
+};
+
+const abrirRemoveBg = () => abrirEliminadorFondoInterno(true);
+window.abrirEliminadorFondoInterno = abrirEliminadorFondoInterno;
+window.abrirRemoveBg = abrirRemoveBg;
+
+const importDesignFromTools = async () => {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('importar') !== 'herramientas') return false;
+  if (!window.MomotusWorkflowBridge) {
+    showToast('No se pudo recuperar el diseño trabajado. Actualizá la página.');
+    return false;
+  }
+
+  try {
+    const key = window.MomotusWorkflowBridge.keys.toolsToDesigner;
+    const record = await window.MomotusWorkflowBridge.get(key);
+    if (!record?.blob) {
+      showToast('No encontramos un diseño pendiente desde Herramientas');
+      return false;
+    }
+    const garmentIndex = shirtTypes.indexOf(String(record.metadata?.garment || '').toLowerCase());
+    if (garmentIndex >= 0) currentShirtType = garmentIndex;
+    const side = Number(record.metadata?.side) === 1 ? 1 : 0;
+    const src = await window.MomotusWorkflowBridge.blobToDataURL(record.blob);
+    if (side === 0) {
+      currentScaleFront = 1;
+      currentPositionFront = { x: 50, y: 50 };
+      currentRotationFront = 0;
+    } else {
+      currentScaleBack = 1;
+      currentPositionBack = { x: 50, y: 50 };
+      currentRotationBack = 0;
+    }
+    updateMockups();
+    switchMockup(side);
+    applyDesignSource(src, side, `✅ Diseño colocado en ${side === 0 ? 'Frente' : 'Espalda'}`);
+    document.querySelectorAll('.shirt-type-btn').forEach((button, index) => button.classList.toggle('active', index === currentShirtType));
+    await window.MomotusWorkflowBridge.remove(key);
+    params.delete('importar');
+    params.delete('lado');
+    const cleanUrl = `${window.location.pathname}${params.toString() ? `?${params}` : ''}${window.location.hash}`;
+    history.replaceState(null, '', cleanUrl);
+    return true;
+  } catch (error) {
+    console.error('No se pudo recuperar el diseño desde Herramientas:', error);
+    showToast(error.message || 'No se pudo recuperar el diseño trabajado');
+    return false;
+  }
 };
 
 const centerDesign = (side) => {
@@ -757,7 +851,7 @@ window.sendToEmail = () => {
   showToast("✉️ Email abierto");
 };
 
-const initDesigner = () => {
+const initDesigner = async () => {
   loadSavedDesign();
   applyGarmentFromUrl();
   if (document.getElementById('type-0')) {
@@ -770,6 +864,7 @@ const initDesigner = () => {
   }
   updateMockups();
   initDragListeners();
+  await importDesignFromTools();
   window.addEventListener('pagehide', flushScheduledDesignSave);
   document.querySelectorAll('.ready-designs img').forEach((image, index) => {
     image.tabIndex = 0;

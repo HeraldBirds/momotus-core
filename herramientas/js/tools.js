@@ -13,6 +13,7 @@
   const MAX_PREVIEW_SIDE = 2400;
   const ALLOWED_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
   const ALLOWED_IMAGE_EXTENSION = /\.(?:png|jpe?g|webp)$/i;
+  const panelByType = Object.freeze({ halftone: 'semitonos', background: 'eliminar-fondo', quality: 'mejorar-calidad' });
   const states = { halftone: null, background: null, quality: null };
   const previewViews = { halftone: 'result', background: 'result', quality: 'result' };
   const renderTimers = {};
@@ -2038,7 +2039,6 @@
 
   const transferResult = async (from, to, button) => {
     if (!states[from]) return;
-    const targetByType = { halftone: 'semitonos', background: 'eliminar-fondo', quality: 'mejorar-calidad' };
     const originalContent = button.innerHTML;
     button.disabled = true;
     button.textContent = 'Preparando…';
@@ -2047,7 +2047,7 @@
       const file = await canvasToFile(canvas, `${states[from].filename}-${from}.png`);
       const loaded = await processFile(file, to, null, true);
       if (!loaded) return;
-      switchTool(targetByType[to], true);
+      switchTool(panelByType[to], true);
       showToast('Resultado enviado a la siguiente herramienta. Ya podés seguir trabajándolo.');
     } catch (error) {
       console.error('No se pudo compartir el resultado entre herramientas:', error);
@@ -2592,7 +2592,13 @@
       if (!canvas || !['halftone', 'background', 'quality'].includes(type)) return false;
       const file = await canvasToFile(canvas, filename);
       const loaded = await processFile(file, type, null, true);
-      if (loaded) switchTool(targetByType[type], true);
+      if (loaded) switchTool(panelByType[type], true);
+      return Boolean(loaded);
+    },
+    importFileToTool: async (file, type = 'background') => {
+      if (!(file instanceof File) || !panelByType[type]) return false;
+      const loaded = await processFile(file, type, null, true);
+      if (loaded) switchTool(panelByType[type], true);
       return Boolean(loaded);
     },
     reviewAndDownload: (canvas, filename = 'momotus-dtf-300dpi.png', type = activeTool) => {

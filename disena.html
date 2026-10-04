@@ -343,13 +343,18 @@
   </div>
 
   <div id="modal-eliminar-fondo" role="dialog" aria-modal="true" aria-labelledby="remove-bg-title" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[10000]">
-    <div class="bg-zinc-900 rounded-3xl max-w-md w-full mx-4 p-8 text-center">
-      <h3 id="remove-bg-title" class="text-2xl font-bold mb-4">🪄 Eliminar fondo automáticamente</h3>
-      <p class="text-zinc-400 mb-6">1. Abre remove.bg<br>2. Sube tu imagen<br>3. Descarga PNG transparente<br>4. Súbela aquí</p>
-      <button onclick="abrirRemoveBg()" class="w-full bg-yellow-400 text-black font-bold py-6 rounded-3xl text-xl mb-6 flex items-center justify-center gap-3 hover:bg-yellow-300 transition">
-        <i class="fa-solid fa-magic"></i> ABRIR REMOVE.BG
+    <div class="bg-zinc-900 border border-zinc-700 rounded-3xl max-w-lg w-full mx-4 p-8 text-center shadow-2xl">
+      <span class="inline-flex items-center gap-2 bg-yellow-400/10 text-yellow-400 px-4 py-2 rounded-full text-sm font-bold mb-5"><i class="fa-solid fa-lock"></i> PROCESAMIENTO LOCAL</span>
+      <h3 id="remove-bg-title" class="text-2xl font-bold mb-3">Eliminar fondo en Momotus Studio</h3>
+      <p class="text-zinc-400 mb-7">Trabajá el lado activo con el eliminador de fondo de nuestras Herramientas DTF. Tu imagen se procesa en esta computadora y no se envía a servidores externos.</p>
+      <button onclick="abrirEliminadorFondoInterno(true)" class="w-full bg-yellow-400 text-black font-bold py-5 rounded-3xl text-lg mb-3 flex items-center justify-center gap-3 hover:bg-yellow-300 transition">
+        <i class="fa-solid fa-arrow-up-right-from-square"></i> TRABAJAR DISEÑO ACTIVO
       </button>
-      <button onclick="cerrarModalEliminarFondo()" class="text-zinc-400 hover:text-white">Cerrar</button>
+      <button onclick="abrirEliminadorFondoInterno(false)" class="w-full border border-zinc-600 hover:border-yellow-400 hover:text-yellow-400 font-bold py-4 rounded-3xl mb-5 transition">
+        <i class="fa-solid fa-toolbox"></i> ABRIR SIN ENVIAR IMAGEN
+      </button>
+      <p class="text-xs text-zinc-500 mb-5"><i class="fa-solid fa-desktop"></i> Herramientas está disponible en computadora.</p>
+      <button onclick="cerrarModalEliminarFondo()" class="text-zinc-400 hover:text-white">Cancelar</button>
     </div>
   </div>
 
@@ -357,6 +362,7 @@
 
   <script src="tienda/js/catalogo.js"></script>
   <script src="js/script.js"></script>
+  <script src="js/workflow-bridge.js"></script>
   <script src="js/designer.js"></script>
 
   <script>
