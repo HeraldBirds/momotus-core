@@ -26,3 +26,33 @@
 
   # === Desactiva características peligrosas del navegador ===
   Permissions-Policy: camera=(), microphone=(), geolocation=(), interest-cohort=()
+
+/*.html
+  Cache-Control: no-cache, must-revalidate
+
+/tienda/
+  Cache-Control: no-cache, must-revalidate
+
+/herramientas/
+  Cache-Control: no-cache, must-revalidate
+
+/js/*
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/css/*
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/tienda/js/*
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/tienda/css/*
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/herramientas/js/*
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/herramientas/css/*
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/img/*
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800

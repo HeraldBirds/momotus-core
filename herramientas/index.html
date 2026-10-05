@@ -8,8 +8,10 @@
   <meta name="description" content="Prepará imágenes para DTF con semitonos, eliminación de fondo, vectorización, mejora a 300 DPI y cálculo de cotizaciones.">
   <meta name="theme-color" content="#09090b">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com 'unsafe-inline'; worker-src 'self'; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: blob: https:; font-src 'self' https://cdnjs.cloudflare.com; connect-src 'self';">
+  <link rel="preconnect" href="https://cdn.tailwindcss.com">
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
   <script>
-    window.MOMOTUS_TOOLS_VERSION = '20261003-7';
+    window.MOMOTUS_TOOLS_VERSION = '20261005-9';
     window.MOMOTUS_TOOLS_DESKTOP = window.matchMedia('(min-width: 1024px)').matches;
     if (!window.MOMOTUS_TOOLS_DESKTOP) document.documentElement.classList.add('tools-page-mobile');
     if (window.MOMOTUS_TOOLS_DESKTOP) {
@@ -26,10 +28,8 @@
       document.write('<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">');
     }
   </script>
-  <link rel="stylesheet" href="css/style.css">
-  <link rel="stylesheet" href="herramientas/css/tools.css?v=20261003-6" media="(min-width: 1024px)">
-  <link rel="stylesheet" href="herramientas/css/tools-production.css?v=20261003-6" media="(min-width: 1024px)">
-  <link rel="stylesheet" href="herramientas/css/tools-mockup.css?v=20261003-7" media="(min-width: 1024px)">
+  <link rel="stylesheet" href="css/style.css?v=20261005-1">
+  <link rel="stylesheet" href="herramientas/css/tools.css?v=20261005-4" media="(min-width: 1024px)">
 </head>
 <body class="momotus-studio bg-zinc-950 text-white">
   <section class="tools-mobile-gate" aria-labelledby="tools-desktop-title">
@@ -65,10 +65,10 @@
     <div class="tool-probar" aria-label="Controles del editor">
       <div class="tool-workspace-brand"><span><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i></span><div><strong>Momotus Studio</strong><small>Editor profesional DTF</small></div></div>
       <div class="tool-history-actions">
-        <button id="tool-undo" type="button" disabled title="Deshacer (Ctrl + Z)" aria-label="Deshacer"><i class="fa-solid fa-rotate-left"></i></button>
-        <button id="tool-redo" type="button" disabled title="Rehacer (Ctrl + Shift + Z)" aria-label="Rehacer"><i class="fa-solid fa-rotate-right"></i></button>
+        <button id="tool-undo" type="button" disabled title="Deshacer (Ctrl + Z)" aria-label="Deshacer"><i class="fa-solid fa-rotate-left"></i><span>Deshacer</span></button>
+        <button id="tool-redo" type="button" disabled title="Rehacer (Ctrl + Shift + Z)" aria-label="Rehacer"><i class="fa-solid fa-rotate-right"></i><span>Rehacer</span></button>
         <button id="tool-reset-current" type="button" title="Restablecer herramienta"><i class="fa-solid fa-arrow-rotate-left"></i><span>Restablecer</span></button>
-        <button id="tool-shortcuts-help" type="button" title="Ver atajos del editor" aria-label="Ver atajos del editor"><i class="fa-regular fa-keyboard"></i></button>
+        <button id="tool-shortcuts-help" type="button" title="Ver atajos del editor" aria-label="Ver atajos del editor"><i class="fa-regular fa-keyboard"></i><span>Atajos</span></button>
       </div>
       <div id="editor-image-info" class="tool-document-info">Sin documento abierto</div>
       <div id="editor-workspace-state" class="tool-workspace-state idle" role="status"><span aria-hidden="true"></span><strong>Sin archivo</strong></div>
@@ -115,6 +115,8 @@
               <button type="button" data-halftone-preset="suave">Sombra suave</button>
               <button type="button" data-halftone-preset="balanceado">Balanceado</button>
               <button type="button" data-halftone-preset="fino">Detalle fino</button>
+              <button type="button" data-halftone-preset="micro">Microtrama DTF</button>
+              <button type="button" data-halftone-preset="oscura">Prenda oscura</button>
               <button type="button" data-halftone-preset="lineas">Líneas</button>
             </div>
           </details>
@@ -191,14 +193,35 @@
             <div class="tool-control-content">
               <label class="tool-field-row"><span>Acción</span><select id="background-mode"><option value="remove">Eliminar color escogido</option><option value="keep">Conservar solo ese color</option></select></label>
               <label id="background-scope-control" class="tool-field-row"><span>Área de eliminación</span><select id="background-scope"><option value="connected">Solo fondo conectado al borde</option><option value="global">Ese color en toda la imagen</option></select></label>
-              <label class="tool-field-row"><span>Color que se eliminará</span><input id="background-color" type="color" value="#ffffff"></label>
-              <div class="tool-color-presets" aria-label="Colores rápidos">
-                <button type="button" data-background-color="#ffffff" aria-label="Eliminar blanco" title="Blanco" style="--preset-color:#ffffff"></button>
-                <button type="button" data-background-color="#000000" aria-label="Eliminar negro" title="Negro" style="--preset-color:#000000"></button>
-                <button type="button" data-background-color="#00ff00" aria-label="Eliminar verde" title="Verde" style="--preset-color:#00ff00"></button>
-                <button type="button" data-background-color="#0000ff" aria-label="Eliminar azul" title="Azul" style="--preset-color:#0000ff"></button>
+              <div class="background-palette-picker">
+                <button id="background-palette-toggle" class="background-palette-toggle" type="button" aria-expanded="false" aria-controls="background-color-palette" aria-haspopup="listbox">
+                  <span id="background-palette-current" class="background-palette-current" style="--selected-color:#ffffff" aria-hidden="true"></span>
+                  <span><small>Color que se eliminará</small><strong id="background-palette-label">Blanco · #FFFFFF</strong></span>
+                  <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                </button>
+                <div id="background-color-palette" class="background-color-palette" hidden>
+                  <div class="background-palette-heading"><strong>Elegí el color del fondo</strong><small>La tolerancia incluye sus tonos parecidos.</small></div>
+                  <div class="background-palette-grid" role="listbox" aria-label="Paleta de colores para eliminar">
+                    <button type="button" data-background-color="#ffffff" data-color-name="Blanco" role="option" aria-label="Eliminar blanco" title="Blanco" style="--preset-color:#ffffff"></button>
+                    <button type="button" data-background-color="#d4d4d8" data-color-name="Gris claro" role="option" aria-label="Eliminar gris claro" title="Gris claro" style="--preset-color:#d4d4d8"></button>
+                    <button type="button" data-background-color="#71717a" data-color-name="Gris" role="option" aria-label="Eliminar gris" title="Gris" style="--preset-color:#71717a"></button>
+                    <button type="button" data-background-color="#000000" data-color-name="Negro" role="option" aria-label="Eliminar negro" title="Negro" style="--preset-color:#000000"></button>
+                    <button type="button" data-background-color="#ef4444" data-color-name="Rojo" role="option" aria-label="Eliminar rojo" title="Rojo" style="--preset-color:#ef4444"></button>
+                    <button type="button" data-background-color="#f97316" data-color-name="Naranja" role="option" aria-label="Eliminar naranja" title="Naranja" style="--preset-color:#f97316"></button>
+                    <button type="button" data-background-color="#facc15" data-color-name="Amarillo" role="option" aria-label="Eliminar amarillo" title="Amarillo" style="--preset-color:#facc15"></button>
+                    <button type="button" data-background-color="#22c55e" data-color-name="Verde" role="option" aria-label="Eliminar verde" title="Verde" style="--preset-color:#22c55e"></button>
+                    <button type="button" data-background-color="#06b6d4" data-color-name="Celeste" role="option" aria-label="Eliminar celeste" title="Celeste" style="--preset-color:#06b6d4"></button>
+                    <button type="button" data-background-color="#2563eb" data-color-name="Azul" role="option" aria-label="Eliminar azul" title="Azul" style="--preset-color:#2563eb"></button>
+                    <button type="button" data-background-color="#7c3aed" data-color-name="Violeta" role="option" aria-label="Eliminar violeta" title="Violeta" style="--preset-color:#7c3aed"></button>
+                    <button type="button" data-background-color="#ec4899" data-color-name="Rosado" role="option" aria-label="Eliminar rosado" title="Rosado" style="--preset-color:#ec4899"></button>
+                  </div>
+                  <label class="background-custom-color"><span>Otro color</span><input id="background-color" type="color" value="#ffffff" aria-label="Escoger un color personalizado"><output id="background-color-hex">#FFFFFF</output></label>
+                  <p><i class="fa-solid fa-circle-info" aria-hidden="true"></i> Para quitar negro de un diseño destinado a una prenda clara, empezá con tolerancia baja. Usá “solo fondo conectado” si querés proteger detalles negros interiores.</p>
+                </div>
               </div>
               <button id="background-corner" type="button" class="tool-secondary" disabled><i class="fa-solid fa-eye-dropper"></i> Tomar color de la esquina</button>
+              <button id="background-apply-connected" type="button" class="tool-secondary" disabled><i class="fa-solid fa-object-ungroup"></i> Quitar solo el fondo exterior</button>
+              <button id="background-apply-global" type="button" class="tool-download" disabled><i class="fa-solid fa-eraser"></i> Eliminar este color en toda la imagen</button>
             </div>
           </details>
           <details id="background-edge-panel" class="tool-control-group">
@@ -237,7 +260,7 @@
     <section id="mejorar-calidad" class="tool-panel" aria-labelledby="quality-title" hidden>
       <div class="tool-panel-heading">
         <div class="tool-number">03</div>
-        <div><p class="text-yellow-400 font-bold">SALIDA PARA IMPRESIÓN DTF</p><h2 id="quality-title" class="text-3xl md:text-4xl font-black">Preparar a 300 DPI</h2></div>
+        <div><p class="text-yellow-400 font-bold">RECONSTRUCCIÓN PARA IMPRESIÓN DTF</p><h2 id="quality-title" class="text-3xl md:text-4xl font-black">Mejorar y preparar a 300 DPI</h2></div>
       </div>
       <div class="tool-layout">
         <div class="tool-controls">
@@ -268,6 +291,8 @@
               <button type="button" data-quality-preset="illustration">Ilustración viva</button>
               <button type="button" data-quality-preset="photo">Fotografía limpia</button>
               <button type="button" data-quality-preset="logo">Logo definido</button>
+              <button type="button" data-quality-preset="rescue">Rescatar pixelada</button>
+              <button type="button" data-quality-preset="text">Texto pequeño</button>
             </div>
           </details>
           <details id="quality-color-panel" class="tool-control-group">
@@ -284,6 +309,8 @@
             <label class="tool-field">Claridad local <span id="quality-clarity-value">24</span><input id="quality-clarity" type="range" min="0" max="70" value="24"></label>
             <label class="tool-field">Nitidez <span id="quality-sharpness-value">50</span><input id="quality-sharpness" type="range" min="0" max="100" value="50"></label>
             <label class="tool-field">Reducir ruido/compresión <span id="quality-denoise-value">12</span><input id="quality-denoise" type="range" min="0" max="60" value="12"></label>
+            <label class="tool-field">Recuperar pixelado <span id="quality-recovery-value">20</span><input id="quality-recovery" type="range" min="0" max="100" value="20"></label>
+            <small class="tool-field-help">Suaviza bloques y compresión antes de reforzar los bordes. No inventa texto ni detalle que no exista en la imagen original.</small>
             </div>
           </details>
           <div class="tool-action-dock"><div id="quality-assessment" class="tool-assessment" aria-live="polite">La evaluación aparecerá cuando subás una imagen.</div><button id="quality-process" type="button" class="tool-secondary" disabled><i class="fa-solid fa-wand-magic-sparkles"></i> Aplicar mejora DTF</button><button id="quality-download" type="button" class="tool-download" disabled title="Revisar y descargar PNG mejorado"><i class="fa-solid fa-clipboard-check"></i> Revisar y descargar</button><p id="quality-status" class="tool-status" role="status">Subí una imagen y escogé el ancho de impresión.</p></div>
@@ -336,7 +363,70 @@
       </div>
     </section>
 
-    <section id="calculadora-dtf" class="tool-panel extra-tool-panel" aria-labelledby="calculator-title" hidden>
+    <section id="calculadora-dtf" class="tool-panel extra-tool-panel" aria-label="Calculadora DTF" hidden>
+      <div class="calc-mode-switch" role="tablist" aria-label="Tipo de cálculo">
+        <button id="calc-team-tab" type="button" class="active" role="tab" aria-selected="true" aria-controls="calc-team-mode"><i class="fa-solid fa-boxes-stacked"></i><span><strong>Pedidos personalizados</strong><small>Logos, textos, fotos y diseños</small></span></button>
+        <button id="calc-sheet-tab" type="button" role="tab" aria-selected="false" aria-controls="calc-sheet-mode"><i class="fa-solid fa-table-cells-large"></i><span><strong>Diseño repetido</strong><small>Calculadora técnica de pliegos</small></span></button>
+      </div>
+
+      <div id="calc-team-mode" class="team-quote" role="tabpanel" aria-labelledby="calc-team-tab">
+        <header class="team-quote-heading">
+          <div><span>COTIZACIÓN GUIADA</span><h2><i class="fa-solid fa-layer-group"></i> Pedidos diferentes en una sola cuenta</h2><p>Cotizá equipos, logos, tipografías, fotografías y diseños normales. Cada referencia puede llevar su propia prenda, talla, medida y cantidad.</p></div>
+          <div class="team-quote-steps" aria-label="Pasos"><b>1</b><span>Diseños</span><b>2</b><span>Medidas</span><b>3</b><span>Cotización</span></div>
+        </header>
+        <div class="team-quote-grid">
+          <section class="team-roster-panel" aria-labelledby="team-roster-title">
+            <div class="team-order-basics">
+              <label><span>Cliente o pedido</span><input id="team-customer" type="text" maxlength="60" placeholder="Ej. Academia Monimbó"></label>
+              <label><span>Ancho del DTF</span><select id="team-roll-width"><option value="57" selected>57 cm</option><option value="30">30 cm</option><option value="60">60 cm</option></select></label>
+              <label><span>Separación</span><select id="team-gap"><option value="0.5">0.5 cm</option><option value="1" selected>1 cm</option><option value="1.5">1.5 cm</option></select></label>
+            </div>
+            <div class="team-template-bar" aria-label="Agregar una referencia rápida">
+              <span>Agregar rápido:</span>
+              <button type="button" data-team-template="team"><i class="fa-solid fa-people-group"></i> Equipo</button>
+              <button type="button" data-team-template="logo"><i class="fa-solid fa-certificate"></i> Logo</button>
+              <button type="button" data-team-template="typography"><i class="fa-solid fa-font"></i> Tipografía</button>
+              <button type="button" data-team-template="photo"><i class="fa-solid fa-camera"></i> Fotografía</button>
+              <button type="button" data-team-template="design"><i class="fa-solid fa-palette"></i> Diseño</button>
+            </div>
+            <details class="team-paste-list">
+              <summary><i class="fa-solid fa-list-check"></i> Pegar un pedido completo</summary>
+              <p>Una referencia por línea: <strong>detalle, tipo, ancho, alto, cantidad, prenda, talla</strong>.</p>
+              <textarea id="team-paste-input" rows="4" placeholder="Logo Academia, logo, 10, 10, 12, camiseta, M&#10;Foto familiar, fotografía, 20, 25, 2, hoodie, L"></textarea>
+              <button id="team-import-list" type="button"><i class="fa-solid fa-file-import"></i> Cargar esta lista</button>
+            </details>
+            <div class="team-roster-title"><div><h3 id="team-roster-title">Referencias del pedido</h3><p>Las medidas sugeridas se pueden cambiar según el trabajo real.</p></div><div class="team-roster-actions"><button id="team-example" type="button"><i class="fa-solid fa-wand-magic-sparkles"></i> Ver ejemplo</button><button id="team-add-member" type="button"><i class="fa-solid fa-plus"></i> Agregar diseño</button></div></div>
+            <div class="team-roster-table-wrap">
+              <table class="team-roster-table">
+                <thead><tr><th>Detalle</th><th>Tipo</th><th>Prenda</th><th>Talla</th><th>Ancho cm</th><th>Alto cm</th><th>Cant.</th><th></th></tr></thead>
+                <tbody id="team-roster-body"></tbody>
+              </table>
+            </div>
+            <p id="team-roster-error" class="team-roster-error" role="alert" hidden></p>
+          </section>
+
+          <aside class="team-quote-summary" aria-label="Resumen de cotización">
+            <div class="team-summary-heading"><span>RESUMEN AUTOMÁTICO</span><strong id="team-summary-count">0 referencias</strong></div>
+            <div class="team-summary-cards">
+              <article><i class="fa-solid fa-ruler-horizontal"></i><span>DTF necesario</span><strong id="team-summary-length">0.0 m</strong><small id="team-summary-raw">0 cm ocupados</small></article>
+              <article><i class="fa-solid fa-shapes"></i><span>Piezas a imprimir</span><strong id="team-summary-pieces">0</strong><small>todas las referencias</small></article>
+              <article class="team-total-card"><i class="fa-solid fa-coins"></i><span>Total sugerido</span><strong id="team-summary-total">C$ 0.00</strong><small id="team-summary-unit">Ingresá tus costos</small></article>
+            </div>
+            <canvas id="team-roll-preview" width="440" height="270" aria-label="Vista previa de la distribución de las piezas del pedido"></canvas>
+            <details class="team-costs">
+              <summary><i class="fa-solid fa-tag"></i> Agregar costos y ganancia <small>Opcional</small></summary>
+              <label><span>DTF por metro</span><span>C$ <input id="team-meter-cost" type="number" min="0" step="1" value="0"></span></label>
+              <label><span>Aplicación por pieza</span><span>C$ <input id="team-press-cost" type="number" min="0" step="1" value="0"></span></label>
+              <label><span>Preparación del pedido</span><span>C$ <input id="team-setup-cost" type="number" min="0" step="1" value="0"></span></label>
+              <label><span>Ganancia</span><span><input id="team-profit" type="number" min="0" max="90" step="1" value="30"> %</span></label>
+            </details>
+            <p id="team-summary-status" class="team-summary-status" role="status">Agregá una referencia para calcular el pedido.</p>
+            <div class="team-summary-actions"><button id="team-copy" type="button"><i class="fa-solid fa-copy"></i> Copiar pedido</button><button id="team-whatsapp" type="button" class="primary"><i class="fa-brands fa-whatsapp"></i> Compartir cotización</button></div>
+          </aside>
+        </div>
+      </div>
+
+      <div id="calc-sheet-mode" role="tabpanel" aria-labelledby="calc-sheet-tab" hidden>
       <div class="extra-studio-grid">
         <aside class="extra-controls" aria-label="Datos para cotizar DTF">
           <div class="extra-inspector-title"><span>PRODUCCIÓN Y COTIZACIÓN</span><h2 id="calculator-title"><i class="fa-solid fa-calculator"></i> Calculadora DTF</h2><p>Calculá capacidad, pliegos, costos y precio sugerido.</p></div>
@@ -373,6 +463,7 @@
           </div>
           <div class="extra-statusbar"><span id="calc-status">Ingresá las medidas reales del diseño, incluyendo cualquier borde transparente.</span><strong id="calc-arrangement">1 columna × 3 filas</strong></div>
         </div>
+      </div>
       </div>
     </section>
 
@@ -420,29 +511,7 @@
   </div>
 
   <div id="cart-modal-placeholder"></div>
-  <script>
-    if (window.MOMOTUS_TOOLS_DESKTOP) {
-      const loadToolsScript = src => new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-        const version = encodeURIComponent(window.MOMOTUS_TOOLS_VERSION || '1');
-        script.src = `${src}?v=${version}`;
-        script.onload = resolve;
-        script.onerror = reject;
-        document.body.appendChild(script);
-      });
-      loadToolsScript('js/workflow-bridge.js')
-        .then(() => loadToolsScript('herramientas/js/tools-shell.js'))
-        .then(() => loadToolsScript('herramientas/js/tools.js'))
-        .then(() => loadToolsScript('herramientas/js/tools-studio.js'))
-        .then(() => loadToolsScript('herramientas/js/tools-extra.js'))
-        .then(() => loadToolsScript('herramientas/js/tools-production.js'))
-        .then(() => loadToolsScript('herramientas/js/tools-mockup.js'))
-        .catch(error => {
-          console.error('No se pudieron cargar las herramientas:', error);
-          const message = document.getElementById('halftone-result-info');
-          if (message) message.textContent = 'No se pudieron cargar las herramientas. Actualizá la página con Ctrl + F5.';
-        });
-    }
-  </script>
+  <script src="herramientas/js/tools-loader.js?v=20261005-9"></script>
+  <script src="js/performance.js?v=20261005-1" defer></script>
 </body>
 </html>

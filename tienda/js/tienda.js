@@ -12,6 +12,7 @@ function renderBestSellers() {
 
   const bestProducts = getFilteredProducts().filter(product => product.featured === true).slice(0, 4);
 
+  const fragment = document.createDocumentFragment();
   bestProducts.forEach(product => {
     const inWishlist = isInWishlist(product.id);
     const card = document.createElement('div');
@@ -30,8 +31,9 @@ function renderBestSellers() {
         <p class="text-zinc-400 text-sm mt-1">${product.garmentName} · ${categoryLabels[product.category] || product.category}</p>
         <button onclick="event.stopImmediatePropagation(); showQuickView(${product.id});" class="mt-4 w-full bg-yellow-400 hover:bg-yellow-300 text-black font-bold py-3 rounded-3xl text-sm transition">Ver tallas</button>
       </div>`;
-    container.appendChild(card);
+    fragment.appendChild(card);
   });
+  container.appendChild(fragment);
 }
 
 function resetFilters() {
@@ -56,10 +58,20 @@ window.addEventListener('load', () => {
   renderBestSellers();
   const searchInput = document.getElementById('search-input');
   if (searchInput) {
-    searchInput.addEventListener('input', () => {
+    let searchTimer = 0;
+    const applySearch = () => {
       currentSearchTerm = searchInput.value.toLowerCase().trim();
       updateStoreURL();
       filterProducts();
+    };
+    searchInput.addEventListener('input', event => {
+      if (event.isComposing) return;
+      clearTimeout(searchTimer);
+      searchTimer = window.setTimeout(applySearch, 120);
+    });
+    searchInput.addEventListener('search', () => {
+      clearTimeout(searchTimer);
+      applySearch();
     });
   }
 });

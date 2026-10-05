@@ -12,11 +12,15 @@
   <meta property="og:image" content="img/heroes/hero-comunidad.webp">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" href="img/icons/icon-nica.webp" type="image/webp">
+  <link rel="preload" href="img/heroes/hero-comunidad.webp" as="image" type="image/webp" media="(min-width: 768px)" fetchpriority="high">
+  <link rel="preload" href="img/heroes/hero-comunidad-mobile.webp" as="image" type="image/webp" media="(max-width: 767px)" fetchpriority="high">
   
   <!-- === SEGURIDAD NETLIFY - Momotus Core (Abril 2026) === -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: https:; font-src 'self' https://cdnjs.cloudflare.com; connect-src 'self';">
 
   <!-- Tailwind CDN optimizado -->
+  <link rel="preconnect" href="https://cdn.tailwindcss.com">
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -33,15 +37,14 @@
 
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" 
         crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.css?v=20261005-1">
 </head>
 <body class="bg-zinc-950 text-white">
 
   <div id="navbar-placeholder"></div>
 
   <!-- HERO COMUNIDAD -->
-  <div class="relative h-[580px] bg-cover bg-center flex items-center overflow-hidden" 
-       style="background-image: linear-gradient(rgba(0,0,0,0.65), rgba(0,0,0,0.75)), url('img/heroes/hero-comunidad.webp');">
+  <div class="community-hero relative h-[580px] bg-cover bg-center flex items-center overflow-hidden">
     <div class="max-w-7xl mx-auto px-6 text-center relative z-10">
       <span class="inline-flex items-center gap-2 bg-yellow-400 text-black text-sm font-bold px-6 py-2 rounded-3xl mb-6">
         <i class="fa-solid fa-users"></i> COMUNIDAD MOMOTUS
@@ -92,6 +95,7 @@
   <!-- SCRIPT ORIGINAL -->
   <script src="tienda/js/catalogo.js"></script>
   <script src="js/script.js"></script>
+  <script src="js/performance.js?v=20261005-1" defer></script>
 
   <!-- Script extra para el botón de compartir -->
   <script>

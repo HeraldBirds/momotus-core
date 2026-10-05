@@ -213,6 +213,9 @@
 }
 .tool-history-actions button:hover:not(:disabled) { border-color: #facc15; color: #facc15; }
 .tool-history-actions button:disabled { opacity: 0.35; cursor: not-allowed; }
+.tool-history-actions button.is-loading i,
+.tool-shortcut.is-loading > i { animation: momotus-module-loading 0.8s linear infinite; }
+@keyframes momotus-module-loading { to { transform: rotate(360deg); } }
 .tool-document-info { color: #a1a1aa; font-size: 0.78rem; line-height: 1.45; }
 .tool-workspace-state {
   display: inline-flex;
@@ -882,6 +885,7 @@
 .tool-control-content > .tool-field > span { margin-top: -1.25rem; }
 .tool-control-content > .tool-check { align-items: center; }
 .tool-control-content > .tool-color-presets,
+.tool-control-content > .tool-download,
 .tool-control-content > .tool-secondary,
 .tool-control-content > .tool-presets { grid-column: 1 / -1; }
 .tool-control-group .tool-field { background: #18181b; }

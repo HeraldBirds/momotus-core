@@ -1,0 +1,172 @@
+#eliminar-fondo .background-palette-picker {
+  position: relative;
+  grid-column: 1 / -1;
+}
+
+#eliminar-fondo .background-palette-toggle {
+  display: grid;
+  grid-template-columns: 2.25rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.7rem;
+  width: 100%;
+  min-height: 3.55rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid #52525b;
+  border-radius: 0.8rem;
+  background: #18181b;
+  color: #f4f4f5;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.18s ease, background 0.18s ease;
+}
+
+#eliminar-fondo .background-palette-toggle:hover,
+#eliminar-fondo .background-palette-toggle:focus-visible,
+#eliminar-fondo .background-palette-toggle[aria-expanded="true"] {
+  border-color: #facc15;
+  background: #202024;
+  outline: none;
+}
+
+#eliminar-fondo .background-palette-toggle > span:nth-child(2) {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+#eliminar-fondo .background-palette-toggle small {
+  color: #a1a1aa;
+  font-size: 0.65rem;
+  font-weight: 700;
+}
+
+#eliminar-fondo .background-palette-toggle strong {
+  overflow: hidden;
+  font-size: 0.77rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#eliminar-fondo .background-palette-toggle > i {
+  color: #a1a1aa;
+  font-size: 0.72rem;
+  transition: transform 0.18s ease;
+}
+
+#eliminar-fondo .background-palette-toggle[aria-expanded="true"] > i { transform: rotate(180deg); }
+
+#eliminar-fondo .background-palette-current {
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 2px solid #71717a;
+  border-radius: 50%;
+  background: var(--selected-color);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.24), 0 0 0 2px #18181b;
+}
+
+#eliminar-fondo .background-color-palette {
+  position: relative;
+  z-index: 5;
+  margin-top: 0.45rem;
+  padding: 0.75rem;
+  border: 1px solid #52525b;
+  border-radius: 0.9rem;
+  background: #111114;
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.38);
+}
+
+#eliminar-fondo .background-color-palette[hidden] { display: none; }
+
+#eliminar-fondo .background-palette-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.7rem;
+  margin-bottom: 0.65rem;
+}
+
+#eliminar-fondo .background-palette-heading strong { font-size: 0.75rem; }
+#eliminar-fondo .background-palette-heading small { color: #a1a1aa; font-size: 0.62rem; text-align: right; }
+
+#eliminar-fondo .background-palette-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+#eliminar-fondo .background-palette-grid button {
+  position: relative;
+  aspect-ratio: 1;
+  min-width: 0;
+  border: 2px solid #52525b;
+  border-radius: 50%;
+  background: var(--preset-color);
+  cursor: pointer;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22);
+  transition: transform 0.16s ease, border-color 0.16s ease;
+}
+
+#eliminar-fondo .background-palette-grid button:hover,
+#eliminar-fondo .background-palette-grid button:focus-visible {
+  z-index: 1;
+  border-color: #facc15;
+  outline: none;
+  transform: scale(1.1);
+}
+
+#eliminar-fondo .background-palette-grid button.active {
+  border-color: #facc15;
+  box-shadow: 0 0 0 2px #111114, 0 0 0 4px #facc15;
+}
+
+#eliminar-fondo .background-palette-grid button.active::after {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  color: #fff;
+  content: "✓";
+  font-size: 0.62rem;
+  font-weight: 900;
+  text-shadow: 0 1px 3px #000, 0 0 2px #000;
+  transform: translate(-50%, -50%);
+}
+
+#eliminar-fondo .background-custom-color {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 2.4rem auto;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.75rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid #3f3f46;
+  border-radius: 0.7rem;
+  color: #d4d4d8;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+#eliminar-fondo .background-custom-color input {
+  width: 2.4rem;
+  height: 1.8rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0.45rem;
+  background: transparent;
+  cursor: pointer;
+}
+
+#eliminar-fondo .background-custom-color output {
+  color: #facc15;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.68rem;
+}
+
+#eliminar-fondo .background-color-palette > p {
+  display: flex;
+  gap: 0.45rem;
+  margin: 0.65rem 0 0;
+  color: #a1a1aa;
+  font-size: 0.62rem;
+  line-height: 1.4;
+}
+
+#eliminar-fondo .background-color-palette > p i { margin-top: 0.12rem; color: #facc15; }

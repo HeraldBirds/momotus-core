@@ -118,12 +118,14 @@
   };
 
   const enhance = payload => {
-    const { width, height, sharpness, clarity, denoise = 0 } = payload;
+    const { width, height, sharpness, clarity, denoise = 0, recovery = 0 } = payload;
     const source = new Uint8ClampedArray(payload.buffer);
     const output = new Uint8ClampedArray(source);
     const sharpAmount = Math.min(0.65, sharpness * 0.006);
     const clarityAmount = Math.min(0.32, clarity * 0.0045);
     const denoiseAmount = Math.min(0.55, Math.max(0, denoise) / 100);
+    const recoveryAmount = Math.min(0.72, Math.max(0, recovery) / 100 * 0.72);
+    const recoveryThreshold = 18 + Math.max(0, recovery) * 0.24;
     const rowStride = width * 4;
     for (let y = 2; y < height - 2; y++) {
       for (let x = 2; x < width - 2; x++) {
@@ -140,7 +142,16 @@
           const center = source[index + channel];
           const nearAverage = (source[index - 4 + channel] + source[index + 4 + channel] + source[index - rowStride + channel] + source[index + rowStride + channel]) / 4;
           const farAverage = (source[index - 8 + channel] + source[index + 8 + channel] + source[index - rowStride * 2 + channel] + source[index + rowStride * 2 + channel]) / 4;
-          const cleaned = Math.abs(center - nearAverage) < 24 ? center + (nearAverage - center) * denoiseAmount : center;
+          let similarTotal = center, similarCount = 1;
+          const left = source[index - 4 + channel], right = source[index + 4 + channel];
+          const up = source[index - rowStride + channel], down = source[index + rowStride + channel];
+          if (Math.abs(left - center) <= recoveryThreshold) { similarTotal += left; similarCount++; }
+          if (Math.abs(right - center) <= recoveryThreshold) { similarTotal += right; similarCount++; }
+          if (Math.abs(up - center) <= recoveryThreshold) { similarTotal += up; similarCount++; }
+          if (Math.abs(down - center) <= recoveryThreshold) { similarTotal += down; similarCount++; }
+          const recoveredAverage = similarTotal / similarCount;
+          const denoised = Math.abs(center - nearAverage) < 24 ? center + (nearAverage - center) * denoiseAmount : center;
+          const cleaned = denoised + (recoveredAverage - denoised) * recoveryAmount;
           const fineDetail = Math.abs(cleaned - nearAverage) >= 2 ? cleaned - nearAverage : 0;
           const localContrast = Math.abs(cleaned - farAverage) >= 4 ? cleaned - farAverage : 0;
           output[index + channel] = clampChannel(cleaned + fineDetail * sharpAmount + localContrast * clarityAmount);

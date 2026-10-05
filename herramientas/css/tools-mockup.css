@@ -157,9 +157,68 @@
 .mockup-transfer-primary:disabled { cursor: wait; opacity: .7; }
 body.mockup-transfer-active { overflow: hidden; }
 
-@media (max-width: 1599px) {
-  .mockup-transfer-open span { display: none; }
-  .mockup-transfer-open { width: 2rem; min-width: 2rem; padding: 0; }
+@media (min-width: 1024px) {
+  .momotus-studio .tools-editor-grid > .tool-probar {
+    min-height: 58px;
+    height: 58px;
+    padding-inline: .65rem;
+    overflow: visible;
+  }
+
+  .momotus-studio .tool-history-actions {
+    display: flex;
+    align-items: center;
+    gap: .35rem;
+    min-width: max-content;
+  }
+
+  .momotus-studio .tool-history-actions button,
+  .momotus-studio .tool-history-actions .production-launch,
+  .momotus-studio .tool-history-actions .mockup-transfer-open {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .35rem;
+    width: auto;
+    min-width: 2.15rem !important;
+    height: 2.15rem;
+    min-height: 2.15rem;
+    padding: 0 .65rem !important;
+    white-space: nowrap;
+    overflow: visible;
+  }
+
+  .momotus-studio .tool-history-actions button span,
+  .momotus-studio .tool-history-actions .production-launch span,
+  .momotus-studio .tool-history-actions .mockup-transfer-open span {
+    display: inline !important;
+    font-size: .64rem;
+    line-height: 1;
+  }
+
+  .momotus-studio .tool-history-actions .mockup-transfer-open {
+    border-color: #facc15;
+    background: #facc15;
+    color: #09090b;
+  }
+
+  .momotus-studio .tool-history-actions .mockup-transfer-open:disabled {
+    border-color: #52525b;
+    background: #27272a;
+    color: #71717a;
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .momotus-studio #tool-undo span,
+  .momotus-studio #tool-redo span,
+  .momotus-studio #tool-shortcuts-help span { display: none !important; }
+  .momotus-studio .tool-history-actions #tool-undo,
+  .momotus-studio .tool-history-actions #tool-redo,
+  .momotus-studio .tool-history-actions #tool-shortcuts-help {
+    width: 2.15rem;
+    padding: 0 !important;
+  }
 }
 
 @media (max-width: 760px) {

@@ -1,0 +1,141 @@
+#calculadora-dtf:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+#calculadora-dtf .calc-mode-switch {
+  display: grid;
+  flex: 0 0 auto;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  padding: 0.55rem;
+  border-bottom: 1px solid #2f3137;
+  background: #101114;
+}
+
+#calculadora-dtf .calc-mode-switch button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  min-height: 3.25rem;
+  padding: 0.45rem 0.8rem;
+  border: 1px solid #3f3f46;
+  border-radius: 0.75rem;
+  background: #191a1e;
+  color: #a1a1aa;
+  cursor: pointer;
+  text-align: left;
+}
+
+#calculadora-dtf .calc-mode-switch button.active {
+  border-color: #facc15;
+  background: rgba(250, 204, 21, 0.11);
+  color: #facc15;
+}
+
+#calculadora-dtf .calc-mode-switch button > i { font-size: 1rem; }
+#calculadora-dtf .calc-mode-switch button span { display: flex; flex-direction: column; }
+#calculadora-dtf .calc-mode-switch button strong { color: inherit; font-size: 0.76rem; }
+#calculadora-dtf .calc-mode-switch button small { color: #71717a; font-size: 0.58rem; }
+#calculadora-dtf #calc-sheet-mode { flex: 1 1 auto; min-height: 0; }
+#calculadora-dtf #calc-sheet-mode > .extra-studio-grid { height: 100%; }
+
+#calculadora-dtf .team-quote {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 0.8rem;
+  background: radial-gradient(circle at 80% 10%, rgba(250, 204, 21, 0.06), transparent 32%), #15161a;
+}
+
+#calculadora-dtf .team-quote[hidden] { display: none; }
+#calculadora-dtf .team-quote-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; margin-bottom: 0.75rem; }
+#calculadora-dtf .team-quote-heading > div:first-child > span,
+#calculadora-dtf .team-summary-heading > span { color: #facc15; font-size: 0.58rem; font-weight: 900; letter-spacing: 0.12em; }
+#calculadora-dtf .team-quote-heading h2 { margin: 0.15rem 0; color: #fff; font-size: 1.15rem; font-weight: 900; }
+#calculadora-dtf .team-quote-heading h2 i { color: #facc15; }
+#calculadora-dtf .team-quote-heading p { max-width: 760px; margin: 0; color: #8b8d95; font-size: 0.68rem; line-height: 1.45; }
+#calculadora-dtf .team-quote-steps { display: grid; grid-template-columns: auto auto auto auto auto auto; align-items: center; gap: 0.35rem; white-space: nowrap; }
+#calculadora-dtf .team-quote-steps b { display: grid; place-items: center; width: 1.4rem; height: 1.4rem; border-radius: 50%; background: #facc15; color: #111; font-size: 0.62rem; }
+#calculadora-dtf .team-quote-steps span { color: #71717a; font-size: 0.58rem; font-weight: 800; }
+
+#calculadora-dtf .team-quote-grid { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 0.75rem; min-height: 0; }
+#calculadora-dtf .team-roster-panel,
+#calculadora-dtf .team-quote-summary { border: 1px solid #30323a; border-radius: 0.85rem; background: #111216; }
+#calculadora-dtf .team-roster-panel { min-width: 0; padding: 0.75rem; }
+#calculadora-dtf .team-order-basics { display: grid; grid-template-columns: minmax(220px, 1fr) 150px 130px; gap: 0.55rem; }
+#calculadora-dtf .team-order-basics label,
+#calculadora-dtf .team-costs label { display: flex; flex-direction: column; gap: 0.25rem; color: #8b8d95; font-size: 0.6rem; font-weight: 800; }
+#calculadora-dtf .team-order-basics input,
+#calculadora-dtf .team-order-basics select,
+#calculadora-dtf .team-paste-list textarea,
+#calculadora-dtf .team-costs input { width: 100%; border: 1px solid #3f4148; border-radius: 0.55rem; background: #1b1c21; color: #fff; padding: 0.48rem 0.58rem; font-size: 0.68rem; outline: none; }
+#calculadora-dtf .team-order-basics input:focus,
+#calculadora-dtf .team-order-basics select:focus,
+#calculadora-dtf .team-paste-list textarea:focus,
+#calculadora-dtf .team-costs input:focus { border-color: #facc15; }
+
+#calculadora-dtf .team-paste-list { margin-top: 0.55rem; border: 1px dashed #3f4148; border-radius: 0.65rem; background: #17181c; }
+#calculadora-dtf .team-paste-list summary { padding: 0.55rem 0.65rem; color: #d4d4d8; font-size: 0.66rem; font-weight: 800; cursor: pointer; }
+#calculadora-dtf .team-paste-list summary i { margin-right: 0.35rem; color: #facc15; }
+#calculadora-dtf .team-paste-list[open] { padding: 0 0.65rem 0.65rem; }
+#calculadora-dtf .team-paste-list[open] summary { margin: 0 -0.65rem 0.45rem; }
+#calculadora-dtf .team-paste-list p { margin: 0 0 0.4rem; color: #71717a; font-size: 0.58rem; }
+#calculadora-dtf .team-paste-list textarea { resize: vertical; min-height: 64px; }
+#calculadora-dtf .team-paste-list button,
+#calculadora-dtf #team-add-member,
+#calculadora-dtf #team-example { margin-top: 0.4rem; border: 1px solid #facc15; border-radius: 0.5rem; background: rgba(250, 204, 21, 0.1); color: #facc15; padding: 0.42rem 0.6rem; font-size: 0.62rem; font-weight: 900; cursor: pointer; }
+#calculadora-dtf #team-example { border-color: #52525b; background: #202126; color: #d4d4d8; }
+
+#calculadora-dtf .team-roster-title { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; margin: 0.65rem 0 0.4rem; }
+#calculadora-dtf .team-roster-title h3 { margin: 0; color: #fff; font-size: 0.82rem; }
+#calculadora-dtf .team-roster-title p { margin: 0.1rem 0 0; color: #71717a; font-size: 0.56rem; }
+#calculadora-dtf .team-roster-actions { display: flex; gap: 0.4rem; }
+#calculadora-dtf .team-roster-table-wrap { max-height: 310px; overflow: auto; border: 1px solid #292b31; border-radius: 0.65rem; }
+#calculadora-dtf .team-roster-table { width: 100%; min-width: 790px; border-collapse: collapse; }
+#calculadora-dtf .team-roster-table th { position: sticky; top: 0; z-index: 1; padding: 0.46rem 0.38rem; background: #202126; color: #8b8d95; font-size: 0.54rem; text-align: left; }
+#calculadora-dtf .team-roster-table td { padding: 0.32rem; border-top: 1px solid #292b31; }
+#calculadora-dtf .team-roster-table input,
+#calculadora-dtf .team-roster-table select { width: 100%; min-height: 2rem; border: 1px solid #393b42; border-radius: 0.42rem; background: #18191d; color: #f4f4f5; padding: 0.35rem 0.42rem; font-size: 0.62rem; outline: none; }
+#calculadora-dtf .team-roster-table input:focus,
+#calculadora-dtf .team-roster-table select:focus { border-color: #facc15; }
+#calculadora-dtf .team-roster-table .team-name { min-width: 120px; }
+#calculadora-dtf .team-roster-table .team-number { width: 58px; text-align: center; }
+#calculadora-dtf .team-roster-table .team-garment { min-width: 105px; }
+#calculadora-dtf .team-roster-table .team-size { min-width: 82px; }
+#calculadora-dtf .team-roster-table .team-measure { width: 76px; text-align: right; }
+#calculadora-dtf .team-remove { display: grid; place-items: center; width: 2rem; height: 2rem; border: 0; border-radius: 0.42rem; background: transparent; color: #71717a; cursor: pointer; }
+#calculadora-dtf .team-remove:hover { background: rgba(248, 113, 113, 0.12); color: #f87171; }
+#calculadora-dtf .team-roster-error { margin: 0.45rem 0 0; color: #fca5a5; font-size: 0.62rem; }
+
+#calculadora-dtf .team-quote-summary { display: flex; min-height: 0; flex-direction: column; padding: 0.7rem; }
+#calculadora-dtf .team-summary-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.55rem; }
+#calculadora-dtf .team-summary-heading strong { color: #fff; font-size: 0.72rem; }
+#calculadora-dtf .team-summary-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.4rem; }
+#calculadora-dtf .team-summary-cards article { display: grid; grid-template-columns: auto 1fr; gap: 0.05rem 0.45rem; padding: 0.55rem; border: 1px solid #30323a; border-radius: 0.6rem; background: #191a1e; }
+#calculadora-dtf .team-summary-cards article > i { grid-row: 1 / 4; align-self: center; color: #facc15; }
+#calculadora-dtf .team-summary-cards article > span { color: #8b8d95; font-size: 0.53rem; }
+#calculadora-dtf .team-summary-cards article > strong { color: #fff; font-size: 0.88rem; }
+#calculadora-dtf .team-summary-cards article > small { color: #62646c; font-size: 0.5rem; }
+#calculadora-dtf .team-summary-cards .team-total-card { grid-column: 1 / -1; border-color: rgba(250, 204, 21, 0.45); background: rgba(250, 204, 21, 0.08); }
+#calculadora-dtf .team-summary-cards .team-total-card > strong { color: #facc15; }
+#calculadora-dtf #team-roll-preview { display: block; width: 100%; height: 150px; margin-top: 0.5rem; border: 1px solid #30323a; border-radius: 0.6rem; background: #24252a; }
+#calculadora-dtf .team-costs { margin-top: 0.5rem; border: 1px solid #30323a; border-radius: 0.6rem; background: #18191d; }
+#calculadora-dtf .team-costs summary { padding: 0.52rem 0.6rem; color: #d4d4d8; font-size: 0.62rem; font-weight: 900; cursor: pointer; }
+#calculadora-dtf .team-costs summary i { margin-right: 0.35rem; color: #facc15; }
+#calculadora-dtf .team-costs summary small { float: right; color: #71717a; }
+#calculadora-dtf .team-costs[open] { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.45rem; padding: 0 0.6rem 0.6rem; }
+#calculadora-dtf .team-costs[open] summary { grid-column: 1 / -1; margin: 0 -0.6rem; }
+#calculadora-dtf .team-costs label > span:last-child { display: flex; align-items: center; gap: 0.3rem; color: #a1a1aa; }
+#calculadora-dtf .team-summary-status { margin: 0.5rem 0; color: #8b8d95; font-size: 0.58rem; line-height: 1.4; }
+#calculadora-dtf .team-summary-actions { display: grid; grid-template-columns: 1fr 1.35fr; gap: 0.4rem; margin-top: auto; }
+#calculadora-dtf .team-summary-actions button { min-height: 2.4rem; border: 1px solid #44464e; border-radius: 0.55rem; background: #222329; color: #e4e4e7; font-size: 0.6rem; font-weight: 900; cursor: pointer; }
+#calculadora-dtf .team-summary-actions button.primary { border-color: #22c55e; background: #16a34a; color: #fff; }
+
+@media (max-width: 1180px) {
+  #calculadora-dtf .team-quote-grid { grid-template-columns: minmax(0, 1fr) 270px; }
+  #calculadora-dtf .team-quote-steps { display: none; }
+}

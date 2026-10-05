@@ -16,8 +16,11 @@
   <!-- === SEGURIDAD NETLIFY - Momotus Core (Abril 2026) === -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: https:; font-src 'self' https://cdnjs.cloudflare.com; connect-src 'self';">
 
-  <link rel="preload" href="img/heroes/hero-1.webp" as="image" type="image/webp" fetchpriority="high">
+  <link rel="preload" href="img/heroes/hero-1.webp" as="image" type="image/webp" media="(min-width: 768px)" fetchpriority="high">
+  <link rel="preload" href="img/heroes/hero-1-mobile.webp" as="image" type="image/webp" media="(max-width: 767px)" fetchpriority="high">
 
+  <link rel="preconnect" href="https://cdn.tailwindcss.com">
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -28,7 +31,7 @@
 
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" 
         crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.css?v=20261005-1">
 
   <script type="application/ld+json">
   {
@@ -54,8 +57,7 @@
 
   <!-- HERO CAROUSEL -->
   <section id="inicio" class="hero-section relative overflow-hidden" role="region" aria-roledescription="carrusel" aria-label="Destacados de Momotus Core">
-    <div id="hero-bg" class="absolute inset-0 bg-cover bg-center transition-all duration-1000 ease-in-out" 
-         style="background-image: url('img/heroes/hero-1.webp');" aria-hidden="true"></div>
+    <div id="hero-bg" class="absolute inset-0 bg-cover bg-center transition-all duration-1000 ease-in-out" aria-hidden="true"></div>
     <div class="absolute inset-0 bg-gradient-to-r from-black/70 to-transparent"></div>
     
     <div class="max-w-7xl mx-auto px-6 relative z-10 h-full flex items-center">
@@ -494,5 +496,6 @@
 
   <script src="tienda/js/catalogo.js"></script>
   <script src="js/script.js"></script>
+  <script src="js/performance.js?v=20261005-1" defer></script>
 </body>
 </html>

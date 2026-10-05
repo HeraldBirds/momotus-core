@@ -774,6 +774,7 @@ const renderProducts = (filteredProducts) => {
     grid.innerHTML = `<p class="col-span-full text-center text-zinc-400 py-12 text-xl">No encontramos productos con esos filtros.</p>`;
     return;
   }
+  const fragment = document.createDocumentFragment();
   filteredProducts.forEach(product => {
     const inWishlist = isInWishlist(product.id);
     const card = document.createElement('div');
@@ -793,8 +794,9 @@ const renderProducts = (filteredProducts) => {
         <button type="button" onclick="showQuickView(${product.id})" class="mt-4 w-full border border-yellow-400 text-yellow-400 hover:bg-yellow-400 hover:text-black font-bold py-3 rounded-3xl text-sm transition">Ver tallas</button>
       </div>
     `;
-    grid.appendChild(card);
+    fragment.appendChild(card);
   });
+  grid.appendChild(fragment);
 };
 
 const filterGarment = garment => {

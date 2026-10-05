@@ -147,7 +147,21 @@ body {
 
 /* ==================== HERO & OTROS ==================== */
 #hero-bg {
+  background-image: url('../img/heroes/hero-1.webp');
   transition: opacity 0.35s ease, transform 0.8s ease;
+}
+
+.store-hero { background-image: url('../img/heroes/hero-tienda.webp'); }
+.community-hero {
+  background-image: linear-gradient(rgba(0,0,0,0.65), rgba(0,0,0,0.75)), url('../img/heroes/hero-comunidad.webp');
+}
+
+@media (max-width: 767px) {
+  #hero-bg { background-image: url('../img/heroes/hero-1-mobile.webp'); }
+  .store-hero { background-image: url('../img/heroes/hero-tienda-mobile.webp'); }
+  .community-hero {
+    background-image: linear-gradient(rgba(0,0,0,0.65), rgba(0,0,0,0.75)), url('../img/heroes/hero-comunidad-mobile.webp');
+  }
 }
 
 .hero-section {

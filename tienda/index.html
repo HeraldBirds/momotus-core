@@ -17,8 +17,11 @@
   <!-- === SEGURIDAD NETLIFY - Momotus Core (Abril 2026) === -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: https:; font-src 'self' https://cdnjs.cloudflare.com; connect-src 'self';">
 
-  <link rel="preload" href="img/heroes/hero-tienda.webp" as="image" type="image/webp">
+  <link rel="preload" href="img/heroes/hero-tienda.webp" as="image" type="image/webp" media="(min-width: 768px)" fetchpriority="high">
+  <link rel="preload" href="img/heroes/hero-tienda-mobile.webp" as="image" type="image/webp" media="(max-width: 767px)" fetchpriority="high">
 
+  <link rel="preconnect" href="https://cdn.tailwindcss.com">
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -29,15 +32,16 @@
 
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" 
         crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.css?v=20261005-1">
   <link rel="stylesheet" href="tienda/css/tienda.css?v=20261003-2">
+  <link rel="stylesheet" href="tienda/css/temporadas.css?v=20261005-4">
 </head>
 <body class="bg-zinc-950 text-white">
 
   <div id="navbar-placeholder"></div>
 
   <!-- HERO TIENDA -->
-  <div class="store-hero relative h-[620px] bg-cover bg-center flex items-center overflow-hidden" style="background-image: url('img/heroes/hero-tienda.webp');">
+  <div class="store-hero relative h-[620px] bg-cover bg-center flex items-center overflow-hidden">
     <div class="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/70"></div>
     <div class="max-w-7xl mx-auto px-6 relative z-10 text-center w-full">
       <h1 class="text-5xl md:text-8xl font-black tracking-[-3px] leading-none text-white mb-4 drop-shadow-2xl">TIENDA MOMOTUS</h1>
@@ -47,6 +51,26 @@
       <i class="fa-solid fa-fire text-orange-400"></i> DISEÑOS LISTOS PARA VOS
     </div>
   </div>
+
+  <section id="seasonal-event" class="seasonal-event" aria-labelledby="seasonal-title" hidden>
+    <div class="seasonal-atmosphere" aria-hidden="true"><span></span><span></span><span></span></div>
+    <div class="seasonal-container">
+      <header class="seasonal-heading">
+        <div class="seasonal-title-block">
+          <div id="seasonal-emblem" class="seasonal-emblem" aria-hidden="true"><i class="fa-solid fa-moon"></i></div>
+          <div><span id="seasonal-kicker">EDICIÓN DE TEMPORADA</span><h2 id="seasonal-title">Diseños que salen solo por un tiempo</h2><p id="seasonal-description"></p><div id="seasonal-badges" class="seasonal-badges" aria-label="Prendas disponibles"></div></div>
+        </div>
+        <div class="seasonal-countdown"><small id="seasonal-date-label">Tiempo disponible</small><strong id="seasonal-countdown-value">Edición limitada</strong><div class="seasonal-progress" aria-hidden="true"><span id="seasonal-progress-fill"></span></div><em>Disponible durante las fechas indicadas</em></div>
+      </header>
+      <div class="seasonal-toolbar">
+        <div id="seasonal-filters" class="seasonal-filters" role="group" aria-label="Filtrar colección de temporada"></div>
+        <div class="seasonal-navigation"><span id="seasonal-results" role="status" aria-live="polite"></span><button id="seasonal-prev" type="button" aria-label="Ver productos anteriores"><i class="fa-solid fa-arrow-left"></i></button><button id="seasonal-next" type="button" aria-label="Ver productos siguientes"><i class="fa-solid fa-arrow-right"></i></button></div>
+      </div>
+      <div id="seasonal-products" class="seasonal-products" aria-live="polite"></div>
+      <p id="seasonal-empty" class="seasonal-empty" hidden>No hay productos publicados en este filtro.</p>
+      <footer class="seasonal-footer"><p><i class="fa-solid fa-circle-info"></i> Los diseños, precios y disponibilidad se confirman antes de preparar el pedido.</p><button id="seasonal-catalog-link" type="button">Ver el catálogo permanente <i class="fa-solid fa-arrow-down"></i></button></footer>
+    </div>
+  </section>
 
   <section class="py-12 bg-zinc-900">
     <div class="max-w-7xl mx-auto px-6">
@@ -149,7 +173,7 @@
       </div>
 
       <!-- GRID PRINCIPAL -->
-      <h3 id="catalog-grid-title" class="text-2xl font-bold mb-5">Todos los productos</h3>
+      <h3 id="catalog-grid-title" tabindex="-1" class="text-2xl font-bold mb-5">Todos los productos</h3>
       <div id="products-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6" aria-labelledby="catalog-grid-title"></div>
     </div>
   </section>
@@ -185,6 +209,8 @@
 
   <script src="tienda/js/catalogo.js"></script>
   <script src="js/script.js"></script>
+  <script src="tienda/js/temporadas.js?v=20261005-4"></script>
   <script src="tienda/js/tienda.js"></script>
+  <script src="js/performance.js?v=20261005-1" defer></script>
 </body>
 </html>
