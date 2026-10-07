@@ -99,27 +99,6 @@
     return effectsPromise;
   };
 
-  window.MomotusOpenEffects = async (canvas, filename) => {
-    const from=document.getElementById('production-studio') && !document.getElementById('production-studio').hidden ? 'production' : window.MomotusToolsAPI.getActiveType();
-    if (!await window.MomotusReviewTransfer(canvas,'effects',filename,from)) return false;
-    await loadExtra(); await loadEffects();
-    window.MomotusRememberTransfer(from,'effects');
-    document.querySelector('[data-extra-tool="efectos-dtf"]')?.click();
-    return window.MomotusEffectsAPI.importCanvas(canvas, filename);
-  };
-  window.MomotusEffectsToProduction = async (canvas, filename) => {
-    if (!await window.MomotusReviewTransfer(canvas,'production',filename,'effects')) return false;
-    await loadProduction();
-    window.MomotusRememberTransfer('effects','production');
-    window.dispatchEvent(new CustomEvent('momotus:production-import-canvas',{detail:{canvas,filename}}));
-    return true;
-  };
-  const installEffectsLauncher = () => {
-    const button=document.createElement('button');button.type='button';button.className='effects-apply-launch';button.textContent='Aplicar efectos';
-    button.addEventListener('click',async()=>{button.disabled=true;try{const type=window.MomotusToolsAPI.getActiveType();const canvas=await window.MomotusToolsAPI.getResultCanvas(type);if(!canvas)throw Error('Primero cargá una imagen en la herramienta activa.');await window.MomotusOpenEffects(canvas,window.MomotusToolsAPI.getDocumentInfo(type)?.filename);}catch(error){window.showToast?.(error.message);}finally{button.disabled=false;}});
-    document.querySelector('.tool-history-actions')?.append(button);
-  };
-
   const installProductionLauncher = () => {
     const actions = document.querySelector('.tool-history-actions');
     if (!actions || actions.querySelector('.production-loader')) return;
@@ -190,7 +169,6 @@
       await loadScript('herramientas/js/tools-precision-core.js');
       await loadScript('herramientas/js/tools-precision.js');
       installProductionLauncher();
-      installEffectsLauncher();
 
       const params = new URLSearchParams(location.search);
       if (params.get('importar') === 'disenador') {

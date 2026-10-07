@@ -305,7 +305,8 @@ const applyDesignSource = (src, side, message = '') => {
   if (uploadedImage.complete) updateImageQuality(uploadedImage, side);
   else uploadedImage.addEventListener('load', () => updateImageQuality(uploadedImage, side), { once: true });
   if (message) showToast(message);
-  saveCurrentDesign();
+  // Guardar una nueva imagen de inmediato; los ajustes continuos siguen agrupados.
+  flushScheduledDesignSave();
   return true;
 };
 
