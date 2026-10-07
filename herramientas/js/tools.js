@@ -2701,7 +2701,7 @@
     },
     getResultCanvas: async type => {
       const selected = type || window.MomotusToolsAPI.getActiveType();
-      if (selected === 'effects') return await window.MomotusEffectsAPI?.getResultCanvas() || null;
+      if (selected === 'effects') return null; // Efectos conserva su procesamiento y exportación independientes.
       if (!states[selected]) return null;
       if (selected === 'quality' && (byId('quality-download').disabled || states.quality.qualityPreviewOnly)) {
         if (!await processQuality(true)) return null;
@@ -2713,8 +2713,7 @@
       return prepareTransferCanvas(selected);
     },
     sendCanvasToTool: async (canvas, type, filename = 'momotus-produccion.png') => {
-      if (canvas && type === 'effects') return Boolean(await window.MomotusOpenEffects?.(canvas,filename));
-      if (!canvas || !['halftone', 'background', 'quality'].includes(type)) return false;
+      if (!canvas || window.MomotusToolsAPI.getActiveType() === 'effects' || !['halftone', 'background', 'quality'].includes(type)) return false;
       const from=!byId('production-studio')?.hidden && byId('production-studio') ? 'production' : window.MomotusToolsAPI.getActiveType();
       if (!await window.MomotusReviewTransfer(canvas,type,filename,from)) return false;
       const file = await canvasToFile(canvas, filename);

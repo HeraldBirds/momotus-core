@@ -18,7 +18,7 @@
   let source=null,filename='momotus',style='satin',generation=0,loadGeneration=0,timer=null,previewResult=null,previewOriginal=null,job=null,busy=false,compare=false;
   const status=(message,error=false)=>{byId('effects-status').textContent=message;byId('effects-status').classList.toggle('is-error',error);};
   const cancel=()=>{if(job){job.worker.terminate();job.reject(Error('Proceso reemplazado.'));job=null;}};
-  const ready=value=>{byId('effects-download').disabled=!value||busy;byId('effects-send').disabled=!value||busy;};
+  const ready=value=>{byId('effects-download').disabled=!value||busy;};
   const setBusy=value=>{busy=value;panel.querySelectorAll('button,input,select').forEach(el=>{el.disabled=value;});if(!value){byId('effects-remove').disabled=!byId('effects-protect').checked;ready(Boolean(source&&previewResult));renderZones();}};
   function options(width){
     const widthCm=Number(byId('effects-width').value),pitch=Number(byId('effects-pitch').value),levels=Number(byId('effects-levels').value);
@@ -132,7 +132,6 @@
   const stage=byId('effects-stage');stage.addEventListener('dragover',e=>e.preventDefault());stage.addEventListener('drop',e=>{e.preventDefault();loadFile(e.dataTransfer.files[0]);});
   document.addEventListener('paste',e=>{if(panel.hidden||busy||['INPUT','TEXTAREA'].includes(e.target.tagName))return;const file=[...e.clipboardData.items].find(i=>i.type.startsWith('image/'))?.getAsFile();if(file){e.preventDefault();loadFile(file);}});
   byId('effects-demo').addEventListener('click',()=>{loadGeneration++;const c=document.createElement('canvas');c.width=1600;c.height=1000;const ctx=c.getContext('2d');ctx.fillStyle='#ffcc00';ctx.beginPath();ctx.arc(800,350,220,0,Math.PI*2);ctx.fill();ctx.fillStyle='#ff5145';ctx.fillRect(430,670,740,170);ctx.fillStyle='#ffffff';ctx.font='bold 110px sans-serif';ctx.textAlign='center';ctx.fillText('MOMOTUS',800,795);ctx.fillStyle='#101010';ctx.font='bold 155px sans-serif';ctx.fillText('M',800,405);install(c,'ejemplo-momotus.png');});
-  byId('effects-import').addEventListener('click',async()=>{const api=window.MomotusToolsAPI;const type=byId('effects-import-source').value;const token=++loadGeneration;setBusy(true);try{status('Recuperando resultado del editor…');const c=await api?.getResultCanvas(type);if(token!==loadGeneration)return;if(!c)throw Error('No hay un resultado en esa herramienta. Cargá o procesá una imagen primero.');if(!await window.MomotusReviewTransfer(c,'effects',api.getDocumentInfo(type)?.filename,type))return;window.MomotusRememberTransfer(type,'effects');checkSource(c);const copy=document.createElement('canvas');copy.width=c.width;copy.height=c.height;copy.getContext('2d').drawImage(c,0,0);setBusy(false);install(copy,api.getDocumentInfo(type)?.filename||'resultado');}catch(e){status(e.message,true);}finally{setBusy(false);}});
   controls.forEach(key=>byId(`effects-${key}`)?.addEventListener('input',schedule));
   panel.querySelectorAll('[data-effect]').forEach(button=>button.addEventListener('click',()=>{style=button.dataset.effect;description();schedule();}));
   panel.querySelectorAll('[data-effects-bg]').forEach(button=>button.addEventListener('click',()=>{stage.dataset.background=button.dataset.effectsBg;panel.querySelectorAll('[data-effects-bg]').forEach(b=>{const active=b===button;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));});}));
@@ -148,7 +147,6 @@
     finally{setBusy(false);}
   }
   const downloadEffect=()=>finalOutput(async c=>{const original=await blobOf(c),bytes=core.png300(new Uint8Array(await original.arrayBuffer())),blob=new Blob([bytes],{type:'image/png'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=`${filename}-${style}-300dpi.png`;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);});
-  byId('effects-send').addEventListener('click',()=>finalOutput(async c=>{const target=byId('effects-send-target').value;if(target==='production'){await window.MomotusEffectsToProduction(c,`${filename}-${style}.png`);return;}if(target==='vector'){if(!await window.MomotusReviewTransfer(c,'vector',filename,'effects'))return;window.MomotusRememberTransfer('effects','vector');const blob=await blobOf(c);document.querySelector('[data-extra-tool="vectorizacion"]')?.click();window.dispatchEvent(new CustomEvent('momotus:vector-import',{detail:{file:new File([blob],`${filename}-${style}.png`,{type:'image/png'})}}));return;}if(!await window.MomotusToolsAPI?.sendCanvasToTool(c,target,`${filename}-${style}.png`))throw Error('No se pudo enviar el resultado al editor.');}));
   // Zonas, máscaras e historial pertenecen a este documento de Efectos.
   let zones=[],activeZone=0,zoneSequence=0,fullResult=null,fullView=false,painting=false,lastPoint=null,paintMode='off';
   let snapshots=[],historyIndex=-1,historyTimer=null,saveTimer=null,restoring=false;
@@ -236,8 +234,6 @@
   window.MomotusEffectsAPI=Object.freeze({
     hasDocument:()=>Boolean(source&&previewResult&&!busy),
     getDocumentInfo:()=>{if(!source)return null;try{const d=outputSize();return {type:'effects',filename:`${filename}-${style}`,naturalWidth:d.width,naturalHeight:d.height};}catch{return null;}},
-    getResultCanvas:()=>finalOutput(async c=>c),
-    importCanvas:(canvas,name)=>{if(busy)return false;checkSource(canvas);const c=document.createElement('canvas');c.width=canvas.width;c.height=canvas.height;c.getContext('2d').drawImage(canvas,0,0);install(c,name);return true;}
   });
   const notify=()=>window.dispatchEvent(new CustomEvent('momotus:result-ready',{detail:{type:'effects',ready:Boolean(source&&previewResult&&!busy)}}));
   new MutationObserver(notify).observe(byId('effects-download'),{attributes:true,attributeFilter:['disabled']});
