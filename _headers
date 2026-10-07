@@ -5,12 +5,7 @@
 
 /*
   # === Content Security Policy (CSP) - Muy estricto ===
-  Content-Security-Policy: default-src 'self'; 
-    script-src 'self' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com 'unsafe-inline'; 
-    style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; 
-    img-src 'self' data: https: blob:; 
-    font-src 'self' https://cdnjs.cloudflare.com; 
-    connect-src 'self';
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; worker-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none';
 
   # === Seguridad HTTPS y protección contra ataques ===
   Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
@@ -26,3 +21,36 @@
 
   # === Desactiva características peligrosas del navegador ===
   Permissions-Policy: camera=(), microphone=(), geolocation=(), interest-cohort=()
+
+/*.html
+  Cache-Control: no-cache, must-revalidate
+
+/tienda/
+  Cache-Control: no-cache, must-revalidate
+
+/herramientas/
+  Cache-Control: no-cache, must-revalidate
+
+/js/*
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/css/*
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/tienda/js/*
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/tienda/css/*
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/herramientas/js/*
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/herramientas/css/*
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/img/*
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/vendor/*
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800

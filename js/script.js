@@ -5,6 +5,7 @@ let cart = [];
 let wishlist = [];
 let currentGarment = 'camiseta';
 let currentCategory = 'all';
+let currentSubcategory = 'all';
 let currentSearchTerm = '';
 let currentMinPrice = 0;
 let currentMaxPrice = Number.POSITIVE_INFINITY;
@@ -61,6 +62,8 @@ const categoryLabels = {
   unica: 'Únicas'
 };
 
+Object.assign(categoryLabels,window.MomotusStoreConfig?.categories || {});
+
 const categorySearchTerms = {
   fauna: 'fauna nica ave aves pajaro pajaros buho buhos lechuza naturaleza nicaragua',
   anime: 'anime manga japones japonés',
@@ -81,7 +84,7 @@ const readStoredJSON = (key, fallback) => {
     return value ? JSON.parse(value) : fallback;
   } catch (error) {
     console.warn(`No se pudo recuperar ${key}; se usará un estado limpio.`, error);
-    localStorage.removeItem(key);
+    try { localStorage.removeItem(key); } catch { /* almacenamiento bloqueado */ }
     return fallback;
   }
 };
@@ -393,7 +396,7 @@ const createOrderCode = () => {
   return `MOM-${datePart}-${randomPart}`;
 };
 
-const checkout = () => {
+const checkout = (reviewed = false) => {
   if (cart.length === 0) return;
 
   const nameInput = document.getElementById('checkout-name');
@@ -420,6 +423,7 @@ const checkout = () => {
     return;
   }
   
+  if(!reviewed && window.MomotusStoreExperience) return window.MomotusStoreExperience.reviewCart();
   const orderCode = createOrderCode();
   const customerName = nameInput.value.trim();
   const customerCity = cityInput.value.trim();
@@ -433,9 +437,9 @@ const checkout = () => {
   text += `\nTotal: C$ ${cart.reduce((sum, item) => sum + item.price * (item.quantity || 1), 0)}\n\n`;
   text += "Total estimado sujeto a confirmación de disponibilidad.\n\nPor favor, confirmame el pedido. ¡Gracias! 🇳🇮";
 
-  const whatsappWindow = window.open(`https://wa.me/50555010044?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
-  if (!whatsappWindow) return showToast("❌ Permite las ventanas emergentes para abrir WhatsApp");
-  showToast("✅ WhatsApp abierto; tu carrito se conserva");
+  // Una navegación directa funciona sin depender de ventanas emergentes.
+  saveCart();
+  window.location.assign(`https://wa.me/50555010044?text=${encodeURIComponent(text)}`);
 };
 
 // ==================== WISHLIST ====================
@@ -572,7 +576,7 @@ const renderQuickViewSizes = product => {
     const stock = Number(product.stock[size]) || 0;
     const stockClass = stock > 8 ? 'text-green-400' : stock > 3 ? 'text-yellow-400' : 'text-red-400';
     const stockText = stock > 8 ? 'Disponible' : stock > 0 ? 'Pocas unidades' : 'Agotado';
-    return `<button type="button" data-quick-size="${size}" onclick="selectQuickViewSize('${size}')" aria-pressed="false" aria-label="Seleccionar talla ${size}, ${stockText}" class="quick-size-btn px-5 py-3 rounded-2xl border border-zinc-600 hover:border-yellow-400 transition flex flex-col items-center ${stock === 0 ? 'opacity-40 pointer-events-none' : ''}">
+    return `<button type="button" data-quick-size="${size}" ${stock < 1 ? 'disabled' : ''} onclick="selectQuickViewSize('${size}')" aria-pressed="false" aria-label="Seleccionar talla ${size}, ${stockText}" class="quick-size-btn px-5 py-3 rounded-2xl border border-zinc-600 hover:border-yellow-400 transition flex flex-col items-center ${stock === 0 ? 'opacity-40 pointer-events-none' : ''}">
       <span>${size}</span>
       <span class="${stockClass} text-xs font-medium">${stockText}</span>
     </button>`;
@@ -599,7 +603,7 @@ const showQuickView = (id, updateURL = true) => {
             <p id="quickview-product-price" class="text-4xl font-bold text-yellow-400 mb-2">C$ ${product.price}</p>
             <div class="flex flex-wrap gap-2 mb-6">
               <span class="inline-block bg-yellow-400 text-black font-bold text-xs px-4 py-1 rounded-full">${product.garmentName}</span>
-              <span class="inline-block bg-black/70 text-white text-xs px-4 py-1 rounded-full">${categoryLabels[product.category] || product.category}</span>
+              <span class="inline-block bg-black/70 text-white text-xs px-4 py-1 rounded-full">${getProductCategoryLabel(product)}</span>
             </div>
             <div class="mb-6">
               <p class="font-medium mb-3">Talla</p>
@@ -627,6 +631,7 @@ const showQuickView = (id, updateURL = true) => {
   if (existing) existing.remove();
   document.body.insertAdjacentHTML('beforeend', modalHTML);
   activateModal(document.getElementById('quickview-modal'));
+  window.MomotusStoreExperience?.enhanceProduct(product);
   if (updateURL && document.getElementById('products-grid')) {
     const url = new URL(window.location.href);
     url.searchParams.set('producto', product.id);
@@ -724,18 +729,23 @@ const renderTestimonials = () => {
 };
 
 // ==================== TIENDA - RENDER Y FILTROS ====================
-const featuredProductIds = products.filter(product => product.featured === true).map(product => product.id);
 
-const getFilteredProducts = () => {
+const urbanSubcategories = window.MomotusCatalog?.urbanSubcategories || {};
+const getProductCategoryLabel = product => `${categoryLabels[product.category] || product.category}${product.category === 'urbano' && urbanSubcategories[product.subcategory] ? ' · '+urbanSubcategories[product.subcategory].label : ''}`;
+
+const getFilteredProducts = ({ignoreSubcategory=false}={}) => {
   let filtered = [...products];
   if (currentGarment !== 'all') filtered = filtered.filter(p => p.garment === currentGarment);
   if (currentCategory !== 'all') filtered = filtered.filter(p => p.category === currentCategory);
+  if (!ignoreSubcategory && currentCategory === 'urbano' && currentSubcategory !== 'all') filtered = filtered.filter(p => p.subcategory === currentSubcategory);
   if (showWishlistOnly) filtered = filtered.filter(p => isInWishlist(p.id));
   if (currentSearchTerm) {
     const searchTerm = normalizeSearchText(currentSearchTerm);
     filtered = filtered.filter(product => normalizeSearchText([
       product.name,
       product.baseName,
+      urbanSubcategories[product.subcategory]?.label,
+      urbanSubcategories[product.subcategory]?.search,
       product.garmentName,
       categoryLabels[product.category],
       categorySearchTerms[product.category]
@@ -761,23 +771,26 @@ const refreshStoreProductViews = () => {
 const updateFeaturedProductsVisibility = () => {
   const section = document.getElementById('featured-products-section');
   const showFeatured = currentCategory === 'all' && !currentSearchTerm
-    && !showWishlistOnly && currentMinPrice === 0 && currentMaxPrice === Number.POSITIVE_INFINITY;
+    && !showWishlistOnly && currentMinPrice === 0 && currentMaxPrice === Number.POSITIVE_INFINITY
+    && (!document.getElementById('sort-select') || document.getElementById('sort-select').value === 'default');
   if (section) section.classList.toggle('hidden', !showFeatured);
   return showFeatured;
 };
 
-const renderProducts = (filteredProducts) => {
-  const grid = document.getElementById('products-grid');
+const renderProducts = (filteredProducts, target = document.getElementById('products-grid')) => {
+  const grid = target;
   if (!grid) return;
   grid.innerHTML = '';
   if (filteredProducts.length === 0) {
     grid.innerHTML = `<p class="col-span-full text-center text-zinc-400 py-12 text-xl">No encontramos productos con esos filtros.</p>`;
     return;
   }
+  const fragment = document.createDocumentFragment();
   filteredProducts.forEach(product => {
     const inWishlist = isInWishlist(product.id);
     const card = document.createElement('div');
     card.className = 'product-card bg-zinc-900 rounded-3xl overflow-hidden group relative';
+    card.dataset.productId = String(product.id);
     card.innerHTML = `
       <div class="relative">
         <img src="${product.img}" data-fallback-src="${product.fallbackImg || ''}" data-garment="${product.garment}" width="320" height="320" loading="lazy" decoding="async" alt="${product.name}" onclick="showQuickView(${product.id})" class="w-full aspect-square object-cover transition group-hover:scale-105 cursor-pointer">
@@ -789,12 +802,13 @@ const renderProducts = (filteredProducts) => {
       <div class="p-5">
         <h3 onclick="showQuickView(${product.id})" class="font-bold text-lg mb-1 cursor-pointer">${product.baseName}</h3>
         <p class="text-yellow-400 font-semibold text-xl">C$ ${product.price}</p>
-        <p class="text-zinc-400 text-sm mt-1">${categoryLabels[product.category] || product.category}</p>
+        <p class="text-zinc-400 text-sm mt-1">${getProductCategoryLabel(product)}</p>
         <button type="button" onclick="showQuickView(${product.id})" class="mt-4 w-full border border-yellow-400 text-yellow-400 hover:bg-yellow-400 hover:text-black font-bold py-3 rounded-3xl text-sm transition">Ver tallas</button>
       </div>
     `;
-    grid.appendChild(card);
+    fragment.appendChild(card);
   });
+  grid.appendChild(fragment);
 };
 
 const filterGarment = garment => {
@@ -811,10 +825,44 @@ const filterGarment = garment => {
 
 const filterCategory = (cat) => {
   currentCategory = cat;
+  currentSubcategory = 'all';
   document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.toggle('active', btn.id === `filter-${cat}`));
   updateStoreURL();
   filterProducts();
   if (typeof renderBestSellers === 'function') renderBestSellers();
+};
+
+const filterSubcategory = subcategory => {
+  if(currentCategory !== 'urbano' || (subcategory !== 'all' && !Object.hasOwn(urbanSubcategories,subcategory))) return;
+  currentSubcategory = subcategory;
+  updateStoreURL();
+  filterProducts();
+  if(typeof renderBestSellers === 'function') renderBestSellers();
+};
+
+const syncUrbanSubcategories = () => {
+  const section=document.getElementById('urban-subcategories'),options=document.getElementById('urban-subcategory-options');
+  if(!section || !options)return;
+  section.hidden=currentCategory !== 'urbano';
+  if(section.hidden)return;
+  if(!options.childElementCount){
+    for(const [key,theme] of [['all',{label:'Todos los urbanos',icon:'fa-layer-group'}],...Object.entries(urbanSubcategories)]){
+      const button=document.createElement('button');button.type='button';button.className='urban-subcategory';button.dataset.subcategory=key;
+      const icon=document.createElement('i');icon.className=`fa-solid ${theme.icon}`;icon.setAttribute('aria-hidden','true');
+      const label=document.createElement('span');label.textContent=theme.label;
+      const count=document.createElement('span');count.className='urban-subcategory-count';
+      const spaces=document.createElement('small');spaces.className='urban-subcategory-spaces';
+      button.append(icon,label,count,spaces);button.addEventListener('click',()=>filterSubcategory(key));options.append(button);
+    }
+  }
+  const available=getFilteredProducts({ignoreSubcategory:true});
+  options.querySelectorAll('button').forEach(button=>{
+    const key=button.dataset.subcategory,selected=key===currentSubcategory;
+    button.classList.toggle('active',selected);button.setAttribute('aria-pressed',String(selected));
+    button.querySelector('.urban-subcategory-count').textContent=key==='all'?available.length:available.filter(p=>p.subcategory===key).length;
+    const slots=key==='all'?[]:window.MomotusStoreSelection.slots(window.MomotusCatalog.products,key,currentGarment);
+    button.querySelector('.urban-subcategory-spaces').textContent=slots.length?`${slots.length} espacios nuevos`:'';
+  });
 };
 
 const updateStoreURL = () => {
@@ -822,6 +870,7 @@ const updateStoreURL = () => {
   const url = new URL(window.location.href);
   currentGarment === 'camiseta' ? url.searchParams.delete('prenda') : url.searchParams.set('prenda', currentGarment);
   currentCategory === 'all' ? url.searchParams.delete('categoria') : url.searchParams.set('categoria', currentCategory);
+  currentCategory === 'urbano' && currentSubcategory !== 'all' ? url.searchParams.set('subcategoria', currentSubcategory) : url.searchParams.delete('subcategoria');
   currentSearchTerm ? url.searchParams.set('buscar', currentSearchTerm) : url.searchParams.delete('buscar');
   const sortValue = document.getElementById('sort-select')?.value || 'default';
   sortValue === 'default' ? url.searchParams.delete('orden') : url.searchParams.set('orden', sortValue);
@@ -832,17 +881,58 @@ const updateStoreURL = () => {
   history.replaceState(null, '', url);
 };
 
+const renderFeaturedCategories = (filtered = getFilteredProducts()) => {
+  const container = document.getElementById('best-sellers-grid');
+  if (!container) return [];
+  container.replaceChildren();
+  const groups = window.MomotusStoreSelection.groups(filtered, categoryLabels, 2);
+  for (const group of groups) {
+    const section = document.createElement('section');
+    section.className = 'store-featured-category';
+    section.dataset.category = group.category;
+    const header = document.createElement('div');header.className = 'store-category-heading';
+    const title = document.createElement('h4');title.textContent = group.label;
+    const link = document.createElement('button');link.type='button';link.textContent='Ver toda la categoría →';
+    link.addEventListener('click',()=>{filterCategory(group.category);document.getElementById('catalog-grid-title')?.focus();});
+    header.append(title,link);
+    const grid = document.createElement('div');grid.className='store-featured-pair';
+    renderProducts(group.products, grid);section.append(header,grid);container.append(section);
+  }
+  return groups.flatMap(group=>group.products);
+};
+
+const syncUrbanDesignSpaces = () => {
+  const section=document.getElementById('urban-design-spaces');
+  if (!section) return;
+  const show=currentCategory==='urbano'&&currentSubcategory!=='all'&&!currentSearchTerm&&!showWishlistOnly&&currentMinPrice===0&&currentMaxPrice===Number.POSITIVE_INFINITY;
+  const slots=show?window.MomotusStoreSelection.slots(window.MomotusCatalog.products,currentSubcategory,currentGarment):[];
+  section.hidden=!slots.length;
+  const grid=document.getElementById('urban-design-spaces-grid');grid.replaceChildren();
+  if(!slots.length)return;
+  document.getElementById('urban-design-spaces-title').textContent=`Próximos diseños · ${urbanSubcategories[currentSubcategory].label}`;
+  slots.forEach((product,index)=>{
+    const card=document.createElement('article');card.className='urban-design-space';card.dataset.designId=product.baseDesignId;
+    const icon=document.createElement('i');icon.className=`fa-solid ${urbanSubcategories[currentSubcategory].icon}`;icon.setAttribute('aria-hidden','true');
+    const title=document.createElement('h4');title.textContent=`Nuevo diseño ${index+1}`;
+    const note=document.createElement('p');note.textContent='Próximamente';
+    card.append(icon,title,note);grid.append(card);
+  });
+};
+
 const filterProducts = () => {
+  syncUrbanSubcategories();
+  if (window.MomotusSeasonal?.syncCategory) window.MomotusSeasonal.syncCategory(currentCategory);
   const filtered = getFilteredProducts();
   const showFeatured = updateFeaturedProductsVisibility();
-  const productsForGrid = applyCurrentSort(showFeatured
-    ? filtered.filter(product => !featuredProductIds.includes(product.id))
-    : filtered);
-  renderProducts(productsForGrid);
+  const overview = showFeatured ? renderFeaturedCategories(filtered) : [];
+  const results=document.getElementById('catalog-results');if(results)results.hidden=showFeatured;
+  renderProducts(showFeatured ? [] : applyCurrentSort(filtered));
+  syncUrbanDesignSpaces();
   const gridTitle = document.getElementById('catalog-grid-title');
-  if (gridTitle) gridTitle.textContent = showFeatured ? 'Más productos' : 'Resultados';
+  if (gridTitle) gridTitle.textContent = currentCategory==='urbano'&&currentSubcategory!=='all' ? urbanSubcategories[currentSubcategory].label : (categoryLabels[currentCategory] || 'Resultados');
   const countEl = document.getElementById('count-number');
-  if (countEl) countEl.textContent = filtered.length;
+  if (countEl) countEl.textContent = showFeatured ? overview.length : filtered.length;
+  const countLabel=document.getElementById('results-count-label');if(countLabel)countLabel.textContent=showFeatured?'destacados':'productos';
 };
 
 const sortProducts = () => {
@@ -900,7 +990,9 @@ window.onload = () => {
     const garment = params.get('prenda');
     if (garment === 'all' || garmentOrder.includes(garment)) currentGarment = garment;
     const category = params.get('categoria');
-    if (['fauna', 'anime', 'urbano', 'games', 'unica'].includes(category)) currentCategory = category;
+    if (([...Object.keys(categoryLabels),'aguizotes']).includes(category)) currentCategory = category;
+    const subcategory=params.get('subcategoria');
+    if(currentCategory === 'urbano' && Object.hasOwn(urbanSubcategories,subcategory)) currentSubcategory=subcategory;
     currentSearchTerm = (params.get('buscar') || '').toLowerCase().trim();
     const minPriceParam = params.get('precioMin');
     const maxPriceParam = params.get('precioMax');

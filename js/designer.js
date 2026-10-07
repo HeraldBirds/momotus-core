@@ -67,18 +67,12 @@ const isSafeDesignSource = (source) => {
   }
 };
 
-const getDesignStyle = (colorKey) => {
-  return colorKey === 'white'
-    ? `mix-blend-mode: multiply; filter: brightness(0.95) contrast(1.25) saturate(1.1) opacity(0.92);`
-    : `mix-blend-mode: multiply; filter: brightness(1.08) contrast(1.18) saturate(1.25) opacity(0.95);`;
-};
+const getDesignStyle = () => 'mix-blend-mode: normal; filter: none;';
 
 const applyDesignAppearance = (designImg) => {
   if (!designImg) return;
-  designImg.style.mixBlendMode = 'multiply';
-  designImg.style.filter = currentColor === 'white'
-    ? 'brightness(0.95) contrast(1.25) saturate(1.1) opacity(0.92)'
-    : 'brightness(1.08) contrast(1.18) saturate(1.25) opacity(0.95)';
+  designImg.style.mixBlendMode = 'normal';
+  designImg.style.filter = 'none';
 };
 
 const applyDesignLayout = (designImg, side) => {
@@ -322,11 +316,14 @@ const handleDesignUpload = (e, side) => {
   if (file.size > 5 * 1024 * 1024) return showToast("❌ Máximo 5 MB");
 
   const reader = new FileReader();
-  reader.onload = event => applyDesignSource(
-    event.target.result,
-    side,
-    side === 0 ? '✅ Diseño Frente cargado' : '✅ Diseño Espalda cargado'
-  );
+  reader.onload = event => {
+    switchMockup(side);
+    applyDesignSource(
+      event.target.result,
+      side,
+      side === 0 ? '✅ Diseño Frente cargado' : '✅ Diseño Espalda cargado'
+    );
+  };
   reader.onerror = () => showToast('❌ No se pudo leer la imagen');
   reader.readAsDataURL(file);
 };
@@ -334,14 +331,17 @@ const handleDesignUpload = (e, side) => {
 const updateImageQuality = (image, side) => {
   const status = document.getElementById(side === 0 ? 'quality-front' : 'quality-back');
   if (!status || !image) return;
-  const shortestSide = Math.min(image.naturalWidth || 0, image.naturalHeight || 0);
-  const quality = shortestSide >= 1200
-    ? { text: `Alta (${image.naturalWidth}×${image.naturalHeight}px)`, className: 'text-emerald-400' }
-    : shortestSide >= 600
-      ? { text: `Media (${image.naturalWidth}×${image.naturalHeight}px)`, className: 'text-yellow-400' }
-      : { text: `Baja (${image.naturalWidth}×${image.naturalHeight}px)`, className: 'text-red-400' };
-  status.textContent = `Calidad: ${quality.text}`;
-  status.className = `mt-2 text-xs ${quality.className}`;
+  const width = image.naturalWidth || 0;
+  const height = image.naturalHeight || 0;
+  if (!width || !height) {
+    status.textContent = 'No se pudo leer la resolución de la imagen';
+    status.className = 'mt-2 text-xs text-red-400';
+    return;
+  }
+  const widthCm = (width / 300 * 2.54).toFixed(1);
+  const heightCm = (height / 300 * 2.54).toFixed(1);
+  status.textContent = `${width}×${height} px · ${widthCm}×${heightCm} cm a 300 DPI`;
+  status.className = 'mt-2 text-xs text-zinc-300';
 };
 
 window.removeActiveDesign = () => {
@@ -390,6 +390,7 @@ const resetDesign = () => {
   } catch (error) {
     console.warn('No se pudo limpiar el diseño guardado.', error);
   }
+  window.MomotusDesignerStorage?.clear().catch(error => console.warn('No se pudo limpiar el respaldo del diseño.', error));
   ['quality-front', 'quality-back'].forEach(id => {
     const status = document.getElementById(id);
     if (status) {
@@ -414,7 +415,20 @@ const getCurrentDesignData = () => ({
     rotationBack: currentRotationBack
 });
 
-const saveCurrentDesignNow = () => {
+const saveCurrentDesignNow = async () => {
+  if (window.MomotusDesignerStorage) {
+    try {
+      await window.MomotusDesignerStorage.save(getCurrentDesignData());
+      return true;
+    } catch (error) {
+      console.warn('No fue posible guardar el diseño en este dispositivo.', error);
+      if (Date.now() - lastStorageWarningAt > 5000) {
+        showToast('⚠️ No se pudo guardar el diseño en este dispositivo');
+        lastStorageWarningAt = Date.now();
+      }
+      return false;
+    }
+  }
   try {
     localStorage.setItem('momotusCurrentDesign', JSON.stringify(getCurrentDesignData()));
     return true;
@@ -456,32 +470,29 @@ const saveCurrentDesign = () => {
 };
 
 const flushScheduledDesignSave = () => {
-  if (designSaveTimer === null && designSaveIdleCallback === null) return;
   cancelScheduledDesignSave();
-  saveCurrentDesignNow();
+  return saveCurrentDesignNow();
 };
 
-const loadSavedDesign = () => {
-  let saved;
-  try {
-    saved = localStorage.getItem('momotusCurrentDesign');
-  } catch (error) {
-    console.warn('El navegador bloqueó el acceso al diseño guardado.', error);
-    return;
-  }
-  if (!saved) return;
+const loadSavedDesign = async () => {
   let data;
-  try {
-    data = JSON.parse(saved);
-  } catch (error) {
-    console.warn('El diseño guardado estaba dañado y fue eliminado.', error);
+  if (window.MomotusDesignerStorage) {
     try {
-      localStorage.removeItem('momotusCurrentDesign');
-    } catch (storageError) {
-      console.warn('No se pudo limpiar el diseño dañado.', storageError);
+      data = await window.MomotusDesignerStorage.load();
+    } catch (error) {
+      console.warn('No se pudo recuperar el diseño guardado.', error);
     }
-    return;
+  } else {
+    let saved;
+    try {
+      saved = localStorage.getItem('momotusCurrentDesign');
+      data = saved ? JSON.parse(saved) : null;
+    } catch (error) {
+      console.warn('El diseño guardado estaba dañado y fue eliminado.', error);
+      try { localStorage.removeItem('momotusCurrentDesign'); } catch { /* almacenamiento bloqueado */ }
+    }
   }
+  if (!data || typeof data !== 'object') return;
   currentShirtType = Number.isInteger(Number(data.shirtType))
     ? Math.max(0, Math.min(shirtTypes.length - 1, Number(data.shirtType)))
     : 0;
@@ -581,22 +592,93 @@ const cerrarModalEliminarFondo = () => {
   else modal.classList.add('hidden');
 };
 
-const abrirEliminadorFondoInterno = async (sendCurrentDesign = true) => {
+let designerAutoToolBusy = false;
+
+const setDesignerAutoToolState = (tool, busy, progress = 0) => {
+  document.querySelectorAll('[data-designer-auto-tool]').forEach(button => {
+    if (!button.dataset.originalContent) button.dataset.originalContent = button.innerHTML;
+    button.disabled = busy;
+    button.classList.toggle('opacity-60', busy);
+    button.classList.toggle('cursor-wait', busy);
+    if (busy && button.dataset.designerAutoTool === tool) {
+      button.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin" aria-hidden="true"></i> Procesando ${progress}%`;
+      button.setAttribute('aria-busy', 'true');
+    } else {
+      button.innerHTML = button.dataset.originalContent;
+      button.removeAttribute('aria-busy');
+    }
+  });
+};
+
+const procesarDisenoAutomatico = async tool => {
+  if (designerAutoToolBusy) return;
+  cerrarModalEliminarFondo();
+  const side = currentTab === 1 ? 1 : 0;
+  const source = side === 0 ? designFront : designBack;
+  if (!source) {
+    showToast(`Subí un diseño en ${side === 0 ? 'Frente' : 'Espalda'} antes de procesarlo`);
+    return;
+  }
+  if (!window.MomotusDesignerAutoTools) {
+    showToast('No se pudo iniciar el procesamiento. Actualizá la página.');
+    return;
+  }
+
+  designerAutoToolBusy = true;
+  setDesignerAutoToolState(tool, true, 0);
+  showToast(tool === 'background' ? 'Detectando el fondo automáticamente…' : 'Mejorando la calidad del diseño…');
+  try {
+    const result = await window.MomotusDesignerAutoTools.process(source, tool, progress => {
+      setDesignerAutoToolState(tool, true, progress);
+    });
+    if (!result?.dataUrl || !applyDesignSource(result.dataUrl, side)) {
+      throw new Error('No se pudo colocar el resultado en el mockup.');
+    }
+    showToast(`✅ ${result.message}`);
+  } catch (error) {
+    console.error('No se pudo procesar automáticamente el diseño:', error);
+    showToast(error.message || 'No se pudo procesar el diseño.');
+  } finally {
+    designerAutoToolBusy = false;
+    setDesignerAutoToolState(tool, false);
+  }
+};
+
+window.procesarDisenoAutomatico = procesarDisenoAutomatico;
+
+const designerToolDestinations = Object.freeze({
+  background: Object.freeze({ hash: 'eliminar-fondo', label: 'eliminador de fondo' }),
+  quality: Object.freeze({ hash: 'mejorar-calidad', label: 'mejora de calidad' })
+});
+
+const abrirHerramientaInterna = async (tool = 'background', sendCurrentDesign = true) => {
   cerrarModalEliminarFondo();
   if (!window.matchMedia('(min-width: 1024px)').matches) {
     showToast('💻 Las Herramientas DTF están disponibles desde computadora');
     return;
   }
 
-  const destination = 'herramientas/?importar=disenador#eliminar-fondo';
+  const selectedTool = designerToolDestinations[tool] ? tool : 'background';
+  const toolConfig = designerToolDestinations[selectedTool];
+  const destination = `herramientas/?importar=disenador&herramienta=${encodeURIComponent(selectedTool)}#${toolConfig.hash}`;
   if (!sendCurrentDesign) {
     window.location.href = destination;
     return;
   }
 
-  const source = currentTab === 0 ? designFront : designBack;
+  let transferSide = currentTab;
+  let source = transferSide === 0 ? designFront : designBack;
   if (!source) {
-    showToast(`Subí un diseño en ${currentTab === 0 ? 'Frente' : 'Espalda'} o abrí la herramienta sin enviarlo`);
+    const alternativeSide = transferSide === 0 ? 1 : 0;
+    const alternativeSource = alternativeSide === 0 ? designFront : designBack;
+    if (alternativeSource) {
+      transferSide = alternativeSide;
+      source = alternativeSource;
+      switchMockup(transferSide);
+    }
+  }
+  if (!source) {
+    showToast('Subí un diseño en Frente o Espalda antes de enviarlo a Herramientas');
     return;
   }
   if (!window.MomotusWorkflowBridge) {
@@ -610,12 +692,14 @@ const abrirEliminadorFondoInterno = async (sendCurrentDesign = true) => {
       window.MomotusWorkflowBridge.keys.designerToTools,
       blob,
       {
-        side: currentTab,
+        side: transferSide,
         garment: shirtTypes[currentShirtType],
-        filename: `momotus-${currentTab === 0 ? 'frente' : 'espalda'}.${blob.type.split('/')[1] || 'png'}`
+        requestedTool: selectedTool,
+        filename: `momotus-${transferSide === 0 ? 'frente' : 'espalda'}.${blob.type.split('/')[1] || 'png'}`
       }
     );
-    showToast('Preparando el diseño en Herramientas…');
+    if (!(await flushScheduledDesignSave())) throw new Error('No se pudo guardar el proyecto antes de abrir Herramientas. El diseño sigue en esta página.');
+    showToast(`Preparando el diseño en ${toolConfig.label}…`);
     window.location.href = destination;
   } catch (error) {
     console.error('No se pudo enviar el diseño a Herramientas:', error);
@@ -623,8 +707,12 @@ const abrirEliminadorFondoInterno = async (sendCurrentDesign = true) => {
   }
 };
 
-const abrirRemoveBg = () => abrirEliminadorFondoInterno(true);
+const abrirEliminadorFondoInterno = (sendCurrentDesign = true) => abrirHerramientaInterna('background', sendCurrentDesign);
+const abrirMejorarCalidadInterno = (sendCurrentDesign = true) => abrirHerramientaInterna('quality', sendCurrentDesign);
+const abrirRemoveBg = () => abrirHerramientaInterna('background', true);
+window.abrirHerramientaInterna = abrirHerramientaInterna;
 window.abrirEliminadorFondoInterno = abrirEliminadorFondoInterno;
+window.abrirMejorarCalidadInterno = abrirMejorarCalidadInterno;
 window.abrirRemoveBg = abrirRemoveBg;
 
 const importDesignFromTools = async () => {
@@ -659,6 +747,7 @@ const importDesignFromTools = async () => {
     switchMockup(side);
     applyDesignSource(src, side, `✅ Diseño colocado en ${side === 0 ? 'Frente' : 'Espalda'}`);
     document.querySelectorAll('.shirt-type-btn').forEach((button, index) => button.classList.toggle('active', index === currentShirtType));
+    if (!(await flushScheduledDesignSave())) return false;
     await window.MomotusWorkflowBridge.remove(key);
     params.delete('importar');
     params.delete('lado');
@@ -852,7 +941,7 @@ window.sendToEmail = () => {
 };
 
 const initDesigner = async () => {
-  loadSavedDesign();
+  await loadSavedDesign();
   applyGarmentFromUrl();
   if (document.getElementById('type-0')) {
     renderSizeButtonsDesigner();
@@ -866,7 +955,13 @@ const initDesigner = async () => {
   initDragListeners();
   await importDesignFromTools();
   window.addEventListener('pagehide', flushScheduledDesignSave);
-  document.querySelectorAll('.ready-designs img').forEach((image, index) => {
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') flushScheduledDesignSave();
+  });
+  const readyDesigns = document.querySelectorAll('.ready-designs img');
+  const readyCount = document.getElementById('ready-design-count');
+  if (readyCount) readyCount.textContent = `${readyDesigns.length} diseños disponibles`;
+  readyDesigns.forEach((image, index) => {
     image.tabIndex = 0;
     image.setAttribute('role', 'button');
     image.setAttribute('aria-label', `Abrir diseño listo ${index + 1}`);

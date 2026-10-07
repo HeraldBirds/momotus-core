@@ -8,3 +8,32 @@
 .filter-btn.active .filter-icon {
   transform: rotate(360deg);
 }
+
+/* Visibilidad de la categoría estacional; su decoración se conserva en temporadas.css. */
+#filter-aguizotes[hidden], #store-garment-filters[hidden], #products-grid[hidden],
+#featured-products-section[hidden], #catalog-grid-title[hidden], #results-count[hidden],
+#store-search[hidden], #sort-select[hidden], .store-secondary-filters[hidden] {display:none !important;}
+
+/* Temas dentro de Urbano: visibles solo en esta categoría. */
+.urban-subcategories[hidden] {display:none !important;}
+.urban-subcategories {margin:18px 0 26px;padding:22px;border:1px solid #3f3f46;border-radius:22px;background:#18181b;}
+.urban-subcategories-heading h2 {font-size:18px;font-weight:700;margin:0 0 4px;}
+.urban-subcategories-heading p {color:#a1a1aa;font-size:14px;margin:0 0 16px;}
+#urban-subcategory-options {display:flex;flex-wrap:wrap;gap:10px;}
+.urban-subcategory {display:flex;align-items:center;gap:9px;padding:10px 15px;border:1px solid #52525b;border-radius:24px;background:#27272a;color:#e4e4e7;font-size:14px;cursor:pointer;}
+.urban-subcategory:hover,.urban-subcategory:focus-visible {border-color:#facc15;}
+.urban-subcategory.active {background:#facc15;color:#09090b;border-color:#facc15;font-weight:700;}
+.urban-subcategory-count {font-size:12px;padding:1px 6px;background:#ffffff16;border-radius:12px;}
+.urban-subcategory.active .urban-subcategory-count {background:#00000015;}
+@media(max-width:480px) {.urban-subcategories{padding:16px;}.urban-subcategory{padding:9px 12px;font-size:13px;}}
+
+/* Más superficie para las colecciones; las tarjetas conservan sus fotos originales. */
+body:has(#urban-subcategories) main{max-width:1480px;}
+#products-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:24px;}
+.urban-subcategories{background:linear-gradient(125deg,#29364a,#182235);border-color:#53657d;}
+#urban-subcategory-options{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;}
+.urban-subcategory{justify-content:flex-start;min-height:52px;border-color:#53657d;background:#253247;}
+.urban-subcategory-count{margin-left:auto;}
+@media(min-width:1440px){#products-grid{grid-template-columns:repeat(5,minmax(0,1fr));}}
+@media(max-width:1023px){#products-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;}#urban-subcategory-options{grid-template-columns:repeat(3,minmax(0,1fr));}}
+@media(max-width:640px){#products-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}#urban-subcategory-options{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}.urban-subcategory{font-size:12px;padding:10px;gap:7px;}}

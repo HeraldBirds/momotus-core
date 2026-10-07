@@ -14,21 +14,17 @@
   <title>Momotus Core | Personalización DTF en Nicaragua</title>
   
   <!-- === SEGURIDAD NETLIFY - Momotus Core (Abril 2026) === -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: https:; font-src 'self' https://cdnjs.cloudflare.com; connect-src 'self';">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self';">
 
-  <link rel="preload" href="img/heroes/hero-1.webp" as="image" type="image/webp" fetchpriority="high">
+  <link rel="preload" href="img/heroes/hero-1.webp" as="image" type="image/webp" media="(min-width: 768px)" fetchpriority="high">
+  <link rel="preload" href="img/heroes/hero-1-mobile.webp" as="image" type="image/webp" media="(max-width: 767px)" fetchpriority="high">
 
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      content: [],
-      theme: { extend: { colors: { momotus: '#facc15' } } }
-    }
-  </script>
+  
+  <link rel="stylesheet" href="css/tailwind.css?v=20261006-1">
 
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" 
+  <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css?v=20261006-1" 
         crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.css?v=20261005-1">
 
   <script type="application/ld+json">
   {
@@ -47,6 +43,7 @@
   }
   </script>
 
+  <link rel="stylesheet" href="css/store-experience.css?v=20261007-original-6">
 </head>
 <body class="bg-zinc-950 text-white">
 
@@ -54,8 +51,7 @@
 
   <!-- HERO CAROUSEL -->
   <section id="inicio" class="hero-section relative overflow-hidden" role="region" aria-roledescription="carrusel" aria-label="Destacados de Momotus Core">
-    <div id="hero-bg" class="absolute inset-0 bg-cover bg-center transition-all duration-1000 ease-in-out" 
-         style="background-image: url('img/heroes/hero-1.webp');" aria-hidden="true"></div>
+    <div id="hero-bg" class="absolute inset-0 bg-cover bg-center transition-all duration-1000 ease-in-out" aria-hidden="true"></div>
     <div class="absolute inset-0 bg-gradient-to-r from-black/70 to-transparent"></div>
     
     <div class="max-w-7xl mx-auto px-6 relative z-10 h-full flex items-center">
@@ -189,7 +185,7 @@
       <div class="flex justify-center mb-12">
         <div class="mockup-3d-container">
           <div id="mockup-3d" class="mockup-3d mx-auto relative">
-            <img id="front" src="img/products/anime-1.webp" width="520" height="520" alt="Sasuke Uchiha Edition, vista frontal" loading="lazy" decoding="async">
+            <img id="front" src="img/products/anime/anime-1.webp" width="520" height="520" alt="Sasuke Uchiha Edition, vista frontal" loading="lazy" decoding="async">
             <img id="back" src="img/mockups/mockup-regular-negro-espalda.webp" width="520" height="520" alt="Espalda lisa de camiseta negra" loading="lazy" decoding="async">
           </div>
         </div>
@@ -492,7 +488,13 @@
     });
   </script>
 
-  <script src="tienda/js/catalogo.js"></script>
-  <script src="js/script.js"></script>
+  <script src="tienda/js/product-images.js?v=20261007-category-1"></script>
+  <script src="tienda/js/store-config-core.js?v=20261007-category-1"></script>
+  <script src="tienda/js/configuracion.js?v=20261007-shop-1"></script>
+  <script src="tienda/js/catalogo.js?v=20261007-slots-1"></script>
+  <script src="js/script.js?v=20261007-category-1"></script>
+  <script src="js/performance.js?v=20261006-1" defer></script>
+  <script src="tienda/js/photo-previews.js?v=20261007-category-1"></script>
+  <script src="js/store-experience.js?v=20261007-category-1" defer></script>
 </body>
 </html>

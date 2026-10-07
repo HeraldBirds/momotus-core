@@ -213,6 +213,9 @@
 }
 .tool-history-actions button:hover:not(:disabled) { border-color: #facc15; color: #facc15; }
 .tool-history-actions button:disabled { opacity: 0.35; cursor: not-allowed; }
+.tool-history-actions button.is-loading i,
+.tool-shortcut.is-loading > i { animation: momotus-module-loading 0.8s linear infinite; }
+@keyframes momotus-module-loading { to { transform: rotate(360deg); } }
 .tool-document-info { color: #a1a1aa; font-size: 0.78rem; line-height: 1.45; }
 .tool-workspace-state {
   display: inline-flex;
@@ -882,6 +885,7 @@
 .tool-control-content > .tool-field > span { margin-top: -1.25rem; }
 .tool-control-content > .tool-check { align-items: center; }
 .tool-control-content > .tool-color-presets,
+.tool-control-content > .tool-download,
 .tool-control-content > .tool-secondary,
 .tool-control-content > .tool-presets { grid-column: 1 / -1; }
 .tool-control-group .tool-field { background: #18181b; }
@@ -2154,3 +2158,13 @@ body.tool-preview-is-expanded { overflow: hidden; }
     max-height: calc(100dvh - 92px);
   }
 }
+.tools-transfer-review[hidden] {display:none !important;}
+.tools-transfer-review {position:fixed;inset:0;z-index:40000;background:#000b;display:grid;place-items:center;padding:24px;}
+.tools-transfer-card {max-width:580px;width:100%;max-height:92vh;overflow:auto;border:1px solid #66604b;border-radius:14px;background:#191b22;color:#eef0f4;padding:24px;box-shadow:0 20px 70px #0009;}
+.tools-transfer-card h2 {font-size:24px;font-weight:800;}
+.tools-transfer-card p {font-size:13px;line-height:1.6;margin:12px 0;color:#c0c7d4;overflow-wrap:anywhere;}
+.tools-transfer-preview {background:#000;border:1px solid #454954;border-radius:8px;text-align:center;}
+.tools-transfer-preview canvas {max-width:100%;height:auto;}
+.tools-transfer-card button {padding:11px 16px;border:1px solid #606676;border-radius:8px;margin:6px 6px 0 0;cursor:pointer;}
+#tools-transfer-confirm {background:#facc15;color:#111;font-weight:700;}
+.tools-transfer-card :focus-visible {outline:2px solid #facc15;outline-offset:3px;}

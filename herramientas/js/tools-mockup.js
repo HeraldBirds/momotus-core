@@ -14,6 +14,10 @@
   let selectedGarment = 'regular';
   let selectedSide = 0;
   let transferBusy = false;
+  const designerImportTools = Object.freeze({
+    background: Object.freeze({ panel: 'eliminar-fondo', label: 'eliminador de fondo' }),
+    quality: Object.freeze({ panel: 'mejorar-calidad', label: 'mejora de calidad' })
+  });
 
   const showToast = message => api.showToast?.(message);
   const modalMarkup = `
@@ -50,7 +54,9 @@
     button.disabled = true;
     button.title = 'Colocar el resultado activo en una prenda';
     button.innerHTML = '<i class="fa-solid fa-shirt"></i><span>Usar en mockup</span>';
-    actions.prepend(button);
+    const shortcutsButton = actions.querySelector('#tool-shortcuts-help');
+    if (shortcutsButton) shortcutsButton.before(button);
+    else actions.appendChild(button);
     document.body.insertAdjacentHTML('beforeend', modalMarkup);
 
     button.addEventListener('click', openModal);
@@ -138,6 +144,7 @@
       const type = api.getActiveType();
       const canvas = await api.getResultCanvas(type);
       if (!canvas?.width || !canvas.height) throw new Error('Primero procesá una imagen en la herramienta activa.');
+      if(!await window.MomotusReviewTransfer(canvas,'mockup',api.getDocumentInfo(type)?.filename,type)){transferBusy=false;confirmButton.disabled=false;confirmButton.innerHTML=originalContent;updateButtonState();return;}
       const blob = await createMockupBlob(canvas);
       const info = api.getDocumentInfo(type);
       await bridge.put(bridge.keys.toolsToDesigner, blob, {
@@ -163,22 +170,33 @@
     if (params.get('importar') !== 'disenador') return;
     try {
       const key = bridge.keys.designerToTools;
-      const record = await bridge.get(key);
+      let record = null;
+      for (let attempt = 0; attempt < 5 && !record; attempt++) {
+        record = await bridge.get(key);
+        if (!record && attempt < 4) await new Promise(resolve => setTimeout(resolve, 120));
+      }
       if (!record?.blob) {
-        showToast('No encontramos un diseño pendiente desde Diseñá la tuya.');
+        showToast('No se pudo recuperar la imagen. Volvé a Diseñá la tuya e intentá nuevamente.');
         return;
       }
+      const queryTool = String(params.get('herramienta') || '').toLowerCase();
+      const metadataTool = String(record.metadata?.requestedTool || '').toLowerCase();
+      const selectedTool = designerImportTools[queryTool]
+        ? queryTool
+        : designerImportTools[metadataTool] ? metadataTool : 'background';
+      const toolConfig = designerImportTools[selectedTool];
       const filename = String(record.metadata?.filename || 'momotus-diseno.png').replace(/[^a-z0-9._-]/gi, '-');
       const file = new File([record.blob], filename, { type: record.blob.type || 'image/png' });
-      const loaded = await api.importFileToTool(file, 'background');
-      if (!loaded) throw new Error('No se pudo cargar el diseño en el eliminador de fondo.');
+      const loaded = await api.importFileToTool(file, selectedTool);
+      if (!loaded) throw new Error(`No se pudo cargar el diseño en ${toolConfig.label}.`);
       if (garments.some(item => item.key === record.metadata?.garment)) selectGarment(record.metadata.garment);
       selectSide(Number(record.metadata?.side));
       await bridge.remove(key);
       params.delete('importar');
-      const cleanUrl = `${window.location.pathname}${params.toString() ? `?${params}` : ''}#eliminar-fondo`;
+      params.delete('herramienta');
+      const cleanUrl = `${window.location.pathname}${params.toString() ? `?${params}` : ''}#${toolConfig.panel}`;
       history.replaceState(null, '', cleanUrl);
-      showToast('Diseño cargado en el eliminador de fondo.');
+      showToast(`Diseño cargado en ${toolConfig.label}.`);
     } catch (error) {
       console.error('No se pudo recibir el diseño del personalizador:', error);
       showToast(error.message || 'No se pudo recibir el diseño.');

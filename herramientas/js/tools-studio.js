@@ -78,55 +78,10 @@
 
       const tabs = controls.querySelector('.tool-control-tabs');
       const groups = [...controls.querySelectorAll(':scope > .tool-control-group')];
-      if (tabs && groups.length && !controls.querySelector(':scope > .tool-control-panels')) {
-        tabs.classList.add('tool-options-menu');
-        tabs.hidden = true;
-
-        const optionsTrigger = document.createElement('button');
-        optionsTrigger.type = 'button';
-        optionsTrigger.className = 'tool-options-trigger';
-        optionsTrigger.setAttribute('aria-expanded', 'false');
-        optionsTrigger.innerHTML = '<span><i class="fa-solid fa-sliders" aria-hidden="true"></i><strong>Opciones</strong><small>Elegí qué querés ajustar</small></span><i class="fa-solid fa-chevron-down" aria-hidden="true"></i>';
-        tabs.before(optionsTrigger);
-
-        const panels = document.createElement('div');
-        panels.className = 'tool-control-panels';
-        panels.setAttribute('aria-label', 'Opciones de la herramienta');
-        tabs.after(panels);
-        groups.forEach(group => panels.append(group));
-
-        const backdrop = document.createElement('button');
-        backdrop.type = 'button';
-        backdrop.className = 'tool-options-backdrop';
-        backdrop.setAttribute('aria-label', 'Cerrar opciones');
-        backdrop.hidden = true;
-        controls.append(backdrop);
-
-        const closeMenu = () => {
-          tabs.hidden = true;
-          optionsTrigger.classList.remove('active');
-          optionsTrigger.setAttribute('aria-expanded', 'false');
-        };
-        const closePanel = () => {
-          controls.querySelectorAll('.tool-control-group[open]').forEach(group => { group.open = false; });
-          backdrop.hidden = true;
-        };
-
-        optionsTrigger.addEventListener('click', () => {
-          const willOpen = tabs.hidden;
-          tabs.hidden = !willOpen;
-          optionsTrigger.classList.toggle('active', willOpen);
-          optionsTrigger.setAttribute('aria-expanded', String(willOpen));
-          if (!willOpen) closePanel();
-        });
-        propertyTabs.forEach(button => button.addEventListener('click', () => {
-          closeMenu();
-          requestAnimationFrame(() => { backdrop.hidden = !controls.querySelector('.tool-control-group[open]'); });
-        }));
-        backdrop.addEventListener('click', closePanel);
-        groups.forEach(group => group.addEventListener('toggle', () => {
-          backdrop.hidden = !controls.querySelector('.tool-control-group[open]');
-        }));
+      if(tabs&&groups.length){
+        tabs.hidden=true;
+        const panels=document.createElement('div');panels.className='tool-control-panels pro-control-panels';
+        tabs.after(panels);groups.forEach((group,index)=>{panels.append(group);group.open=index===0;});
       }
 
       const heading = document.createElement('div');
@@ -581,6 +536,22 @@
 
   const updateTechnicalBar = () => {
     technicalFrame = 0;
+    const extra=document.querySelector('.extra-tool-panel:not([hidden])');
+    if(extra){
+      let name='Cotización DTF',pixels='Esquema',size='—',dpi='No aplica',alpha='No aplica',zoom='Ajustar',ready=false;
+      if(extra.id==='vectorizacion'){
+        name='Vectorización SVG';const c=byId('vector-canvas');ready=!byId('vector-download').disabled;
+        pixels=ready?`${c.width} × ${c.height} px de análisis`:'—';
+        const cm=Number(byId('vector-width-cm').value);size=ready?`${cm.toFixed(1)} × ${(cm*c.height/c.width).toFixed(1)} cm`:'—';dpi='SVG escalable';alpha=ready?'Según paleta':'—';zoom=byId('vector-zoom').value==='fit'?'Ajustar':byId('vector-zoom').value+'%';
+      }else if(extra.id==='efectos-dtf'){
+        name='Efectos DTF';const info=window.MomotusEffectsAPI?.getDocumentInfo();ready=window.MomotusEffectsAPI?.hasDocument();
+        pixels=info?`${info.naturalWidth} × ${info.naturalHeight} px`:'—';const cm=Number(byId('effects-width').value);size=info?`${cm.toFixed(1)} × ${(cm*info.naturalHeight/info.naturalWidth).toFixed(1)} cm`:'—';dpi='300 DPI';alpha='Según fondo y zonas';zoom=byId('effects-stage').classList.contains('is-zoom')?'100%':'Ajustar';
+      }else{ready=byId('calc-sheet-mode').hidden?!byId('team-copy')?.disabled:Boolean(byId('calc-sheets').textContent!=='—');size=byId('calc-sheet-mode').hidden?byId('team-summary-length').textContent:byId('calc-layout-label').textContent;}
+      for(const [id,value]of [['studio-tech-document',name],['studio-tech-pixels',pixels],['studio-tech-size',size],['studio-tech-dpi',dpi],['studio-tech-alpha',alpha],['studio-tech-zoom',zoom]])byId(id).textContent=value;
+      byId('studio-tech-alpha').classList.remove('warning');byId('studio-tech-alpha').title='';byId('studio-inspect-output').disabled=true;
+      byId('editor-image-info').textContent=name;byId('editor-workspace-state').querySelector('strong').textContent=ready?'Resultado listo':'Listo';
+      return;
+    }
     activeType = getActiveType();
     const meta = toolMeta[activeType];
     const canvas = byId(`${activeType}-canvas`);
@@ -686,6 +657,9 @@
     byId('studio-inspect-output')?.addEventListener('click', () => byId(toolMeta[getActiveType()].download)?.click());
     window.addEventListener('momotus:workspace-update', scheduleTechnicalUpdate);
     window.addEventListener('momotus:result-ready', scheduleTechnicalUpdate);
+    window.addEventListener('momotus:extra-tool',scheduleTechnicalUpdate);
+    window.addEventListener('momotus:sheet-quote-ready',scheduleTechnicalUpdate);
+    document.querySelectorAll('.extra-tool-panel').forEach(panel=>{panel.addEventListener('input',scheduleTechnicalUpdate);panel.addEventListener('click',()=>setTimeout(scheduleTechnicalUpdate,200));new MutationObserver(scheduleTechnicalUpdate).observe(panel,{attributes:true,attributeFilter:['hidden']});});
     const observer = new MutationObserver(scheduleTechnicalUpdate);
     document.querySelectorAll('.tool-preview canvas, #editor-image-info').forEach(element => observer.observe(element, { attributes: true, childList: true, characterData: true, subtree: true }));
   };

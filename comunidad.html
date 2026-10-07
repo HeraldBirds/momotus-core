@@ -12,36 +12,27 @@
   <meta property="og:image" content="img/heroes/hero-comunidad.webp">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" href="img/icons/icon-nica.webp" type="image/webp">
+  <link rel="preload" href="img/heroes/hero-comunidad.webp" as="image" type="image/webp" media="(min-width: 768px)" fetchpriority="high">
+  <link rel="preload" href="img/heroes/hero-comunidad-mobile.webp" as="image" type="image/webp" media="(max-width: 767px)" fetchpriority="high">
   
   <!-- === SEGURIDAD NETLIFY - Momotus Core (Abril 2026) === -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: https:; font-src 'self' https://cdnjs.cloudflare.com; connect-src 'self';">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self';">
 
   <!-- Tailwind CDN optimizado -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      content: [],
-      theme: {
-        extend: {
-          colors: {
-            momotus: '#facc15'
-          }
-        }
-      }
-    }
-  </script>
+  
+  <link rel="stylesheet" href="css/tailwind.css?v=20261006-1">
 
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" 
+  <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css?v=20261006-1" 
         crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.css?v=20261005-1">
+  <link rel="stylesheet" href="css/store-experience.css?v=20261007-original-6">
 </head>
 <body class="bg-zinc-950 text-white">
 
   <div id="navbar-placeholder"></div>
 
   <!-- HERO COMUNIDAD -->
-  <div class="relative h-[580px] bg-cover bg-center flex items-center overflow-hidden" 
-       style="background-image: linear-gradient(rgba(0,0,0,0.65), rgba(0,0,0,0.75)), url('img/heroes/hero-comunidad.webp');">
+  <div class="community-hero relative h-[580px] bg-cover bg-center flex items-center overflow-hidden">
     <div class="max-w-7xl mx-auto px-6 text-center relative z-10">
       <span class="inline-flex items-center gap-2 bg-yellow-400 text-black text-sm font-bold px-6 py-2 rounded-3xl mb-6">
         <i class="fa-solid fa-users"></i> COMUNIDAD MOMOTUS
@@ -90,8 +81,12 @@
   <div id="cart-modal-placeholder"></div>
 
   <!-- SCRIPT ORIGINAL -->
-  <script src="tienda/js/catalogo.js"></script>
-  <script src="js/script.js"></script>
+  <script src="tienda/js/product-images.js?v=20261007-category-1"></script>
+  <script src="tienda/js/store-config-core.js?v=20261007-category-1"></script>
+  <script src="tienda/js/configuracion.js?v=20261007-shop-1"></script>
+  <script src="tienda/js/catalogo.js?v=20261007-slots-1"></script>
+  <script src="js/script.js?v=20261007-category-1"></script>
+  <script src="js/performance.js?v=20261006-1" defer></script>
 
   <!-- Script extra para el botón de compartir -->
   <script>
@@ -101,5 +96,6 @@
       showToast("✅ WhatsApp abierto - ¡Envía tu foto!");
     }
   </script>
+  <script src="js/store-experience.js?v=20261007-category-1" defer></script>
 </body>
 </html>

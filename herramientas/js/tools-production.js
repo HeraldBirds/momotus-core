@@ -220,6 +220,8 @@
     renderPalette();
   };
 
+  window.addEventListener('momotus:production-import-canvas',event=>{if(!event.detail?.canvas)return;setDocument(event.detail.canvas,event.detail.filename||'efectos');openProduction();});
+
   const importActiveResult = async () => {
     if (!api()?.hasDocument?.()) return toast('Primero cargá o procesá una imagen en alguna herramienta.');
     setBusy(true, 'Importando resultado completo…');
@@ -227,6 +229,8 @@
       const info = api().getDocumentInfo();
       const canvas = await api().getResultCanvas();
       if (!canvas) throw new Error('No se pudo preparar el resultado activo.');
+      if(!await window.MomotusReviewTransfer(canvas,'production',info?.filename,api().getActiveType())) return;
+      window.MomotusRememberTransfer(api().getActiveType(),'production');
       setDocument(canvas, `${info?.filename || 'momotus'}-produccion`);
       openProduction();
       toast('Resultado importado sin modificar el original.');
@@ -977,7 +981,7 @@
             <div id="production-empty" class="production-empty"><i class="fa-solid fa-file-circle-plus"></i><strong>Abrí un documento de producción</strong><span>Importá el resultado activo o seleccioná una imagen.</span></div>
             <canvas id="production-canvas" hidden></canvas>
           </div>
-          <div class="production-statusbar"><span>300 DPI</span><span>PNG transparente</span><span id="production-profile-name">Sin perfil asignado</span><label>Continuar en <select id="production-send-target"><option value="quality">Calidad</option><option value="background">Fondo</option><option value="halftone">Semitonos</option><option value="vector">Vectorización</option></select></label><button id="production-send" type="button"><i class="fa-solid fa-arrow-up-right-from-square"></i> Enviar</button><button id="production-review" type="button"><i class="fa-solid fa-magnifying-glass-chart"></i> Revisar y exportar</button></div>
+          <div class="production-statusbar"><span>300 DPI</span><span>PNG transparente</span><span id="production-profile-name">Sin perfil asignado</span><label>Continuar en <select id="production-send-target"><option value="quality">Calidad</option><option value="background">Fondo</option><option value="halftone">Semitonos</option><option value="vector">Vectorización</option><option value="effects">Efectos de estampado</option></select></label><button id="production-send" type="button"><i class="fa-solid fa-arrow-up-right-from-square"></i> Enviar</button><button id="production-review" type="button"><i class="fa-solid fa-magnifying-glass-chart"></i> Revisar y exportar</button></div>
           <div id="production-busy" class="production-busy" hidden><div><i></i></div><strong>Procesando…</strong><span></span></div>
         </main>
         <aside class="production-inspector">
@@ -1130,6 +1134,8 @@
       try {
         let sent;
         if (target === 'vector') {
+          if(!await window.MomotusReviewTransfer(state.canvas,'vector',state.filename,'production')) return;
+          window.MomotusRememberTransfer('production','vector');
           const blob = await canvasToBlob(state.canvas);
           const file = new File([blob], `${state.filename}.png`, { type: 'image/png' });
           window.dispatchEvent(new CustomEvent('momotus:vector-import', { detail: { file } }));

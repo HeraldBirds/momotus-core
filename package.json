@@ -1,0 +1,13 @@
+{
+  "name": "momotus-core",
+  "version": "1.0.1",
+  "private": true,
+  "scripts": {
+    "build:css": "tailwindcss -c tailwind.config.cjs -i css/tailwind.input.css -o css/tailwind.css --minify",
+    "test": "node --test tests/*.test.cjs"
+  },
+  "devDependencies": {
+    "fake-indexeddb": "6.2.4",
+    "tailwindcss": "3.4.17"
+  }
+}

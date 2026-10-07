@@ -1,0 +1,262 @@
+/* Apariencia del estudio. No modifica canvas, píxeles, máscaras, DPI ni exportaciones. */
+@media(min-width:1024px){
+ body.momotus-studio{background:#171a20;}
+ .momotus-studio .tools-studio-intro{background:linear-gradient(105deg,#3a3424,#22262e 65%,#252a33);border-color:#414b5b;}
+ .momotus-studio .tools-studio-intro h1{color:#edf0f5;}.momotus-studio .tools-studio-intro p{color:#a1acbb;}
+ .momotus-studio .tools-editor-grid{grid-template-columns:92px minmax(0,1fr);background:#171a20;}
+ .momotus-studio .tools-editor-grid>nav{padding:10px 7px;gap:8px;background:linear-gradient(180deg,#1e242d,#171c24);border-color:#a1acbb;overflow-y:auto;}
+ .momotus-studio .tool-shortcut{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;min-height:74px;padding:10px 5px;border:1px solid #465365;border-radius:13px;background:#292f3a;color:#f8fafc;text-align:left;}
+ .momotus-studio .tool-shortcut>i{width:24px;color:#eac958;font-size:20px;flex-shrink:0;}.momotus-studio .tool-shortcut>span{display:grid;gap:5px;}
+ .momotus-studio .tool-shortcut strong{font-size:12px;}.momotus-studio .tool-shortcut small{display:none;font-size:10px;line-height:1.4;color:#d4d2c9;}
+ .momotus-studio .tool-shortcut:hover{background:#343d4b;border-color:#bac7d8;}.momotus-studio .tool-shortcut.active{background:#f1c84b;color:#edf0f5;border-color:#c6b390;box-shadow:none;}
+ .momotus-studio .tool-shortcut.active :is(i,small){color:#edf0f5;}
+ .momotus-studio .tool-shortcut:nth-child(2)>i{color:#bac7d8;}.momotus-studio .tool-shortcut:nth-child(3)>i{color:#bac7d8;}.momotus-studio .tool-shortcut:nth-child(4)>i{color:#bac7d8;}.momotus-studio .tool-shortcut:nth-child(5)>i{color:#bac7d8;}.momotus-studio .tool-shortcut:nth-child(6)>i{color:#bac7d8;}
+ .momotus-studio .tool-shortcut.active>i{color:#edf0f5;}
+ .momotus-studio .tools-editor-grid>.tool-probar{background:#252a33;border-color:#3d4655;color:#edf0f5;}
+ .momotus-studio :is(.tool-workspace-brand strong,.tool-document-info){color:#edf0f5;}.momotus-studio .tool-workspace-brand small{color:#a1acbb;}
+ .momotus-studio .tool-history-actions button{background:#2c333e;border-color:#526074;color:#c4cbd7;}.momotus-studio .tool-history-actions button:hover{background:#3a3424;color:#edf0f5;}
+ .momotus-studio .tool-workspace-state{background:#2c333e;border-color:#526074;color:#c4cbd7;}
+ .momotus-studio .tool-controls,.momotus-studio .extra-controls,.momotus-studio #efectos-dtf .effects-controls{background:#22262e;color:#edf0f5;border-color:#3d4655;}
+ .momotus-studio :is(.tool-controls,.extra-controls) :is(p,label,summary,h3,h4,legend,strong,small,.tool-field-help){color:#c4cbd7;}
+ .momotus-studio :is(.tool-controls,.extra-controls) :is(.tool-field,.tool-field-row,.tool-check,.extra-field-row,.extra-check,.extra-field){background:#2c333e;border-color:#414b5b;color:#edf0f5;}
+ .momotus-studio :is(.tool-control-group,.tool-control-group[open],.extra-control-scroll){background:#22262e;border-color:#414b5b;}
+ .momotus-studio .tool-control-group[open] summary{background:#292f39;border-color:#414b5b;}
+ .momotus-studio .studio-inspector-heading{border-color:#414b5b;}.momotus-studio .studio-inspector-heading strong{color:#edf0f5;}.momotus-studio .studio-inspector-heading small{color:#a1acbb;}
+ .momotus-studio :is(.tool-controls,.extra-controls) :is(button,input:not([type=range]):not([type=checkbox]):not([type=color]):not([type=file]),select){background:#2c333e;color:#edf0f5;border-color:#526074;}
+ .momotus-studio :is(.tool-controls,.extra-controls) :is(button.active,button[aria-selected=true],.tool-download,.extra-primary){background:#f1c84b;color:#edf0f5;border-color:#b99734;}
+ .momotus-studio :is(.tool-options-trigger,.extra-options-trigger){background:#2c333e;color:#edf0f5;border-color:#526074;}
+ .momotus-studio :is(.tool-options-trigger,.extra-options-trigger) small{color:#a1acbb;}
+ .momotus-studio .tool-upload{background:linear-gradient(120deg,#30312a,#252b34);border:1px dashed #b99734;color:#f0ce70;border-radius:12px;}.momotus-studio .tool-upload :is(strong,i,small){color:#f0ce70;}
+ .momotus-studio .tool-control-tabs button{border-color:#414b5b;}.momotus-studio .tool-control-tabs button.active{background:#34445b;color:#fff;}.momotus-studio .tool-control-tabs button.active span{color:#fff;}
+ .momotus-studio .tool-control-tabs .studio-tab-level{color:#a1acbb;}
+ .momotus-studio .tool-preview-shell,.momotus-studio .extra-workspace,.momotus-studio #efectos-dtf .effects-workspace{background:#171a20;}
+ .momotus-studio .tool-preview-toolbar{background:#20242c;border-color:#3d4655;color:#c4cbd7;}.momotus-studio .tool-preview-toolbar button{background:#2c333e;color:#c4cbd7;border-color:#526074;}
+ .momotus-studio :is(.studio-technical-bar,.extra-technical-bar){background:#252a33;border-color:#3d4655;color:#c4cbd7;}.momotus-studio .studio-technical-bar :is(strong,small,span){color:#c4cbd7;}
+ .momotus-studio .extra-preview-heading{background:#20242c;color:#edf0f5;border-color:#3d4655;}.momotus-studio .extra-preview-heading :is(strong,small){color:#c4cbd7;}
+ .momotus-studio .calculator-results{background:#252a33;border-color:#3d4655;}.momotus-studio .calculator-results article{background:#2c333e;border-color:#414b5b;color:#edf0f5;}.momotus-studio .calculator-results article :is(strong,span,small){color:#c4cbd7;}.momotus-studio .calculator-results article.highlight{background:#3a3424;border-color:#d9b44a;}
+ .momotus-studio #efectos-dtf .effects-controls :is(h2,p,label,summary,legend,small,header span){color:#c4cbd7;}
+ .momotus-studio #efectos-dtf .effects-controls header p{color:#f0ce70;}.momotus-studio #efectos-dtf .effects-controls header h2{color:#edf0f5;}
+ .momotus-studio #efectos-dtf .effects-upload{background:#262d38;border-color:#b99734;color:#f0ce70;}
+ .momotus-studio #efectos-dtf :is(button,select,input[type=number],input[type=text]){background:#2c333e;color:#edf0f5;border-color:#526074;}
+ .momotus-studio #efectos-dtf button.active{background:#3a3424;border-color:#b99734;color:#f0ce70;}
+ .momotus-studio #efectos-dtf .effects-presets button{border-radius:12px;}.momotus-studio #efectos-dtf .effects-presets button b{color:#d9b44a;}
+ .momotus-studio #efectos-dtf :is(.effects-description,fieldset,.effects-detail){background:#2c333e;border-color:#414b5b;color:#c4cbd7;}
+ .momotus-studio #efectos-dtf output{color:#f0ce70;}.momotus-studio #efectos-dtf .effects-guide a{color:#7dd3c4;}
+ .momotus-studio #efectos-dtf .effects-workspace :is(.effects-preview-toolbar strong,.effects-preview-toolbar span,.effects-preview-backgrounds span,.effects-physical-note,#effects-status){color:#c4cbd7;}
+ .momotus-studio #efectos-dtf #effects-status.is-error{color:#fda4af;}.momotus-studio #efectos-dtf .effects-export-row{color:#edf0f5;border-color:#526074;}.momotus-studio #efectos-dtf .effects-export-row small{color:#a1acbb;}.momotus-studio #efectos-dtf .effects-send-row{color:#c4cbd7;}
+ .momotus-studio #efectos-dtf #effects-download{background:#f1c84b;color:#edf0f5;border-color:#b99734;}
+ .momotus-studio :is(button,a,input,select,summary):focus-visible{outline:2px solid #d9b44a;outline-offset:3px;}
+ .momotus-studio :is(.tool-shortcut,.effects-presets button){transition:background-color .16s,border-color .16s,box-shadow .16s;}
+}
+@media(min-width:1024px) and (max-width:1279px){.momotus-studio .tools-editor-grid{grid-template-columns:92px minmax(0,1fr);}.momotus-studio .tool-shortcut{padding:10px 7px;gap:7px;}.momotus-studio .tool-shortcut strong{font-size:11px;}.momotus-studio .tool-shortcut small{font-size:9px;}}
+@media(prefers-reduced-motion:reduce){.momotus-studio :is(.tool-shortcut,.effects-presets button){transition:none;}}
+@media(min-width:1024px){
+ .momotus-studio .tool-shortcut>span{align-items:center;text-align:center;}
+ .momotus-studio .tool-probar{display:flex;flex-wrap:wrap;align-content:center;align-items:center;height:auto;min-height:52px;overflow:visible;gap:6px 8px;padding:8px 10px;}
+ .momotus-studio .tool-probar>*{flex:0 0 auto;}.momotus-studio .tool-probar .tool-document-info{flex:1 1 100px;}
+ .momotus-studio .studio-pipeline{background:#2c333e;border-color:#526074;}.momotus-studio .studio-pipeline button{color:#a1acbb;}.momotus-studio .studio-pipeline button.active{background:#3a3424;color:#f0ce70;}
+ .momotus-studio #calculadora-dtf .calc-mode-switch{background:#171a20;border-color:#3d4655;}
+ .momotus-studio #calculadora-dtf .calc-mode-switch button{background:#2c333e;border-color:#526074;color:#c4cbd7;}
+ .momotus-studio #calculadora-dtf .calc-mode-switch button.active{background:#3a3424;border-color:#b99734;color:#f0ce70;}
+ .momotus-studio #calculadora-dtf .calc-mode-switch button small{color:#a1acbb;}
+ .momotus-studio #calculadora-dtf .team-quote{background:#20242c;color:#edf0f5;}
+ .momotus-studio #calculadora-dtf :is(.team-section,.team-reference){background:#2c333e;border-color:#414b5b;box-shadow:0 5px 16px #edf0f508;}
+ .momotus-studio #calculadora-dtf :is(.team-quote-summary,.team-summary-cards article){background:#292f39;border-color:#526074;}
+ .momotus-studio #calculadora-dtf .team-quote :is(h2,h3,p,label,summary,span,strong,small,th,dd,dt){color:#c4cbd7;}
+ .momotus-studio #calculadora-dtf .team-quote :is(h2,h3){color:#edf0f5;}
+ .momotus-studio #calculadora-dtf .team-quote :is(input:not([type=checkbox]),select,textarea,button){background:#2c333e;color:#edf0f5;border-color:#526074;}
+ .momotus-studio #calculadora-dtf .team-quote :is(input,textarea)::placeholder{color:#a1acbb;}
+ .momotus-studio #calculadora-dtf .team-template-bar button,.momotus-studio #calculadora-dtf .team-summary-actions button{background:#252a33;color:#edf0f5;}
+ .momotus-studio #calculadora-dtf .team-template-bar .team-template-equipo{background:#3a3424;border-color:#b99734;color:#f0ce70;}
+ .momotus-studio #calculadora-dtf .team-template-equipo span{color:#f0ce70;}
+ .momotus-studio #calculadora-dtf .team-equipment{border-left:4px solid #d9b44a;}
+ .momotus-studio #calculadora-dtf .team-step{background:#f1c84b;color:#edf0f5;}
+ .momotus-studio #calculadora-dtf :is(.team-quote-heading>div>span,.team-summary-heading>span,.team-reference-index){color:#f0ce70;}
+ .momotus-studio #calculadora-dtf .team-price>strong{color:#f0ce70;}
+ .momotus-studio #calculadora-dtf .team-summary-actions button.primary{background:#466453;color:#fff;border-color:#466453;}
+ .momotus-studio #calculadora-dtf :is(.team-members-table thead,.team-members-table th,.team-member-measures td){background:#252a33;color:#c4cbd7;}
+ .momotus-studio #calculadora-dtf :is(.team-members-wrap,.team-costs,.team-cost-breakdown>div:last-child,.team-price,.team-layout-details){border-color:#3d4655;}
+ .momotus-studio #calculadora-dtf .team-roster-error{background:#fee2e2;color:#991b1b!important;border-color:#fca5a5;}
+}
+@media(min-width:1024px){.momotus-studio #calculadora-dtf .team-equipment .team-detail-field strong{color:#f0ce70;}}
+
+/* La barra crece dentro de su fila; el lienzo ocupa únicamente el espacio restante. */
+@media(min-width:1024px){
+ .momotus-studio .tools-editor-grid{grid-template-rows:auto minmax(0,1fr) 32px;}
+ .momotus-studio .tool-probar>.tool-workspace-brand{order:0;}
+ .momotus-studio .tool-probar>.studio-pipeline{order:1;}
+ .momotus-studio .tool-probar>.tool-history-actions{order:2;}
+ .momotus-studio .tool-probar>.production-launch{order:3;}
+ .momotus-studio .tool-probar>.mockup-launch{order:4;}
+ .momotus-studio .tool-probar>.effects-apply-launch{order:5;}
+ .momotus-studio .tool-probar>.tool-document-info{order:6;}
+ .momotus-studio .tool-probar>.tool-workspace-state{order:7;margin-left:auto;}
+ .momotus-studio .tool-probar>.tool-histogram-wrap{order:8;}
+ .momotus-studio .tool-probar>:is(button,.tool-history-actions button){max-width:100%;}
+ .momotus-studio .tool-shortcut{font-size:11px;box-shadow:none;}
+ .momotus-studio .tool-shortcut strong{font-size:11px;line-height:1.25;}
+ .momotus-studio .tool-shortcut:not(.active)>i{color:#bac7d8;}
+ .momotus-studio .tool-preview-toolbar{flex-wrap:wrap;gap:6px;overflow:visible;min-height:38px;height:auto;}
+ .momotus-studio .tool-preview-toolbar>.studio-view-controls{margin-left:auto;max-width:100%;flex-wrap:wrap;}
+ .momotus-studio :is(.tool-control-tabs,.tool-workspace-brand)>span{background:#f1c84b;}
+ .momotus-studio .tool-history-actions{display:flex;flex-wrap:wrap;gap:4px;}
+ .momotus-studio :is(.mockup-launch,.effects-apply-launch,.tool-download,.extra-primary){background:#f1c84b;color:#edf0f5;border-color:#b99734;}
+ .momotus-studio .tool-controls :is(.studio-inspector-heading i,.studio-tab-level,.tool-control-tabs i),.momotus-studio .extra-controls .extra-inspector-title i{color:#d9b44a;}
+ .momotus-studio .tool-control-tabs button.active :is(i,.studio-tab-level){color:#262d38;}
+ .momotus-studio #calculadora-dtf .team-step{background:#f1c84b;color:#edf0f5;}
+ .momotus-studio #calculadora-dtf .team-template-bar button span{color:inherit;}
+ .momotus-studio .studio-pipeline button.active b{background:#f1c84b;color:#edf0f5;}
+}
+@media(min-width:1024px){
+ body.momotus-studio main.tools-editor-grid{grid-template-rows:max-content minmax(0,1fr) 32px;}
+ body.momotus-studio .tools-editor-grid>.tool-probar{height:auto;min-height:84px;align-content:flex-start;padding:8px 10px;}
+ body.momotus-studio .tool-probar>.tool-history-actions{min-width:0;max-width:100%;flex-shrink:1;}
+}
+@media(min-width:1024px){body.momotus-studio.effects-tool-active .tools-editor-grid>.tool-probar{min-height:52px;}}
+
+/* Fondo oscuro; el color identifica acciones y estados, sin alterar las imágenes. */
+@media(min-width:1024px){
+ .momotus-studio .tool-shortcut:nth-child(1){--tool-accent:#f1c84b;--tool-tint:#3a3424;}
+ .momotus-studio .tool-shortcut:nth-child(2){--tool-accent:#63d7cc;--tool-tint:#1c383b;}
+ .momotus-studio .tool-shortcut:nth-child(3){--tool-accent:#80b7f5;--tool-tint:#263a53;}
+ .momotus-studio .tool-shortcut:nth-child(4){--tool-accent:#b8a2ef;--tool-tint:#36304b;}
+ .momotus-studio .tool-shortcut:nth-child(5){--tool-accent:#7ed5a0;--tool-tint:#243c31;}
+ .momotus-studio .tool-shortcut:nth-child(6){--tool-accent:#e8a1c6;--tool-tint:#44303f;}
+ body.momotus-studio .tool-shortcut>i{color:var(--tool-accent);}
+ body.momotus-studio .tool-shortcut.active{background:var(--tool-tint);border-color:var(--tool-accent);color:#f8fafc;box-shadow:inset 3px 0 var(--tool-accent);}
+ body.momotus-studio .tool-shortcut.active>i{color:var(--tool-accent);}
+ .momotus-studio .tool-shortcut:hover{border-color:var(--tool-accent);background:#343d4b;}
+ body.momotus-studio :is(.mockup-launch,.effects-apply-launch,.tool-download,.extra-primary){background:#f1c84b;color:#171a20;border-color:#dfb432;}
+ .momotus-studio .tool-workspace-brand>span{background:#f1c84b;color:#171a20;}
+ .momotus-studio .tool-history-actions button:hover:not(:disabled){border-color:#80b7f5;color:#a7cdf8;background:#29394e;}
+ .momotus-studio .tool-control-tabs button.active{background:#293e59;border-color:#80b7f5;color:#e9f3ff;}
+ .momotus-studio .tool-control-tabs button.active :is(span,i,.studio-tab-level){color:#a7cdf8;}
+ .momotus-studio :is(.tool-controls,.extra-controls) :is(.tool-download,.extra-primary){background:#f1c84b;color:#171a20;}
+ .momotus-studio :is(.tool-controls,.extra-controls) :is(button.active,button[aria-selected=true]){background:#31455b;color:#dceeff;border-color:#80b7f5;}
+ .momotus-studio .studio-pipeline button.active{background:#3a3424;color:#f0ce70;}
+ .momotus-studio .studio-pipeline button.active b{background:#f1c84b;color:#171a20;}
+ .momotus-studio :is(button,a,input,select,summary):focus-visible{outline-color:#80b7f5;}
+ .momotus-studio #calculadora-dtf .team-step{background:#f1c84b;color:#171a20;}
+ .momotus-studio #calculadora-dtf .team-quote-summary{border-top:3px solid #7ed5a0;}
+ .momotus-studio #calculadora-dtf .team-price>strong{color:#f0ce70;}
+ .momotus-studio #calculadora-dtf .team-summary-actions button.primary{background:#247348;color:#fff;border-color:#4cad73;}
+ .momotus-studio #calculadora-dtf .team-template-equipo :is(strong,span){color:#f0ce70;}
+ .momotus-studio #efectos-dtf .effects-controls header p{color:#e8a1c6;}
+ .momotus-studio #efectos-dtf .effects-upload{background:#352b38;border-color:#bc8da8;color:#f0bddb;}
+ .momotus-studio #efectos-dtf .effects-presets button b{color:#e8a1c6;}
+ .momotus-studio #efectos-dtf button.active{background:#44303f;border-color:#d391b5;color:#f5c7e1;}
+ .momotus-studio #efectos-dtf output{color:#e8a1c6;}
+ .momotus-studio #efectos-dtf #effects-download{background:#f1c84b;color:#171a20;border-color:#dfb432;}
+ .momotus-studio .tool-workspace-state.ready{color:#a7e4bb;border-color:#4f8664;background:#22392c;}
+}
+@media(min-width:1024px){
+ .momotus-studio .tool-shortcut:not(.active)>i{color:var(--tool-accent);}
+ body.momotus-studio .tool-history-actions .production-launch{background:#263a53;border-color:#537aa8;color:#a7cdf8;}
+ .momotus-studio #efectos-dtf #effects-send{background:#1c383b;border-color:#488b88;color:#a4e9e1;}
+ .momotus-studio #calculadora-dtf .team-template-bar button i{color:#7ed5a0;}
+ .momotus-studio #calculadora-dtf .team-template-bar .team-template-equipo i{color:#f0ce70;}
+}
+/* Estudio profesional: inspectores continuos y espacio de trabajo estable. */
+@media(min-width:1024px){
+ .momotus-studio .tool-layout,.momotus-studio .extra-studio-grid{grid-template-columns:minmax(0,1fr) clamp(290px,24vw,360px);}
+ .momotus-studio .tool-controls{padding:12px;gap:10px;}
+ .momotus-studio .tool-controls .pro-control-panels{overflow:auto;overscroll-behavior:contain;display:block;min-height:0;padding-right:3px;}
+ .momotus-studio .pro-control-panels>.tool-control-group,.momotus-studio .pro-control-panels>.tool-control-group[open]{position:static;display:block;transform:none;width:100%;height:auto;max-height:none;min-height:0;overflow:visible;border:1px solid #414b5b;border-radius:10px;box-shadow:none;margin:0 0 9px;}
+ .momotus-studio .pro-control-panels>.tool-control-group>summary,.momotus-studio .pro-control-panels>.tool-control-group[open]>summary{display:flex;min-height:40px;padding:10px;font-size:12px;cursor:pointer;}
+ .momotus-studio .pro-control-panels .tool-control-group[open]>.tool-control-content{display:flex;flex-direction:column;height:auto;max-height:none;overflow:visible;gap:8px;padding:10px;}
+ .momotus-studio .pro-control-panels .tool-panel-close{display:none;}
+ .momotus-studio .extra-controls.pro-inspector{padding:14px;gap:12px;}
+ .momotus-studio .extra-control-scroll{flex:1 1 0;min-height:0;overflow:auto;overscroll-behavior:contain;padding-right:4px;}
+ .momotus-studio .extra-controls label,.momotus-studio .extra-controls :is(input,select,button){font-size:12px;}
+ .momotus-studio .extra-controls .extra-field-row,.momotus-studio .extra-controls .extra-field{padding:9px;}
+ .momotus-studio .extra-controls .extra-field-row{flex-wrap:wrap;gap:8px;}
+ .momotus-studio .extra-controls input[type=text],.momotus-studio .extra-controls select{max-width:100%;min-width:0;}
+ .momotus-studio .extra-controls input[type=text]{width:100%;padding:8px;border:1px solid #526074;border-radius:7px;}
+ .momotus-studio .extra-workspace{grid-template-rows:auto minmax(0,1fr) auto;}
+ .momotus-studio .extra-toolbar{flex-wrap:wrap;padding:10px;gap:8px;min-height:52px;background:#20242c;}
+ .momotus-studio .extra-toolbar>span{flex:1 1 160px;}
+ .momotus-studio .extra-toolbar :is(button,select){font-size:12px;}
+ .momotus-studio .extra-toolbar input[type=range]{width:90px;}
+ .momotus-studio .extra-statusbar{min-height:40px;flex-wrap:wrap;padding:8px 12px;}
+ .momotus-studio .extra-statusbar>span{white-space:normal;line-height:1.5;}
+ .momotus-studio #vector-viewport{display:block;text-align:center;}
+ .momotus-studio #vector-canvas{display:inline-block;max-width:none;max-height:none;vertical-align:middle;}
+ .momotus-studio .vector-color-row{display:grid;grid-template-columns:16px 34px minmax(0,1fr) auto;gap:6px;align-items:center;margin:8px 0;}
+ .momotus-studio .vector-color-row input[type=color]{width:34px;height:32px;}
+ .momotus-studio .vector-color-row button{padding:6px;font-size:10px;}
+ .momotus-studio #calculadora-dtf .calc-mode-switch{grid-template-columns:repeat(3,minmax(0,1fr));}
+ .momotus-studio #calculadora-dtf .team-reference:not(.team-equipment){display:grid;grid-template-columns:minmax(130px,1.3fr) minmax(270px,2fr);gap:10px;padding:12px;margin:8px 0;}
+ .momotus-studio #calculadora-dtf .team-reference:not(.team-equipment) .team-reference-heading{margin:0;align-items:end;min-width:0;gap:6px;}
+ .momotus-studio #calculadora-dtf .team-reference:not(.team-equipment) .team-reference-fields{grid-template-columns:1.15fr 1fr 1fr .8fr;align-items:end;gap:6px;}
+ .momotus-studio #calculadora-dtf .team-reference-meta{grid-column:1/-1;}
+ .momotus-studio #calculadora-dtf .team-reference-meta>div{grid-template-columns:repeat(3,minmax(0,1fr));}
+ .momotus-studio .pro-reference-heading{display:none;}
+ .momotus-studio .pro-quote-tools{margin:16px 0;}
+ .momotus-studio .pro-table-wrap{overflow:auto;}
+ .momotus-studio .pro-quote-table{width:100%;border-collapse:collapse;font-size:12px;}
+ .momotus-studio .pro-quote-table :is(th,td){padding:9px;border-bottom:1px solid #414b5b;text-align:left;}
+ .momotus-studio .pro-quote-table tr.is-selected{background:#d9b44a22;outline:1px solid #d9b44a;}
+ .momotus-studio #efectos-dtf .effects-layout{grid-template-columns:minmax(0,1fr) clamp(300px,25vw,370px);}
+ .momotus-studio #efectos-dtf .effects-controls{grid-column:2;grid-row:1;border-right:0;border-left:1px solid #414b5b;padding:16px;}
+ .momotus-studio #efectos-dtf .effects-workspace{grid-column:1;grid-row:1;min-width:0;}
+ .momotus-studio #efectos-dtf .effects-presets{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0;}
+ .momotus-studio #efectos-dtf .effects-presets button{padding:5px;font-size:10px;overflow:hidden;}
+ .momotus-studio #efectos-dtf .effects-presets canvas{width:100%;height:auto;border-radius:4px;}
+ .momotus-studio #efectos-dtf .effects-preview-toolbar{height:auto;min-height:58px;flex-wrap:wrap;gap:8px;padding:10px;}
+ .momotus-studio #efectos-dtf .effects-view-buttons{flex-wrap:wrap;gap:6px;}
+ .momotus-studio #efectos-dtf .effects-view-buttons button{font-size:11px;padding:7px;}
+ .momotus-studio #efectos-dtf .effects-history{margin:0;}
+ .momotus-studio #efectos-dtf .effects-detail>fieldset{border:0;padding:4px;margin:0;background:none;}
+ .momotus-studio #efectos-dtf .effects-detail>fieldset>legend{display:none;}
+ .momotus-studio #efectos-dtf .effects-preview-toolbar strong{color:#f0ce70;}
+}
+.pro-help{display:block;font-size:11px;line-height:1.6;color:#aab7c8;margin:8px 0;}
+.pro-detail{border:1px solid #414b5b;border-radius:10px;padding:12px;margin:10px 0;background:#252a33;color:#d2dbe6;}
+.pro-detail>summary{cursor:pointer;font-weight:700;font-size:12px;}
+.pro-actions{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0;}
+.pro-actions select{min-width:0;max-width:100%;}
+.pro-dialog{color:#e8eef6;background:#22262e;border:1px solid #64748b;border-radius:16px;width:min(700px,calc(100vw - 40px));max-height:90vh;padding:24px;overflow:auto;font:14px/1.6 Arial,sans-serif;}
+.pro-dialog::backdrop{background:#090c12bb;backdrop-filter:blur(3px);}
+.pro-dialog header{display:flex;justify-content:space-between;align-items:center;gap:12px;}
+.pro-dialog h3{font-size:20px;font-weight:700;margin:0;}
+.pro-dialog button,.pro-dialog select{padding:8px 14px;border:1px solid #526074;border-radius:8px;background:#303947;color:#e8eef6;cursor:pointer;}
+.pro-dialog #effects-export-confirm{background:#d9b44a;color:#151a20;font-weight:700;}
+.pro-dialog label{display:block;margin-top:14px;}.pro-dialog input[type=range]{display:block;width:100%;}
+.pro-sample-wrap{overflow:auto;background:#000;max-height:54vh;}.pro-sample-wrap canvas{display:block;max-width:none;}
+@media(min-width:1024px){
+ .momotus-studio.extra-tool-active :is(.studio-pipeline,.tool-histogram-wrap,#tool-undo,#tool-redo,#tool-reset-current,.effects-apply-launch){display:none;}
+ .momotus-studio.extra-tool-active .tool-probar{min-height:58px;}
+ .momotus-studio #vector-viewport{display:flex;align-items:safe center;justify-content:safe center;}
+ .momotus-studio .extra-controls button.extra-primary{background:#d9b44a;color:#151a20;border-color:#e8ca6a;}
+ .momotus-studio :is(.pro-actions,.calc-profile-actions)>:is(button,select){min-height:36px;font-size:12px;padding:8px 12px;background:#303947;color:#e8eef6;border:1px solid #526074;border-radius:8px;}
+ .momotus-studio .pro-help{font-size:11px;}
+}
+@media(min-width:1024px){.momotus-studio .tool-controls>.tool-control-tabs[hidden]{display:none!important;}}
+
+/* Keep the inspector usable when the screen has little vertical space. */
+@media (min-width: 1024px) {
+ .momotus-studio .studio-inspector-heading > .studio-inspector-actions {
+  flex-direction: row;
+  flex-wrap: nowrap;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 4px;
+ }
+ .momotus-studio .studio-inspector-heading > div:first-child { min-width: 0; }
+ .momotus-studio .studio-inspector-actions button { flex: 0 0 auto; }
+ .momotus-studio .tool-controls {
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #5b5d66 #22262e;
+ }
+ .momotus-studio .tool-controls .pro-control-panels {
+  flex: 1 0 200px;
+  min-height: 200px;
+ }
+ .momotus-studio .tool-controls > .tool-upload { flex-shrink: 0; }
+}
+@media (min-width: 1024px) and (max-height: 700px) {
+ .momotus-studio .tool-controls { padding: 8px; gap: 7px; }
+ .momotus-studio .studio-inspector-heading { min-height: 36px; padding-bottom: 5px; }
+}

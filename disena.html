@@ -14,24 +14,15 @@
   <link rel="icon" href="img/icons/icon-nica.webp" type="image/webp">
   
   <!-- === SEGURIDAD NETLIFY - Momotus Core (Abril 2026) === -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: https: blob:; font-src 'self' https://cdnjs.cloudflare.com; connect-src 'self';">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self'; connect-src 'self';">
 
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      content: [],
-      theme: {
-        extend: {
-          colors: { momotus: '#facc15' }
-        }
-      }
-    }
-  </script>
+  
+  <link rel="stylesheet" href="css/tailwind.css?v=20261006-1">
 
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" 
+  <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css?v=20261006-1" 
         crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <link rel="stylesheet" href="css/style.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" 
+  <link rel="stylesheet" href="css/style.css?v=20261005-1">
+  <script src="vendor/html2canvas/html2canvas.min.js?v=20261006-1" 
           crossorigin="anonymous"></script>
 
   <style>
@@ -118,6 +109,7 @@
     }
     .resize-btn:hover { transform: scale(1.1); }
   </style>
+  <link rel="stylesheet" href="css/store-experience.css?v=20261007-original-6">
 </head>
 <body class="bg-zinc-950 text-white">
 
@@ -207,7 +199,7 @@
           </div>
 
           <div class="designer-colors">
-            <p class="font-medium mb-4">Color de camiseta</p>
+            <p class="font-medium mb-4">Color de la prenda</p>
             <div class="flex flex-wrap gap-3" id="color-buttons"></div>
           </div>
 
@@ -230,12 +222,20 @@
             </div>
           </div>
 
-          <button onclick="mostrarModalEliminarFondo()" class="designer-remove-bg w-full border-2 border-yellow-400 hover:bg-yellow-400 hover:text-black text-yellow-400 font-bold py-5 rounded-3xl flex items-center justify-center gap-3 text-lg transition">
-            <i class="fa-solid fa-magic text-2xl"></i> 🪄 ELIMINAR FONDO AUTOMÁTICO
-          </button>
+          <div class="designer-tool-actions">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" aria-label="Procesar automáticamente el diseño activo">
+              <button type="button" data-designer-auto-tool="background" onclick="procesarDisenoAutomatico('background')" class="designer-remove-bg w-full border-2 border-yellow-400 hover:bg-yellow-400 hover:text-black text-yellow-400 font-bold py-5 px-4 rounded-3xl flex items-center justify-center gap-3 text-base transition">
+                <i class="fa-solid fa-eraser text-xl" aria-hidden="true"></i> Eliminar fondo
+              </button>
+              <button type="button" data-designer-auto-tool="quality" onclick="procesarDisenoAutomatico('quality')" class="w-full border-2 border-sky-400 hover:bg-sky-400 hover:text-black text-sky-300 font-bold py-5 px-4 rounded-3xl flex items-center justify-center gap-3 text-base transition">
+                <i class="fa-solid fa-wand-magic-sparkles text-xl" aria-hidden="true"></i> Mejorar calidad
+              </button>
+            </div>
+            <p class="text-xs text-zinc-500 text-center mt-3">Procesa automáticamente el lado activo sin salir de esta página.</p>
+          </div>
 
           <div class="designer-reset flex gap-4">
-            <button onclick="resetDesign()" class="flex-1 bg-zinc-700 hover:bg-zinc-600 py-6 rounded-3xl font-bold text-lg">Resetear diseño</button>
+            <button onclick="resetDesign()" class="flex-1 bg-zinc-700 hover:bg-zinc-600 py-6 rounded-3xl font-bold text-lg">Restablecer diseño</button>
           </div>
 
           <div class="designer-center flex gap-4 mt-6">
@@ -306,9 +306,9 @@
         <div class="flex items-center justify-between mb-6">
           <p class="font-medium text-zinc-400 flex items-center gap-2">
             <i class="fa-solid fa-file-image"></i>
-            Diseños listos para aplicar (PNG transparente)
+            Diseños listos para aplicar (fondo transparente)
           </p>
-          <span class="text-xs bg-emerald-400 text-black px-4 py-1 rounded-3xl font-medium">10 diseños disponibles</span>
+          <span id="ready-design-count" class="text-xs bg-emerald-400 text-black px-4 py-1 rounded-3xl font-medium">4 diseños disponibles</span>
         </div>
         <div class="ready-designs grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-6 gap-6">
           <img onclick="showPreviewModal(this.src)" src="img/ready-designs/D1.webp" loading="lazy" alt="Diseño listo 1" class="cursor-pointer aspect-square object-contain">
@@ -345,10 +345,13 @@
   <div id="modal-eliminar-fondo" role="dialog" aria-modal="true" aria-labelledby="remove-bg-title" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[10000]">
     <div class="bg-zinc-900 border border-zinc-700 rounded-3xl max-w-lg w-full mx-4 p-8 text-center shadow-2xl">
       <span class="inline-flex items-center gap-2 bg-yellow-400/10 text-yellow-400 px-4 py-2 rounded-full text-sm font-bold mb-5"><i class="fa-solid fa-lock"></i> PROCESAMIENTO LOCAL</span>
-      <h3 id="remove-bg-title" class="text-2xl font-bold mb-3">Eliminar fondo en Momotus Studio</h3>
-      <p class="text-zinc-400 mb-7">Trabajá el lado activo con el eliminador de fondo de nuestras Herramientas DTF. Tu imagen se procesa en esta computadora y no se envía a servidores externos.</p>
-      <button onclick="abrirEliminadorFondoInterno(true)" class="w-full bg-yellow-400 text-black font-bold py-5 rounded-3xl text-lg mb-3 flex items-center justify-center gap-3 hover:bg-yellow-300 transition">
-        <i class="fa-solid fa-arrow-up-right-from-square"></i> TRABAJAR DISEÑO ACTIVO
+      <h3 id="remove-bg-title" class="text-2xl font-bold mb-3">Modificar diseño en Momotus Studio</h3>
+      <p class="text-zinc-400 mb-7">Escogé qué querés hacer con el lado activo. Tu imagen se procesa en esta computadora y no se envía a servidores externos.</p>
+      <button data-designer-auto-tool="background" onclick="procesarDisenoAutomatico('background')" class="w-full bg-yellow-400 text-black font-bold py-5 rounded-3xl text-lg mb-3 flex items-center justify-center gap-3 hover:bg-yellow-300 transition">
+        <i class="fa-solid fa-eraser"></i> ELIMINAR FONDO
+      </button>
+      <button data-designer-auto-tool="quality" onclick="procesarDisenoAutomatico('quality')" class="w-full bg-sky-500 text-black font-bold py-5 rounded-3xl text-lg mb-3 flex items-center justify-center gap-3 hover:bg-sky-400 transition">
+        <i class="fa-solid fa-wand-magic-sparkles"></i> MEJORAR CALIDAD
       </button>
       <button onclick="abrirEliminadorFondoInterno(false)" class="w-full border border-zinc-600 hover:border-yellow-400 hover:text-yellow-400 font-bold py-4 rounded-3xl mb-5 transition">
         <i class="fa-solid fa-toolbox"></i> ABRIR SIN ENVIAR IMAGEN
@@ -360,10 +363,16 @@
 
   <div id="cart-modal-placeholder"></div>
 
-  <script src="tienda/js/catalogo.js"></script>
-  <script src="js/script.js"></script>
-  <script src="js/workflow-bridge.js"></script>
-  <script src="js/designer.js"></script>
+  <script src="tienda/js/product-images.js?v=20261007-category-1"></script>
+  <script src="tienda/js/store-config-core.js?v=20261007-category-1"></script>
+  <script src="tienda/js/configuracion.js?v=20261007-shop-1"></script>
+  <script src="tienda/js/catalogo.js?v=20261007-slots-1"></script>
+  <script src="js/script.js?v=20261007-category-1"></script>
+  <script src="js/workflow-bridge.js?v=20261005-7"></script>
+  <script src="js/designer-storage.js?v=20261006-1"></script>
+  <script src="js/designer-auto-tools.js?v=20261006-1"></script>
+  <script src="js/designer.js?v=20261006-1"></script>
+  <script src="js/performance.js?v=20261006-1" defer></script>
 
   <script>
     let currentPreviewSrc = '';
@@ -381,23 +390,15 @@
       else modal.classList.add('hidden');
     }
     function applyFromPreview(side) {
-      const preview = side === 0 ? document.getElementById('design-preview') : document.getElementById('design-preview-back');
-      const id = side === 0 ? 'draggable-design-front' : 'draggable-design-back';
-      preview.innerHTML = `<img src="${currentPreviewSrc}" id="${id}" class="max-w-full max-h-full object-contain rounded-3xl" style="${getDesignStyle ? getDesignStyle(currentColor) : ''}">`;
-      preview.classList.add('design-loaded');
-      if (typeof makeDraggable === 'function') makeDraggable(document.getElementById(id));
-      if (side === 0) designFront = currentPreviewSrc;
-      else designBack = currentPreviewSrc;
-      const appliedImage = document.getElementById(id);
-      if (typeof applyDesignLayout === 'function') applyDesignLayout(appliedImage, side);
-      if (typeof updateImageQuality === 'function') {
-        if (appliedImage.complete) updateImageQuality(appliedImage, side);
-        else appliedImage.addEventListener('load', () => updateImageQuality(appliedImage, side), { once: true });
+      if (!applyDesignSource(currentPreviewSrc, side)) {
+        showToast('No se pudo aplicar este diseño');
+        return;
       }
       hidePreviewModal();
       if (typeof showToast === 'function') showToast("✅ Diseño aplicado correctamente");
       if (typeof saveCurrentDesign === 'function') saveCurrentDesign();
     }
   </script>
+  <script src="js/store-experience.js?v=20261007-category-1" defer></script>
 </body>
 </html>

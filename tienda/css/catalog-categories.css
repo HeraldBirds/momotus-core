@@ -1,0 +1,27 @@
+/* Portada breve y espacios urbanos sin acciones de compra. */
+#catalog-results[hidden],#urban-design-spaces[hidden]{display:none!important}
+.store-featured-intro{color:#a1a1aa;margin:-.25rem 0 1.5rem;max-width:42rem}
+.store-featured-categories{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2rem}
+.store-featured-category{min-width:0;border:1px solid #34343c;background:#151518;border-radius:1.5rem;padding:1rem}
+.store-category-heading{display:flex;align-items:center;justify-content:space-between;gap:.75rem;margin-bottom:1rem}
+.store-category-heading h4{font-size:1.2rem;font-weight:750}
+.store-category-heading button{color:#facc15;text-align:right;font-size:.85rem;padding:.5rem;border-radius:.6rem}
+.store-category-heading button:hover{background:#facc1514}
+.store-category-heading button:focus-visible{outline:2px solid #facc15;outline-offset:3px}
+.store-featured-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}
+.store-featured-pair .product-card{border:1px solid #29292f}
+.urban-subcategory-spaces{grid-column:2/-1;color:#a1a1aa;font-size:.72rem;text-align:left;line-height:1.3}
+.urban-subcategory.active .urban-subcategory-spaces{color:#3f3f46}
+.urban-design-spaces{margin-top:2rem;padding-top:1.5rem;border-top:1px solid #3f3f46}
+.urban-design-spaces h3{font-size:1.4rem;font-weight:750;margin-bottom:.4rem}
+.urban-design-spaces>p{color:#a1a1aa;margin-bottom:1rem}
+#urban-design-spaces-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:1rem}
+.urban-design-space{display:flex;min-height:180px;align-items:center;justify-content:center;flex-direction:column;gap:.65rem;padding:1rem;border:1px dashed #52525b;border-radius:1.25rem;background:linear-gradient(150deg,#222229,#17171d);text-align:center}
+.urban-design-space i{font-size:1.8rem;color:#ccb66f}
+.urban-design-space h4{font-size:.95rem;font-weight:650}
+.urban-design-space p{font-size:.8rem;color:#a1a1aa}
+@media(max-width:850px){.store-featured-categories{grid-template-columns:1fr}#urban-design-spaces-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:480px){.store-featured-category{padding:.8rem}.store-featured-pair{gap:.6rem}.store-category-heading h4{font-size:1rem}.store-category-heading button{max-width:10rem;font-size:.75rem}#urban-design-spaces-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.urban-design-space{min-height:150px}}
+#urban-subcategory-options .urban-subcategory{display:grid;grid-template-columns:auto minmax(0,1fr) auto;text-align:left}
+.urban-subcategory-count{margin-left:0}
+.urban-subcategory-spaces:empty{display:none}

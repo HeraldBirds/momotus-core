@@ -105,6 +105,35 @@
   };
   const hexToRgb = hex => ({ r: parseInt(hex.slice(1, 3), 16), g: parseInt(hex.slice(3, 5), 16), b: parseInt(hex.slice(5, 7), 16) });
   const rgbToHex = (r, g, b) => `#${[r, g, b].map(value => Math.round(value).toString(16).padStart(2, '0')).join('')}`;
+  const backgroundColorNames = Object.freeze({
+    '#ffffff': 'Blanco', '#d4d4d8': 'Gris claro', '#71717a': 'Gris', '#000000': 'Negro',
+    '#ef4444': 'Rojo', '#f97316': 'Naranja', '#facc15': 'Amarillo', '#22c55e': 'Verde',
+    '#06b6d4': 'Celeste', '#2563eb': 'Azul', '#7c3aed': 'Violeta', '#ec4899': 'Rosado'
+  });
+  const syncBackgroundPalette = () => {
+    const input = byId('background-color');
+    if (!input) return;
+    const color = input.value.toLowerCase();
+    const name = backgroundColorNames[color] || 'Personalizado';
+    const current = byId('background-palette-current');
+    const label = byId('background-palette-label');
+    const output = byId('background-color-hex');
+    if (current) current.style.setProperty('--selected-color', color);
+    if (label) label.textContent = `${name} · ${color.toUpperCase()}`;
+    if (output) output.textContent = color.toUpperCase();
+    document.querySelectorAll('[data-background-color]').forEach(button => {
+      const active = button.dataset.backgroundColor.toLowerCase() === color;
+      button.classList.toggle('active', active);
+      button.setAttribute('aria-selected', String(active));
+    });
+  };
+  const setBackgroundPaletteOpen = open => {
+    const toggle = byId('background-palette-toggle');
+    const palette = byId('background-color-palette');
+    if (!toggle || !palette) return;
+    toggle.setAttribute('aria-expanded', String(open));
+    palette.hidden = !open;
+  };
   const nextFrame = () => new Promise(resolve => requestAnimationFrame(resolve));
   const centimetersAt300Dpi = pixels => (pixels / EXPORT_DPI * 2.54).toFixed(1);
   const clampChannel = value => Math.max(0, Math.min(255, Math.round(value)));
@@ -1505,7 +1534,11 @@
       : scope === 'connected' ? 'afectados únicamente en el fondo exterior' : 'afectados en toda la imagen';
     const previewLabel = maskPreview ? ' · máscara: blanco conserva, negro elimina' : finalOutput ? ' · salida completa a 300 DPI' : ' · vista rápida; salida final al descargar';
     markToolClean('background');
-    setStatus('background-status', `${percentage}% de píxeles ${action}${previewLabel}.`);
+    if (affected === 0 && !maskPreview) {
+      setStatus('background-status', 'No se encontró ese color con los ajustes actuales. Probá “toda la imagen” o aumentá la tolerancia.');
+    } else {
+      setStatus('background-status', `${percentage}% de píxeles ${action}${previewLabel}.`);
+    }
     delete previewBoundsCache.background;
     drawHistogram('background', canvas);
     applyPreviewZoom('background');
@@ -1527,6 +1560,7 @@
     const index = (y * state.width + x) * 4;
     const data = state.imageData.data;
     byId('background-color').value = rgbToHex(data[index], data[index + 1], data[index + 2]);
+    syncBackgroundPalette();
     renderActiveBackground();
     if (saveHistory) recordHistory('background');
   };
@@ -1560,8 +1594,8 @@
     return source;
   };
 
-  const enhanceCanvasFallback = async (canvas, sharpness, clarity, denoise = 0, onProgress = null) => {
-    if (sharpness <= 0 && clarity <= 0 && denoise <= 0) return;
+  const enhanceCanvasFallback = async (canvas, sharpness, clarity, denoise = 0, recovery = 0, onProgress = null) => {
+    if (sharpness <= 0 && clarity <= 0 && denoise <= 0 && recovery <= 0) return;
     const context = canvas.getContext('2d');
     const sourceCanvas = copyCanvas(canvas);
     const sourceContext = sourceCanvas.getContext('2d', { willReadFrequently: true });
@@ -1569,6 +1603,8 @@
     const sharpAmount = Math.min(0.65, sharpness * 0.006);
     const clarityAmount = Math.min(0.32, clarity * 0.0045);
     const denoiseAmount = Math.min(0.55, Math.max(0, denoise) / 100);
+    const recoveryAmount = Math.min(0.72, Math.max(0, recovery) / 100 * 0.72);
+    const recoveryThreshold = 18 + Math.max(0, recovery) * 0.24;
     const tileHeight = 192;
     for (let outputTop = 0; outputTop < height; outputTop += tileHeight) {
       const outputBottom = Math.min(height, outputTop + tileHeight);
@@ -1600,7 +1636,16 @@
               src[index - 8 + channel] + src[index + 8 + channel]
               + src[index - width * 8 + channel] + src[index + width * 8 + channel]
             ) / 4;
-            const cleaned = Math.abs(center - nearAverage) < 24 ? center + (nearAverage - center) * denoiseAmount : center;
+            let similarTotal = center, similarCount = 1;
+            const left = src[index - 4 + channel], right = src[index + 4 + channel];
+            const up = src[index - width * 4 + channel], down = src[index + width * 4 + channel];
+            if (Math.abs(left - center) <= recoveryThreshold) { similarTotal += left; similarCount++; }
+            if (Math.abs(right - center) <= recoveryThreshold) { similarTotal += right; similarCount++; }
+            if (Math.abs(up - center) <= recoveryThreshold) { similarTotal += up; similarCount++; }
+            if (Math.abs(down - center) <= recoveryThreshold) { similarTotal += down; similarCount++; }
+            const recoveredAverage = similarTotal / similarCount;
+            const denoised = Math.abs(center - nearAverage) < 24 ? center + (nearAverage - center) * denoiseAmount : center;
+            const cleaned = denoised + (recoveredAverage - denoised) * recoveryAmount;
             const fineDetail = Math.abs(cleaned - nearAverage) >= 2 ? cleaned - nearAverage : 0;
             const localContrast = Math.abs(cleaned - farAverage) >= 4 ? cleaned - farAverage : 0;
             dst[index + channel] = clampChannel(cleaned + fineDetail * sharpAmount + localContrast * clarityAmount);
@@ -1616,8 +1661,8 @@
     sourceCanvas.height = 1;
   };
 
-  const enhanceCanvas = async (canvas, sharpness, clarity, denoise = 0, onProgress = null) => {
-    if (sharpness <= 0 && clarity <= 0 && denoise <= 0) return;
+  const enhanceCanvas = async (canvas, sharpness, clarity, denoise = 0, recovery = 0, onProgress = null) => {
+    if (sharpness <= 0 && clarity <= 0 && denoise <= 0 && recovery <= 0) return;
     try {
       const context = canvas.getContext('2d', { willReadFrequently: true });
       const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
@@ -1627,13 +1672,14 @@
         height: canvas.height,
         sharpness,
         clarity,
-        denoise
+        denoise,
+        recovery
       }, [imageData.data.buffer], onProgress);
       context.putImageData(new ImageData(new Uint8ClampedArray(result.buffer), canvas.width, canvas.height), 0, 0);
     } catch (error) {
       if (error.name === 'AbortError') throw error;
       console.warn('Mejora en segundo plano no disponible; usando respaldo local.', error);
-      await enhanceCanvasFallback(canvas, sharpness, clarity, denoise, onProgress);
+      await enhanceCanvasFallback(canvas, sharpness, clarity, denoise, recovery, onProgress);
     }
   };
 
@@ -1643,6 +1689,8 @@
     if (!state || !assessment) return;
     const widthCm = Math.max(2, Math.min(45, Number(byId('quality-width-cm').value) || 30));
     const sourceDpi = Math.round(state.naturalWidth / (widthCm / 2.54));
+    const recommendedWidthCm = Math.max(2, state.naturalWidth / EXPORT_DPI * 2.54);
+    const enlargement = Math.max(1, widthCm / recommendedWidthCm);
     assessment.classList.remove('good', 'medium', 'low');
     let level = 'low';
     let message = 'Resolución original baja para ese tamaño; el archivo se ampliará, pero no aparecerán detalles nuevos.';
@@ -1654,7 +1702,7 @@
       message = 'Resolución original aceptable; revisá bordes y texto antes de imprimir.';
     }
     assessment.classList.add(level);
-    assessment.textContent = `${sourceDpi} DPI efectivos antes de ampliar. ${message}`;
+    assessment.textContent = `${sourceDpi} DPI de origen · ampliación ${enlargement.toFixed(1)}×. ${message} Ancho nativo a 300 DPI: ${recommendedWidthCm.toFixed(1)} cm.`;
     const mirror = byId('quality-result-assessment');
     if (mirror) {
       mirror.classList.remove('good', 'medium', 'low');
@@ -1709,7 +1757,14 @@
       progressiveSource.width = 1;
       progressiveSource.height = 1;
       if (smoothing !== 'pixel') {
-        await enhanceCanvas(canvas, Number(byId('quality-sharpness').value), Number(byId('quality-clarity').value), Number(byId('quality-denoise').value), progress => setProcessingProgress('quality', 40 + progress * 0.56, 'Protegiendo detalle y bordes…'));
+        await enhanceCanvas(
+          canvas,
+          Number(byId('quality-sharpness').value),
+          Number(byId('quality-clarity').value),
+          Number(byId('quality-denoise').value),
+          Number(byId('quality-recovery').value),
+          progress => setProcessingProgress('quality', 40 + progress * 0.56, 'Reconstruyendo bordes y reduciendo bloques…')
+        );
       }
       if (sourceToken !== uploadTokens.quality || renderRevision !== qualityRevision) return false;
       setProcessingProgress('quality', 100, 'Montando el resultado…');
@@ -1760,7 +1815,7 @@
   const settingIds = {
     halftone: ['halftone-range', 'halftone-hue-range', 'halftone-amount', 'halftone-solid-protection', 'halftone-edge-protection', 'halftone-keep-solids', 'halftone-width-cm', 'halftone-frequency', 'halftone-dot-size', 'halftone-min-dot', 'halftone-dot-gain', 'halftone-mode', 'halftone-mask-mode', 'halftone-mask-tolerance', 'halftone-angle', 'halftone-contrast', 'halftone-shape', 'halftone-color', 'halftone-background-color', 'halftone-transparent', 'halftone-invert'],
     background: ['background-mode', 'background-scope', 'background-color', 'background-tolerance', 'background-softness', 'background-edge-shift', 'background-decontaminate', 'background-trim'],
-    quality: ['quality-width-cm', 'quality-smoothing', 'quality-brightness', 'quality-contrast', 'quality-saturation', 'quality-clarity', 'quality-sharpness', 'quality-denoise']
+    quality: ['quality-width-cm', 'quality-smoothing', 'quality-brightness', 'quality-contrast', 'quality-saturation', 'quality-clarity', 'quality-sharpness', 'quality-denoise', 'quality-recovery']
   };
 
   const captureSettings = type => Object.fromEntries(settingIds[type].map(id => {
@@ -1832,9 +1887,10 @@
       byId('background-tolerance-value').textContent = byId('background-tolerance').value;
       byId('background-softness-value').textContent = byId('background-softness').value;
       byId('background-edge-shift-value').textContent = `${byId('background-edge-shift').value} px`;
+      syncBackgroundPalette();
       syncBackgroundMode();
     } else {
-      ['brightness', 'contrast', 'saturation', 'clarity', 'sharpness', 'denoise'].forEach(name => {
+      ['brightness', 'contrast', 'saturation', 'clarity', 'sharpness', 'denoise', 'recovery'].forEach(name => {
         byId(`quality-${name}-value`).textContent = byId(`quality-${name}`).value;
       });
     }
@@ -1868,7 +1924,7 @@
   };
 
   const resetQuality = () => {
-    const defaults = { 'quality-width-cm': '30', 'quality-smoothing': 'illustration', 'quality-brightness': '0', 'quality-contrast': '6', 'quality-saturation': '8', 'quality-clarity': '24', 'quality-sharpness': '50', 'quality-denoise': '12' };
+    const defaults = { 'quality-width-cm': '30', 'quality-smoothing': 'illustration', 'quality-brightness': '0', 'quality-contrast': '6', 'quality-saturation': '8', 'quality-clarity': '24', 'quality-sharpness': '50', 'quality-denoise': '12', 'quality-recovery': '20' };
     applySettings('quality', defaults);
     document.querySelectorAll('[data-quality-preset], [data-quality-width]').forEach(item => item.classList.remove('active'));
     document.querySelector('[data-quality-preset="dtf"]')?.classList.add('active');
@@ -1934,6 +1990,12 @@
   };
 
   const switchTool = target => {
+    document.body.classList.remove('extra-tool-active');
+    document.querySelectorAll('.extra-tool-panel').forEach(panel => { panel.hidden = true; });
+    document.querySelectorAll('[data-extra-tool]').forEach(button => {
+      button.classList.remove('active');
+      button.setAttribute('aria-selected', 'false');
+    });
     const typeByTarget = { semitonos: 'halftone', 'eliminar-fondo': 'background', 'mejorar-calidad': 'quality' };
     activeTool = typeByTarget[target] || 'halftone';
     closeExpandedPreview();
@@ -1947,7 +2009,7 @@
     updateHistoryButtons();
     const currentStatus = byId(`${activeTool}-status`);
     if (currentStatus) setStatus(`${activeTool}-status`, currentStatus.textContent);
-    if (history.replaceState) history.replaceState(null, '', `#${target}`);
+    if (history.replaceState) history.replaceState(null, '', `${location.pathname}${location.search}#${target}`);
     requestAnimationFrame(() => {
       applyPreviewZoom(activeTool);
       centerPreview(activeTool);
@@ -1986,6 +2048,8 @@
         byId('background-download').disabled = false;
         byId('background-corner').disabled = false;
         byId('background-reset').disabled = false;
+        byId('background-apply-connected').disabled = false;
+        byId('background-apply-global').disabled = false;
         pickBackgroundColor();
       } else {
         states.quality = source;
@@ -2044,9 +2108,11 @@
     button.textContent = 'Preparando…';
     try {
       const canvas = await prepareTransferCanvas(from);
+      if (!await window.MomotusReviewTransfer(canvas,to,states[from].filename,from)) return;
       const file = await canvasToFile(canvas, `${states[from].filename}-${from}.png`);
       const loaded = await processFile(file, to, null, true);
       if (!loaded) return;
+      window.MomotusRememberTransfer(from,to);
       switchTool(panelByType[to], true);
       showToast('Resultado enviado a la siguiente herramienta. Ya podés seguir trabajándolo.');
     } catch (error) {
@@ -2090,6 +2156,8 @@
     byId('background-edge-shift-value').textContent = '0 px';
     byId('background-decontaminate').checked = true;
     byId('background-trim').checked = false;
+    syncBackgroundPalette();
+    setBackgroundPaletteOpen(false);
     syncBackgroundMode();
     pickBackgroundColor();
   };
@@ -2150,6 +2218,7 @@
         const controls = group.closest('.tool-controls');
         const tab = controls?.querySelector(`[data-control-target="${group.id}"]`);
         if (!group.open) {
+          if (group.id === 'background-color-panel') setBackgroundPaletteOpen(false);
           tab?.classList.remove('active');
           tab?.setAttribute('aria-selected', 'false');
           tab?.setAttribute('aria-expanded', 'false');
@@ -2227,6 +2296,8 @@
       suave: { range: 'shadows', amount: 30, protection: 88, edgeProtection: 60, frequency: 48, dotSize: 0.45, angle: 45, shape: 'circle', contrast: 6 },
       balanceado: { range: 'transitions', amount: 52, protection: 78, edgeProtection: 45, frequency: 55, dotSize: 0.40, angle: 45, shape: 'circle', contrast: 12 },
       fino: { range: 'transitions', amount: 42, protection: 86, edgeProtection: 72, frequency: 68, dotSize: 0.30, angle: 45, shape: 'ellipse', contrast: 14 },
+      micro: { range: 'transitions', amount: 34, protection: 90, edgeProtection: 82, frequency: 70, dotSize: 0.30, angle: 45, shape: 'circle', contrast: 10, keepSolids: true },
+      oscura: { range: 'shadows', amount: 46, protection: 84, edgeProtection: 68, frequency: 58, dotSize: 0.35, angle: 45, shape: 'ellipse', contrast: 16, keepSolids: true },
       lineas: { range: 'midtones', amount: 35, protection: 76, edgeProtection: 52, frequency: 60, dotSize: 0.35, angle: 45, shape: 'line', contrast: 12 }
     };
     document.querySelectorAll('[data-halftone-preset]').forEach(button => button.addEventListener('click', () => {
@@ -2251,7 +2322,15 @@
     bindRange('background-tolerance', 'background-tolerance-value', '', () => scheduleRender('background', renderActiveBackground));
     bindRange('background-softness', 'background-softness-value', '', () => scheduleRender('background', renderActiveBackground));
     bindRange('background-edge-shift', 'background-edge-shift-value', ' px', () => scheduleRender('background', renderActiveBackground));
-    byId('background-color').addEventListener('input', () => scheduleRender('background', renderActiveBackground));
+    byId('background-color').addEventListener('input', () => {
+      byId('background-mode').value = 'remove';
+      byId('background-scope').value = 'global';
+      syncBackgroundMode();
+      syncBackgroundPalette();
+      previewViews.background = 'result';
+      scheduleRender('background', renderActiveBackground);
+    });
+    byId('background-color').addEventListener('change', () => recordHistory('background'));
     byId('background-mode').addEventListener('change', () => {
       syncBackgroundMode();
       scheduleRender('background', renderActiveBackground, 0);
@@ -2260,10 +2339,40 @@
     byId('background-decontaminate').addEventListener('change', () => scheduleRender('background', renderActiveBackground, 0));
     document.querySelectorAll('[data-background-color]').forEach(button => button.addEventListener('click', () => {
       byId('background-color').value = button.dataset.backgroundColor;
+      byId('background-mode').value = 'remove';
+      byId('background-scope').value = 'global';
+      syncBackgroundMode();
+      syncBackgroundPalette();
+      setBackgroundPaletteOpen(false);
+      previewViews.background = 'result';
       scheduleRender('background', renderActiveBackground, 0);
       recordHistory('background');
     }));
+    byId('background-palette-toggle').addEventListener('click', event => {
+      event.stopPropagation();
+      setBackgroundPaletteOpen(byId('background-palette-toggle').getAttribute('aria-expanded') !== 'true');
+    });
+    byId('background-color-palette').addEventListener('click', event => event.stopPropagation());
+    document.addEventListener('click', event => {
+      if (!event.target.closest('.background-palette-picker')) setBackgroundPaletteOpen(false);
+    });
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape') setBackgroundPaletteOpen(false);
+    });
+    syncBackgroundPalette();
     byId('background-corner').addEventListener('click', () => pickBackgroundColor(null, null, true));
+    const applyBackgroundRemoval = scope => {
+      if (!states.background) return;
+      byId('background-mode').value = 'remove';
+      byId('background-scope').value = scope;
+      previewViews.background = 'result';
+      syncBackgroundMode();
+      updatePreviewButtons('background');
+      renderBackground(false);
+      recordHistory('background');
+    };
+    byId('background-apply-connected').addEventListener('click', () => applyBackgroundRemoval('connected'));
+    byId('background-apply-global').addEventListener('click', () => applyBackgroundRemoval('global'));
     byId('background-reset').addEventListener('click', () => { resetBackground(); recordHistory('background'); });
     byId('background-canvas').addEventListener('click', event => pickBackgroundColor(event.clientX, event.clientY, true));
     byId('background-download').addEventListener('click', async () => {
@@ -2280,6 +2389,7 @@
     bindRange('quality-saturation', 'quality-saturation-value', '', invalidateQualityResult);
     bindRange('quality-clarity', 'quality-clarity-value', '', invalidateQualityResult);
     bindRange('quality-denoise', 'quality-denoise-value', '', invalidateQualityResult);
+    bindRange('quality-recovery', 'quality-recovery-value', '', invalidateQualityResult);
     byId('quality-width-cm').addEventListener('input', invalidateQualityResult);
     byId('quality-smoothing').addEventListener('change', invalidateQualityResult);
     document.querySelectorAll('[data-quality-width]').forEach(button => button.addEventListener('click', () => {
@@ -2289,16 +2399,18 @@
       recordHistory('quality');
     }));
     const qualityPresets = {
-      dtf: { smoothing: 'illustration', brightness: 0, contrast: 6, saturation: 8, clarity: 24, sharpness: 50, denoise: 12 },
-      illustration: { smoothing: 'illustration', brightness: 0, contrast: 10, saturation: 14, clarity: 30, sharpness: 58, denoise: 8 },
-      photo: { smoothing: 'photo', brightness: 1, contrast: 5, saturation: 6, clarity: 18, sharpness: 42, denoise: 22 },
-      logo: { smoothing: 'logo', brightness: 0, contrast: 12, saturation: 6, clarity: 8, sharpness: 68, denoise: 4 }
+      dtf: { smoothing: 'illustration', brightness: 0, contrast: 6, saturation: 8, clarity: 24, sharpness: 50, denoise: 12, recovery: 20 },
+      illustration: { smoothing: 'illustration', brightness: 0, contrast: 10, saturation: 14, clarity: 30, sharpness: 58, denoise: 8, recovery: 18 },
+      photo: { smoothing: 'photo', brightness: 1, contrast: 5, saturation: 6, clarity: 18, sharpness: 42, denoise: 22, recovery: 30 },
+      logo: { smoothing: 'logo', brightness: 0, contrast: 12, saturation: 6, clarity: 8, sharpness: 68, denoise: 4, recovery: 12 },
+      rescue: { smoothing: 'photo', brightness: 0, contrast: 4, saturation: 5, clarity: 32, sharpness: 62, denoise: 32, recovery: 78 },
+      text: { smoothing: 'logo', brightness: 0, contrast: 16, saturation: 4, clarity: 12, sharpness: 78, denoise: 6, recovery: 26 }
     };
     document.querySelectorAll('[data-quality-preset]').forEach(button => button.addEventListener('click', () => {
       const preset = qualityPresets[button.dataset.qualityPreset];
       if (!preset) return;
       byId('quality-smoothing').value = preset.smoothing;
-      ['brightness', 'contrast', 'saturation', 'clarity', 'sharpness', 'denoise'].forEach(name => {
+      ['brightness', 'contrast', 'saturation', 'clarity', 'sharpness', 'denoise', 'recovery'].forEach(name => {
         byId(`quality-${name}`).value = preset[name];
         byId(`quality-${name}-value`).textContent = String(preset[name]);
       });
@@ -2563,10 +2675,11 @@
   };
 
   window.MomotusToolsAPI = Object.freeze({
-    getActiveType: () => activeTool,
-    hasDocument: type => Boolean(states[type || activeTool]),
+    getActiveType: () => byId('efectos-dtf') && !byId('efectos-dtf').hidden ? 'effects' : activeTool,
+    hasDocument: type => (type || window.MomotusToolsAPI.getActiveType()) === 'effects' ? Boolean(window.MomotusEffectsAPI?.hasDocument()) : Boolean(states[type || activeTool]),
     getDocumentInfo: type => {
-      const selected = type || activeTool;
+      const selected = type || window.MomotusToolsAPI.getActiveType();
+      if (selected === 'effects') return window.MomotusEffectsAPI?.getDocumentInfo() || null;
       const state = states[selected];
       if (!state) return null;
       return {
@@ -2576,8 +2689,19 @@
         naturalHeight: state.naturalHeight || state.height
       };
     },
+    // Solo metadatos: no procesa ni modifica imágenes al cotizar medidas.
+    getPrintDimensions: type => {
+      const state=states[type];if(!state)return null;
+      if(type==='background')return {filename:state.filename,widthCm:state.width/EXPORT_DPI*2.54,heightCm:state.height/EXPORT_DPI*2.54,pixelWidth:state.width,pixelHeight:state.height};
+      const cm=type==='halftone'?Math.max(8,Math.min(38,Number(byId('halftone-width-cm').value)||28)):Math.max(2,Math.min(45,Number(byId('quality-width-cm').value)||30));
+      const width=Math.round(cm/2.54*EXPORT_DPI),height=Math.round(width*state.naturalHeight/state.naturalWidth);
+      const factor=Math.min(1,(type==='halftone'?MAX_HALFTONE_SIDE:MAX_OUTPUT_SIDE)/Math.max(width,height),Math.sqrt((type==='halftone'?MAX_HALFTONE_PIXELS:MAX_INTERNAL_PIXELS)/(width*height)));
+      const pixelWidth=Math.max(1,Math.round(width*factor)),pixelHeight=Math.max(1,Math.round(height*factor));
+      return {filename:state.filename,widthCm:pixelWidth/EXPORT_DPI*2.54,heightCm:pixelHeight/EXPORT_DPI*2.54,pixelWidth,pixelHeight,limited:factor<1};
+    },
     getResultCanvas: async type => {
-      const selected = type || activeTool;
+      const selected = type || window.MomotusToolsAPI.getActiveType();
+      if (selected === 'effects') return await window.MomotusEffectsAPI?.getResultCanvas() || null;
       if (!states[selected]) return null;
       if (selected === 'quality' && (byId('quality-download').disabled || states.quality.qualityPreviewOnly)) {
         if (!await processQuality(true)) return null;
@@ -2589,10 +2713,13 @@
       return prepareTransferCanvas(selected);
     },
     sendCanvasToTool: async (canvas, type, filename = 'momotus-produccion.png') => {
+      if (canvas && type === 'effects') return Boolean(await window.MomotusOpenEffects?.(canvas,filename));
       if (!canvas || !['halftone', 'background', 'quality'].includes(type)) return false;
+      const from=!byId('production-studio')?.hidden && byId('production-studio') ? 'production' : window.MomotusToolsAPI.getActiveType();
+      if (!await window.MomotusReviewTransfer(canvas,type,filename,from)) return false;
       const file = await canvasToFile(canvas, filename);
       const loaded = await processFile(file, type, null, true);
-      if (loaded) switchTool(panelByType[type], true);
+      if (loaded) { window.MomotusRememberTransfer(from,type); switchTool(panelByType[type], true); }
       return Boolean(loaded);
     },
     importFileToTool: async (file, type = 'background') => {

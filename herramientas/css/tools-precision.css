@@ -1,0 +1,48 @@
+/* Capas de ayuda independientes del arte y de la exportación. */
+@media(min-width:1024px){
+ .momotus-studio .studio-rulers,.momotus-studio [data-studio-guides]{display:none!important;}
+ .precision-overlay{position:fixed;z-index:45;pointer-events:none;overflow:hidden;contain:layout paint;}
+ .precision-overlay[hidden]{display:none;}
+ .precision-ruler{position:absolute;background:#202733;border:1px solid #465365;pointer-events:auto;touch-action:none;user-select:none;cursor:crosshair;}
+ .precision-horizontal{left:0;top:0;width:100%;height:22px;}
+ .precision-vertical{left:0;top:0;width:22px;height:100%;}
+ .precision-corner{position:absolute;left:0;top:0;width:22px;height:22px;background:#354256;color:#d9e5f5;border:1px solid #63758c;font-size:9px;pointer-events:auto;cursor:pointer;}
+ .precision-lines{position:absolute;inset:22px 0 0 22px;overflow:hidden;pointer-events:none;}
+ .precision-line{position:absolute;pointer-events:none;border:0;padding:0;margin:0;background:none;transform:translate(-22px,-22px);}
+ .precision-x{top:0;height:calc(100% + 22px);width:1px;border-left:1px dashed #eac958;}
+ .precision-y{left:0;width:calc(100% + 22px);height:1px;border-top:1px dashed #eac958;}
+ .precision-margin{border-color:#dca2b9;}
+ .precision-user{pointer-events:auto;touch-action:none;}
+ .precision-x.precision-user{width:7px;margin-left:-3px;border:0;cursor:col-resize;}
+ .precision-y.precision-user{height:7px;margin-top:-3px;border:0;cursor:row-resize;}
+ .precision-user::after{content:'';position:absolute;background:#71d4d2;box-shadow:0 0 0 1px #172c38;}
+ .precision-x.precision-user::after{left:3px;top:0;width:1px;height:100%;}
+ .precision-y.precision-user::after{left:0;top:3px;width:100%;height:1px;}
+ .precision-coordinates{position:absolute;bottom:8px;left:30px;padding:4px 8px;border-radius:5px;background:#161e2ee6;color:#d0e5ef;font:11px/1.5 monospace;}
+ .precision-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;}
+ .momotus-studio .precision-toolbar button{min-height:30px;padding:6px 10px;border:1px solid #60738a;border-radius:7px;background:#293545;color:#d7e4f4;font-size:11px;white-space:nowrap;}
+ .momotus-studio .precision-toolbar button[data-precision-quote]{background:#1f3b38;border-color:#67b5a1;color:#ace1cf;}
+ .momotus-studio .precision-toolbar button:disabled{opacity:.45;cursor:not-allowed;}
+ .momotus-studio .precision-toolbar button:hover:enabled{border-color:#d9b44a;}
+ .momotus-studio .precision-inspector-nav{display:flex;gap:6px;margin:8px 0;}
+ .momotus-studio .precision-inspector-nav button{flex:1;padding:7px;border:1px solid #4c5d74;border-radius:6px;background:#2b3544;color:#dbe4ef;font-size:11px;}
+ .momotus-studio .extra-toolbar{min-height:52px;}
+ .momotus-studio .team-layout-details .precision-toolbar{margin-top:10px;}
+}
+.precision-manager .precision-settings{display:grid;grid-template-columns:1fr 1fr;gap:4px 14px;}
+.precision-manager .precision-settings label{font-size:12px;}
+.pro-dialog :is(input[type=text],input[type=number]){max-width:100%;width:100%;padding:8px;background:#303947;color:#e8eef6;border:1px solid #5c6d83;border-radius:6px;font-size:14px;}
+.pro-dialog input[type=number]{width:110px;}
+.precision-add{display:flex;gap:12px;flex-wrap:wrap;align-items:end;margin:16px 0;}
+.precision-add label{font-size:12px;}.precision-add label input,.precision-add label select{display:block;margin-top:4px;}
+.precision-guide-row{display:flex;justify-content:space-between;gap:12px;align-items:end;border-top:1px solid #414b5b;padding:7px 0;}
+.precision-guide-row label{font-size:12px;}.precision-guide-row input{margin-left:10px;}
+#precision-message,#precision-quote-error{font-size:12px;color:#e5c975;}
+@media(min-width:1024px){
+ .momotus-studio .tool-preview-shell:has(.precision-toolbar){grid-template-rows:max-content auto minmax(0,1fr);}
+ .momotus-studio .tool-preview-shell:has(.precision-toolbar) .tool-preview-toolbar{height:auto;min-height:38px;overflow:visible;flex-wrap:wrap;}
+}
+@media(min-width:1024px){
+ .momotus-studio .production-center:has(.precision-toolbar){grid-template-rows:max-content minmax(0,1fr) 38px;}
+ .momotus-studio .production-center:has(.precision-toolbar) .production-canvas-toolbar{height:auto;min-height:42px;flex-wrap:wrap;gap:7px;padding:8px;}
+}

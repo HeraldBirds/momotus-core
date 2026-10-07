@@ -15,29 +15,29 @@
   <link rel="icon" href="img/icons/icon-nica.webp" type="image/webp">
   
   <!-- === SEGURIDAD NETLIFY - Momotus Core (Abril 2026) === -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: https:; font-src 'self' https://cdnjs.cloudflare.com; connect-src 'self';">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self';">
 
-  <link rel="preload" href="img/heroes/hero-tienda.webp" as="image" type="image/webp">
+  <link rel="preload" href="img/heroes/hero-tienda.webp" as="image" type="image/webp" media="(min-width: 768px)" fetchpriority="high">
+  <link rel="preload" href="img/heroes/hero-tienda-mobile.webp" as="image" type="image/webp" media="(max-width: 767px)" fetchpriority="high">
 
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      content: [],
-      theme: { extend: { colors: { momotus: '#facc15' } } }
-    }
-  </script>
+  
+  <link rel="stylesheet" href="css/tailwind.css?v=20261006-1">
 
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" 
+  <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css?v=20261006-1" 
         crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <link rel="stylesheet" href="css/style.css">
-  <link rel="stylesheet" href="tienda/css/tienda.css?v=20261003-2">
+  <link rel="stylesheet" href="css/style.css?v=20261005-1">
+  <link rel="stylesheet" href="tienda/css/tienda.css?v=20261007-ui-2">
+  <link rel="stylesheet" href="tienda/css/temporadas.css?v=20261005-4">
+  <link rel="stylesheet" href="css/store-experience.css?v=20261007-original-6">
+  <link rel="stylesheet" href="tienda/css/catalog-categories.css?v=20261007-category-1">
+  <link rel="stylesheet" href="css/shop-polish.css?v=20261007-home-1">
 </head>
-<body class="bg-zinc-950 text-white">
+<body class="store-refresh-page bg-zinc-950 text-white">
 
   <div id="navbar-placeholder"></div>
 
   <!-- HERO TIENDA -->
-  <div class="store-hero relative h-[620px] bg-cover bg-center flex items-center overflow-hidden" style="background-image: url('img/heroes/hero-tienda.webp');">
+  <div class="store-hero relative h-[620px] bg-cover bg-center flex items-center overflow-hidden">
     <div class="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/70"></div>
     <div class="max-w-7xl mx-auto px-6 relative z-10 text-center w-full">
       <h1 class="text-5xl md:text-8xl font-black tracking-[-3px] leading-none text-white mb-4 drop-shadow-2xl">TIENDA MOMOTUS</h1>
@@ -48,16 +48,18 @@
     </div>
   </div>
 
+
+
   <section class="py-12 bg-zinc-900">
     <div class="max-w-7xl mx-auto px-6">
       <div class="flex flex-col md:flex-row justify-between items-end gap-6 mb-8">
         <div>
           <h2 class="text-4xl font-bold">Catálogo completo</h2>
-          <p id="results-count" class="text-zinc-400">Mostrando <span id="count-number" class="text-yellow-400 font-semibold">36</span> productos</p>
+          <p id="results-count" class="text-zinc-400">Mostrando <span id="count-number" class="text-yellow-400 font-semibold">36</span> <span id="results-count-label">destacados</span></p>
         </div>
 
         <div class="flex flex-wrap gap-4">
-          <div class="relative w-full md:w-80">
+          <div id="store-search" class="relative w-full md:w-80">
             <input id="search-input" type="search" placeholder="Buscar diseños..." aria-label="Buscar diseños"
                    class="w-full bg-zinc-800 border border-zinc-700 focus:border-yellow-400 rounded-3xl py-4 px-6 pl-12 outline-none transition">
             <i class="fa-solid fa-magnifying-glass absolute left-6 top-1/2 -translate-y-1/2 text-zinc-400"></i>
@@ -77,7 +79,7 @@
       </div>
 
       <!-- PRIMERO: TIPO DE PRENDA -->
-      <div class="flex flex-nowrap md:flex-wrap gap-3 mb-5 overflow-x-auto pb-2 scrollbar-hide" aria-label="Filtrar por prenda">
+      <div class="flex flex-nowrap md:flex-wrap gap-3 mb-5 overflow-x-auto pb-2 scrollbar-hide" id="store-garment-filters" aria-label="Filtrar por prenda">
         <button onclick="filterGarment('camiseta')" id="garment-camiseta" class="garment-filter-btn active px-7 py-3 rounded-3xl text-sm font-medium transition whitespace-nowrap">
           <svg class="garment-filter-icon" viewBox="0 0 64 64" aria-hidden="true"><path fill="currentColor" d="M18 11h28l13 14-9 10-8-7v27H22V28l-8 7-9-10z"/><path d="M25 11q7 9 14 0" fill="none" stroke="currentColor" stroke-width="4"/></svg>
           Camisetas
@@ -126,7 +128,33 @@
           <img src="img/icons/icon-unica.webp" alt="Únicas" class="filter-icon">
           Únicas
         </button>
+        <button onclick="filterCategory('aguizotes')" id="filter-aguizotes" class="filter-btn px-8 py-3 rounded-3xl text-sm font-medium transition flex items-center gap-3" aria-controls="seasonal-event"><i class="fa-solid fa-moon" aria-hidden="true"></i> Agüizotes</button>
       </div>
+
+      <section id="urban-subcategories" class="urban-subcategories" aria-labelledby="urban-subcategories-title" hidden>
+        <div class="urban-subcategories-heading"><h2 id="urban-subcategories-title">Explorá Urbanas por tema</h2><p>Música, motor, cine, streetwear, arte y deportes. Elegí tu tema y tu prenda.</p></div>
+        <div id="urban-subcategory-options" role="group" aria-label="Subcategorías de Urbanas"></div>
+      </section>
+
+  <section id="seasonal-event" class="seasonal-event" aria-labelledby="seasonal-title" hidden>
+    <div class="seasonal-atmosphere" aria-hidden="true"><span></span><span></span><span></span></div>
+    <div class="seasonal-container">
+      <header class="seasonal-heading">
+        <div class="seasonal-title-block">
+          <div id="seasonal-emblem" class="seasonal-emblem" aria-hidden="true"><i class="fa-solid fa-moon"></i></div>
+          <div><span id="seasonal-kicker">EDICIÓN DE TEMPORADA</span><h2 id="seasonal-title">Diseños que salen solo por un tiempo</h2><p id="seasonal-description"></p><div id="seasonal-badges" class="seasonal-badges" aria-label="Prendas disponibles"></div></div>
+        </div>
+        <div class="seasonal-countdown"><small id="seasonal-date-label">Tiempo disponible</small><strong id="seasonal-countdown-value">Edición limitada</strong><div class="seasonal-progress" aria-hidden="true"><span id="seasonal-progress-fill"></span></div><em>Disponible durante las fechas indicadas</em></div>
+      </header>
+      <div class="seasonal-toolbar">
+        <div id="seasonal-filters" class="seasonal-filters" role="group" aria-label="Filtrar colección de temporada"></div>
+        <div class="seasonal-navigation"><span id="seasonal-results" role="status" aria-live="polite"></span><button id="seasonal-prev" type="button" aria-label="Ver productos anteriores"><i class="fa-solid fa-arrow-left"></i></button><button id="seasonal-next" type="button" aria-label="Ver productos siguientes"><i class="fa-solid fa-arrow-right"></i></button></div>
+      </div>
+      <div id="seasonal-products" class="seasonal-products" aria-live="polite"></div>
+      <p id="seasonal-empty" class="seasonal-empty" hidden>No hay productos publicados en este filtro.</p>
+      <footer class="seasonal-footer"><p><i class="fa-solid fa-circle-info"></i> Los diseños, precios y disponibilidad se confirman antes de preparar el pedido.</p><button id="seasonal-catalog-link" type="button">Ver el catálogo permanente <i class="fa-solid fa-arrow-down"></i></button></footer>
+    </div>
+  </section>
 
       <div class="store-secondary-filters flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-12">
         <button id="wishlist-filter" onclick="toggleWishlistFilter()" aria-pressed="false" class="wishlist-filter-btn flex items-center justify-center gap-2 px-6 py-3 rounded-3xl border border-zinc-700 bg-zinc-800 hover:border-red-400 transition">
@@ -144,13 +172,21 @@
 
       <!-- MÁS VENDIDOS -->
       <div id="featured-products-section" class="mb-12">
-        <h3 class="text-2xl font-bold mb-4 flex items-center gap-2"><i class="fa-solid fa-fire text-orange-400"></i> Diseños destacados</h3>
-        <div id="best-sellers-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6"></div>
+        <h3 class="text-2xl font-bold mb-4">Destacados por categoría</h3>
+        <p class="store-featured-intro">Una selección de cada colección. Entrá en una categoría para ver todos sus diseños.</p>
+        <div id="best-sellers-grid" class="store-featured-categories"></div>
       </div>
 
       <!-- GRID PRINCIPAL -->
-      <h3 id="catalog-grid-title" class="text-2xl font-bold mb-5">Todos los productos</h3>
+      <div id="catalog-results">
+      <h3 id="catalog-grid-title" tabindex="-1" class="text-2xl font-bold mb-5">Todos los productos</h3>
       <div id="products-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6" aria-labelledby="catalog-grid-title"></div>
+      </div>
+      <section id="urban-design-spaces" class="urban-design-spaces" aria-labelledby="urban-design-spaces-title" hidden>
+        <h3 id="urban-design-spaces-title">Próximos diseños</h3>
+        <p>Esta colección seguirá creciendo con nuevos estampados.</p>
+        <div id="urban-design-spaces-grid"></div>
+      </section>
     </div>
   </section>
 
@@ -183,8 +219,16 @@
 
   <div id="cart-modal-placeholder"></div>
 
-  <script src="tienda/js/catalogo.js"></script>
-  <script src="js/script.js"></script>
-  <script src="tienda/js/tienda.js"></script>
+  <script src="tienda/js/product-images.js?v=20261007-category-1"></script>
+  <script src="tienda/js/store-config-core.js?v=20261007-category-1"></script>
+  <script src="tienda/js/configuracion.js?v=20261007-shop-1"></script>
+  <script src="tienda/js/catalogo.js?v=20261007-slots-1"></script>
+  <script src="tienda/js/store-selection.js?v=20261007-category-1"></script>
+  <script src="js/script.js?v=20261007-category-1"></script>
+  <script src="tienda/js/temporadas.js?v=20261007-category-1"></script>
+  <script src="tienda/js/tienda.js?v=20261007-category-1"></script>
+  <script src="js/performance.js?v=20261006-1" defer></script>
+  <script src="tienda/js/photo-previews.js?v=20261007-category-1"></script>
+  <script src="js/store-experience.js?v=20261007-category-1" defer></script>
 </body>
 </html>

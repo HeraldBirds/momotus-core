@@ -5,7 +5,7 @@
 
   const byId = id => document.getElementById(id);
   const CORE_PANELS = new Set(['semitonos', 'eliminar-fondo', 'mejorar-calidad']);
-  const EXTRA_PANELS = new Set(['vectorizacion', 'calculadora-dtf']);
+  const EXTRA_PANELS = new Set(['vectorizacion', 'calculadora-dtf', 'efectos-dtf']);
   const MAX_FILE_SIZE = 24 * 1024 * 1024;
   const SUPPORTED_EXTENSION = /\.(?:png|jpe?g|webp)$/i;
   const currency = new Intl.NumberFormat('es-NI', { style: 'currency', currency: 'NIO', minimumFractionDigits: 2 });
@@ -43,66 +43,10 @@
     }, { passive: false });
   };
 
-  const initializeExtraOptions = () => {
-    document.querySelectorAll('.extra-controls').forEach((controls, index) => {
-      if (controls.querySelector('.extra-options-trigger')) return;
-      const panel = controls.closest('.extra-tool-panel');
-      const title = controls.querySelector('.extra-inspector-title h2')?.textContent.trim() || 'Opciones';
-      const movable = [...controls.children].filter(element => element.matches('.extra-preset-grid, .extra-control-scroll'));
-      if (!movable.length) return;
-
-      const trigger = document.createElement('button');
-      trigger.type = 'button';
-      trigger.className = 'extra-options-trigger';
-      trigger.setAttribute('aria-expanded', 'false');
-      trigger.setAttribute('aria-controls', `extra-options-${index + 1}`);
-      trigger.innerHTML = '<span><i class="fa-solid fa-sliders" aria-hidden="true"></i><strong>Opciones</strong><small>Ver todos los ajustes</small></span><i class="fa-solid fa-chevron-right" aria-hidden="true"></i>';
-
-      const dialog = document.createElement('section');
-      dialog.id = `extra-options-${index + 1}`;
-      dialog.className = 'extra-options-dialog';
-      dialog.setAttribute('role', 'dialog');
-      dialog.setAttribute('aria-modal', 'true');
-      dialog.setAttribute('aria-label', `Opciones de ${title}`);
-      dialog.hidden = true;
-      dialog.innerHTML = `<header><div><small>AJUSTES DE HERRAMIENTA</small><h2>${title}</h2></div><button type="button" class="extra-options-close" aria-label="Cerrar opciones"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button></header><div class="extra-options-dialog-body"></div>`;
-      const body = dialog.querySelector('.extra-options-dialog-body');
-      movable.forEach(element => body.append(element));
-
-      const backdrop = document.createElement('button');
-      backdrop.type = 'button';
-      backdrop.className = 'extra-options-backdrop';
-      backdrop.setAttribute('aria-label', 'Cerrar opciones');
-      backdrop.hidden = true;
-
-      controls.querySelector('.extra-action-dock')?.before(trigger);
-      controls.append(backdrop, dialog);
-
-      const open = () => {
-        closeAllExtraOptions();
-        document.querySelectorAll('.tool-control-group[open]').forEach(group => { group.open = false; });
-        dialog.hidden = false;
-        backdrop.hidden = false;
-        trigger.classList.add('active');
-        trigger.setAttribute('aria-expanded', 'true');
-        body.scrollTop = 0;
-        requestAnimationFrame(() => dialog.querySelector('.extra-options-close')?.focus());
-      };
-      trigger.addEventListener('click', () => dialog.hidden ? open() : closeExtraOptions(dialog));
-      backdrop.addEventListener('click', () => closeExtraOptions(dialog));
-      dialog.querySelector('.extra-options-close').addEventListener('click', () => closeExtraOptions(dialog));
-      panel?.addEventListener('keydown', event => {
-        if (event.key === 'Escape' && !dialog.hidden) {
-          event.preventDefault();
-          closeExtraOptions(dialog);
-          trigger.focus();
-        }
-      });
-      enableReliableWheelScroll(body);
-    });
-  };
-
-  initializeExtraOptions();
+  document.querySelectorAll('.extra-controls').forEach(controls => {
+    controls.classList.add('pro-inspector');
+    enableReliableWheelScroll(controls.querySelector('.extra-control-scroll'));
+  });
   enableReliableWheelScroll(document.querySelector('.calculator-sheet-wrap'));
   document.querySelectorAll('.calculator-results, .extra-control-scroll').forEach(enableReliableWheelScroll);
 
@@ -129,10 +73,11 @@
     document.body.classList.add('extra-tool-active');
     const workspaceNames = {
       vectorizacion: 'Vectorización SVG',
-      'calculadora-dtf': 'Calculadora de cotizaciones'
+      'calculadora-dtf': 'Calculadora de cotizaciones',
+      'efectos-dtf': 'Efectos de estampado'
     };
     setStudioState(workspaceNames[target] || 'Herramientas DTF');
-    if (history.replaceState) history.replaceState(null, '', `#${target}`);
+    if (history.replaceState) history.replaceState(null, '', `${location.pathname}${location.search}#${target}`);
     window.dispatchEvent(new CustomEvent('momotus:extra-tool', { detail: { target } }));
   };
 
@@ -193,8 +138,18 @@
     canvas.height = source.height;
     const context = canvas.getContext('2d');
     context.clearRect(0, 0, canvas.width, canvas.height);
-    if (vectorState.view === 'original' || !vectorState.resultImageData) context.drawImage(source, 0, 0);
+    if (vectorState.view === 'original' || !vectorState.resultImageData) context.drawImage(vectorState.source,0,0,canvas.width,canvas.height);
+    else if(vectorState.svgCanvas) context.drawImage(vectorState.svgCanvas,0,0);
     else context.putImageData(vectorState.resultImageData, 0, 0);
+    if(byId('vector-compare')?.checked && vectorState.svgCanvas){
+      const split=canvas.width*Number(byId('vector-divider').value)/100;
+      context.save();context.beginPath();context.rect(0,0,split,canvas.height);context.clip();context.drawImage(vectorState.source,0,0,canvas.width,canvas.height);context.restore();
+      context.fillStyle='#67e8f9';context.fillRect(split,0,1,canvas.height);
+    }
+    const viewport=byId('vector-viewport'),zoom=byId('vector-zoom')?.value||'fit';
+    const ratio=zoom==='fit'?Math.min(1,(viewport.clientWidth-48)/canvas.width,(viewport.clientHeight-48)/canvas.height):Number(zoom)/100;
+    canvas.style.width=`${Math.max(1,Math.round(canvas.width*ratio))}px`;
+    canvas.style.height=`${Math.max(1,Math.round(canvas.height*ratio))}px`;
   };
 
   const samplePixels = (data, ignoreWhite, whiteLimit) => {
@@ -337,8 +292,59 @@
     };
   };
 
+  let vectorRenderGeneration=0,vectorProcessing=false;
+  const vectorHistory=[];let vectorHistoryIndex=-1,restoringVector=false;
+  function recordVector(){
+    if(restoringVector||!vectorState.labels)return;
+    const snapshot={workCanvas:vectorState.workCanvas,resultImageData:vectorState.resultImageData,labels:new Int16Array(vectorState.labels),palette:vectorState.palette.map(c=>[...c]),settings:Object.fromEntries([...document.querySelectorAll('#vectorizacion input,#vectorizacion select')].filter(e=>e.id&&e.type!=='file'&&!e.closest('#vector-palette')).map(e=>[e.id,e.type==='checkbox'?e.checked:e.value]))};
+    vectorHistory.splice(vectorHistoryIndex+1);vectorHistory.push(snapshot);if(vectorHistory.length>20)vectorHistory.shift();vectorHistoryIndex=vectorHistory.length-1;updateVectorHistory();
+  }
+  function updateVectorHistory(){byId('vector-undo').disabled=vectorHistoryIndex<=0||vectorProcessing;byId('vector-redo').disabled=vectorHistoryIndex>=vectorHistory.length-1||vectorProcessing;}
+  function traceVector(w,h,cm,options){
+    return new Promise((resolve,reject)=>{
+      let worker;try{worker=new Worker(`herramientas/js/tools-vector-worker.js?v=${encodeURIComponent(window.MOMOTUS_TOOLS_VERSION)}`);}catch{resolve(window.MomotusVectorCore.build(vectorState.labels,vectorState.palette,w,h,cm,options));return;}
+      worker.onmessage=e=>{worker.terminate();if(e.data.error)reject(Error(e.data.error));else resolve(e.data.result);};worker.onerror=()=>{worker.terminate();reject(Error('No se pudo trazar. Reintentá o elegí el método de bloques.'));};
+      const labels=new Int16Array(vectorState.labels);worker.postMessage({labels:labels.buffer,palette:vectorState.palette,width:w,height:h,widthCm:cm,options},[labels.buffer]);
+    });
+  }
+  async function refreshVector(){
+    const token=++vectorRenderGeneration,w=vectorState.workCanvas.width,h=vectorState.workCanvas.height;
+    const widthCm=Math.max(2,Math.min(57,Number(byId('vector-width-cm').value)||30));
+    byId('vector-download').disabled=true;byId('vector-status').textContent='Construyendo contornos…';
+    const svg=byId('vector-method').value==='blocks'?buildSvg(vectorState.labels,vectorState.palette,w,h,widthCm,byId('vector-optimize').checked):await traceVector(w,h,widthCm,{tolerance:Number(byId('vector-path-tolerance').value),curves:byId('vector-curves').checked});
+    if(token!==vectorRenderGeneration)return;
+    vectorState.svg=svg.svg;vectorState.runs=svg.runs;vectorState.colors=vectorState.palette.length;
+    byId('vector-download').disabled=true;
+    const url=URL.createObjectURL(new Blob([svg.svg],{type:'image/svg+xml'}));
+    try{const image=new Image();image.src=url;await image.decode();if(token!==vectorRenderGeneration)return;const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(image,0,0,w,h);vectorState.svgCanvas=c;renderVectorView();byId('vector-download').disabled=false;}finally{URL.revokeObjectURL(url);}
+    const bytes=new Blob([svg.svg]).size;
+    byId('vector-result-info').textContent=`${svg.runs.toLocaleString('es-NI')} contornos · ${(bytes/1024).toFixed(1)} KB`;
+    byId('vector-status').textContent=`${widthCm.toFixed(1)} × ${svg.heightCm.toFixed(1)} cm · ${w} × ${h} px de análisis · ${svg.nodes??svg.runs} nodos/formas. SVG escalable.`;
+    renderVectorPalette();updateVectorHistory();
+  }
+  async function safeRefreshVector(){try{await refreshVector();}catch(e){byId('vector-status').textContent=e.message;byId('vector-download').disabled=true;}}
+  function renderVectorPalette(){
+    const holder=byId('vector-palette');holder.replaceChildren();
+    vectorState.palette.forEach((color,index)=>{if(!vectorState.labels.includes(index))return;
+      const row=document.createElement('div');row.className='vector-color-row';
+      const input=document.createElement('input');input.type='color';input.value=rgbHex(color);input.setAttribute('aria-label',`Editar color ${index+1}`);
+      const target=document.createElement('select');target.setAttribute('aria-label',`Unir color ${index+1} con`);target.add(new Option('Unir con…',''));
+      vectorState.palette.forEach((c,i)=>{if(i!==index&&vectorState.labels.includes(i))target.add(new Option(`Color ${i+1} · ${rgbHex(c)}`,String(i)));});
+      const remove=document.createElement('button');remove.type='button';remove.textContent='Eliminar';remove.setAttribute('aria-label',`Eliminar color ${index+1}`);
+      const label=document.createElement('span');label.textContent=String(index+1);
+      input.addEventListener('change',async()=>{vectorState.palette[index]=input.value.slice(1).match(/../g).map(v=>parseInt(v,16));recordVector();await safeRefreshVector();});
+      target.addEventListener('change',async()=>{if(target.value==='')return;const next=Number(target.value);vectorState.labels=vectorState.labels.map(v=>v===index?next:v);recordVector();await safeRefreshVector();});
+      remove.addEventListener('click',async()=>{if(!vectorState.labels.some(v=>v>=0&&v!==index)){byId('vector-status').textContent='Conservá al menos un color visible.';return;}vectorState.labels=vectorState.labels.map(v=>v===index?-1:v);recordVector();await safeRefreshVector();});
+      row.append(label,input,target,remove);holder.append(row);
+    });
+  }
+  for(const [id,delta]of [['vector-undo',-1],['vector-redo',1]])byId(id).addEventListener('click',async()=>{const index=vectorHistoryIndex+delta;if(vectorProcessing||index<0||index>=vectorHistory.length)return;const state=vectorHistory[index];restoringVector=true;for(const [key,v]of Object.entries(state.settings)){const e=byId(key);if(e){if(e.type==='checkbox')e.checked=v;else e.value=v;}}vectorState.workCanvas=state.workCanvas;vectorState.resultImageData=state.resultImageData;vectorState.labels=new Int16Array(state.labels);vectorState.palette=state.palette.map(c=>[...c]);vectorHistoryIndex=index;restoringVector=false;updateVectorLabels();await safeRefreshVector();});
+  for(const id of ['vector-method','vector-path-tolerance','vector-curves','vector-optimize','vector-width-cm'])byId(id).addEventListener('change',async()=>{if(!vectorState.labels)return;recordVector();await safeRefreshVector();});
+  for(const id of ['vector-compare','vector-divider','vector-zoom'])byId(id).addEventListener('input',renderVectorView);
+  new ResizeObserver(renderVectorView).observe(byId('vector-viewport'));
   const processVector = async () => {
-    if (!vectorState.source) return;
+    if (!vectorState.source || vectorProcessing) return;
+    vectorProcessing=true;
     const button = byId('vector-process');
     button.disabled = true;
     byId('vector-download').disabled = true;
@@ -396,32 +402,27 @@
       }
       vectorState.workCanvas = work;
       vectorState.resultImageData = result;
-      const widthCm = Math.max(2, Math.min(57, Number(byId('vector-width-cm').value) || 30));
-      const svg = buildSvg(labels, palette, width, height, widthCm, byId('vector-optimize').checked);
-      vectorState.svg = svg.svg;
-      vectorState.colors = palette.length;
-      vectorState.runs = svg.runs;
-      vectorState.view = 'result';
-      document.querySelectorAll('[data-vector-view]').forEach(item => item.classList.toggle('active', item.dataset.vectorView === 'result'));
-      renderVectorView();
-      byId('vector-download').disabled = false;
-      const complexity = svg.runs < 4000 ? 'liviano' : svg.runs < 12000 ? 'moderado' : 'complejo';
-      byId('vector-result-info').textContent = `${palette.length} colores · ${svg.runs.toLocaleString('es-NI')} formas · ${complexity}`;
-      byId('vector-status').textContent = `${widthCm.toFixed(1)} × ${svg.heightCm.toFixed(1)} cm · SVG ${complexity} con colores agrupados.`;
+      vectorState.labels=labels;vectorState.palette=palette;vectorState.svgCanvas=null;
+      vectorState.view='result';
+      document.querySelectorAll('[data-vector-view]').forEach(item=>item.classList.toggle('active',item.dataset.vectorView==='result'));
+      recordVector();await safeRefreshVector();
       setStudioState('Vectorización SVG', 'Resultado listo');
     } catch (error) {
       byId('vector-status').textContent = error.message || 'No se pudo vectorizar la imagen.';
     } finally {
+      vectorProcessing=false;updateVectorHistory();
       button.disabled = !vectorState.source;
     }
   };
 
   const acceptVectorFile = async file => {
+    if(vectorProcessing){byId('vector-status').textContent='Esperá a que termine el trazado actual.';return;}
     try {
       byId('vector-status').textContent = 'Cargando imagen…';
       const loaded = await loadImage(file);
       if (vectorState.sourceUrl) URL.revokeObjectURL(vectorState.sourceUrl);
       vectorState.source = loaded.image;
+      vectorHistory.length=0;vectorHistoryIndex=-1;vectorState.labels=null;vectorState.svgCanvas=null;
       vectorState.sourceUrl = loaded.url;
       vectorState.filename = (file.name || 'momotus-vector').replace(/\.[^.]+$/, '');
       vectorState.workCanvas = document.createElement('canvas');
@@ -466,7 +467,7 @@
     document.querySelectorAll('[data-vector-view]').forEach(item => item.classList.toggle('active', item === button));
     renderVectorView();
   }));
-  byId('vector-fit').addEventListener('click', renderVectorView);
+  byId('vector-fit').addEventListener('click',()=>{byId('vector-zoom').value='fit';renderVectorView();});
   ['vector-detail', 'vector-smoothing', 'vector-noise', 'vector-white'].forEach(id => byId(id).addEventListener('input', updateVectorLabels));
   document.querySelectorAll('[data-vector-preset]').forEach(button => button.addEventListener('click', () => {
     const presets = {
@@ -575,6 +576,7 @@
     context.fillStyle = '#f4f4f5';
     context.fillRect(0, 0, canvas.width, canvas.height);
     const drawScale = Math.min(canvas.width / settings.sheetWidth, canvas.height / settings.sheetHeight);
+    delete canvas.dataset.precisionScaleX;delete canvas.dataset.precisionScaleY;canvas.dataset.precisionScale=drawScale;canvas.dataset.precisionX=0;canvas.dataset.precisionY=0;
     context.save();
     context.scale(drawScale, drawScale);
     context.strokeStyle = '#a1a1aa';
@@ -600,6 +602,8 @@
   };
 
   const calculate = () => {
+    for(const id of calcIds){const el=byId(id);if(el.type==='checkbox')continue;const n=Number(el.value);if(el.value.trim()===''||!Number.isFinite(n)||(el.min&&n<Number(el.min))||(el.max&&n>Number(el.max))||(el.step==='1'&&!Number.isInteger(n))){latestQuote=null;byId('calc-status').textContent='Revisá las medidas y los costos. La cantidad debe ser un número entero y todos los valores deben estar dentro del rango indicado.';byId('calc-capacity').textContent='0';byId('calc-sheets').textContent='—';for(const key of ['calc-base-cost','calc-quote-total','calc-quote-unit'])byId(key).textContent='—';byId('calc-print').disabled=true;byId('calc-whatsapp').disabled=true;return;}}
+    byId('calc-print').disabled=false;byId('calc-whatsapp').disabled=false;
     const settings = {
       sheetWidth: Math.max(1, numberValue('calc-sheet-width', 57)),
       sheetHeight: Math.max(1, numberValue('calc-sheet-height', 100)),
@@ -633,6 +637,9 @@
       return;
     }
     const layout = optimizeLayout(settings);
+    const fixed=optimizeLayout({...settings,rotate:false});
+    const baselineSheets=fixed?Math.ceil(settings.quantity/fixed.capacity):null;
+    byId('calc-layout-comparison').textContent=layout?`Sin giro: ${fixed?.capacity||0} por pliego · Con giro permitido: ${layout.capacity} · ${baselineSheets?Math.max(0,baselineSheets-Math.ceil(settings.quantity/layout.capacity)):0} pliegos ahorrados.`:'No hay distribución válida.';
     drawSheet(settings, layout);
     byId('calc-layout-label').textContent = `${settings.sheetWidth} × ${settings.sheetHeight} cm`;
     if (!layout) {
@@ -641,7 +648,8 @@
       byId('calc-efficiency').textContent = '0%';
       byId('calc-status').textContent = 'El diseño no cabe dentro del área imprimible con esos márgenes.';
       byId('calc-arrangement').textContent = 'Sin distribución válida';
-      latestQuote = null;
+      for(const id of ['calc-base-cost','calc-quote-total','calc-quote-unit'])byId(id).textContent='—';
+      latestQuote = null;byId('calc-print').disabled=true;byId('calc-whatsapp').disabled=true;
       return;
     }
     const sheets = Math.ceil(settings.quantity / layout.capacity);
@@ -661,6 +669,7 @@
     byId('calc-arrangement').textContent = `${layout.capacity} por pliego · ${rowParts.join(' + ')}`;
     byId('calc-status').textContent = `${settings.quantity} diseños requieren ${sheets} pliego${sheets === 1 ? '' : 's'}; el último lleva ${settings.quantity - (sheets - 1) * layout.capacity}.`;
     latestQuote = { ...settings, capacity: layout.capacity, sheets, efficiency, productionCost, quoteTotal, unitQuote, arrangement: rowParts.join(' + ') };
+    window.dispatchEvent(new CustomEvent('momotus:sheet-quote-ready',{detail:latestQuote}));
     setStudioState('Calculadora de cotizaciones', 'Cálculo listo');
   };
 
@@ -675,10 +684,18 @@
       const context = canvas.getContext('2d');
       context.clearRect(0, 0, canvas.width, canvas.height);
       context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      canvas.dataset.precisionScaleX=canvas.width/Number(byId('calc-sheet-width').value);canvas.dataset.precisionScaleY=canvas.height/Number(byId('calc-sheet-height').value);canvas.dataset.precisionX=0;canvas.dataset.precisionY=0;
     };
     image.src = dataUrl;
   };
 
+  window.addEventListener('momotus:quote-measurements',event=>{
+    if(event.detail?.mode!=='sheet')return;
+    try{const d=window.MomotusPrecisionCore.validateMeasure(event.detail);if(d.widthCm<1||d.widthCm>150||d.heightCm<1)throw Error('El modo por pliego admite ancho de 1 a 150 cm y alto desde 1 cm. Usá el pedido por metro para otras medidas.');
+      sheetQuoteOverride=null;byId('calc-design-width').value=d.widthCm;byId('calc-design-height').value=d.heightCm;byId('calc-quantity').value=d.quantity;calculate();
+      window.dispatchEvent(new CustomEvent('momotus:quote-sheet'));byId('calc-status').textContent=`Medidas recibidas: ${d.widthCm.toFixed(3)} × ${d.heightCm.toFixed(3)} cm. Solo medidas y cantidad; sin imágenes.`;
+    }catch(e){byId('calc-status').textContent=e.message;}
+  });
   window.addEventListener('momotus:quote-sheet', event => {
     const detail = event.detail;
     if (!detail || !Number.isFinite(detail.pieces) || detail.pieces < 1) return;
@@ -719,28 +736,20 @@
     byId('calc-rotate').checked = true;
     calculate();
   });
-  byId('calc-save-profile').addEventListener('click', () => {
-    try {
-      const profile = Object.fromEntries(costProfileIds.map(id => [id, byId(id).value]));
-      localStorage.setItem(COST_PROFILE_KEY, JSON.stringify(profile));
-      byId('calc-status').textContent = 'Perfil de costos guardado en este navegador.';
-    } catch (error) {
-      byId('calc-status').textContent = 'No se pudo guardar el perfil de costos.';
-    }
+  let costProfiles={};try{const data=JSON.parse(localStorage.getItem('momotus-cost-profiles-v2')||'{}');if(data&&typeof data==='object'&&!Array.isArray(data))costProfiles=data;}catch{}
+  function costProfileList(){byId('calc-profile-list').replaceChildren(new Option('Elegí un perfil',''),...Object.keys(costProfiles).map(name=>new Option(name,name)));}
+  byId('calc-save-profile').addEventListener('click',()=>{
+    try{const name=byId('calc-profile-name').value.trim()||'Predeterminado',profile=Object.fromEntries(costProfileIds.map(id=>[id,byId(id).value]));if(Object.keys(costProfiles).length>=30&&!Object.hasOwn(costProfiles,name))throw Error('Máximo 30 perfiles.');const next={...costProfiles,[name]:profile};localStorage.setItem('momotus-cost-profiles-v2',JSON.stringify(next));localStorage.setItem(COST_PROFILE_KEY,JSON.stringify(profile));costProfiles=next;costProfileList();byId('calc-profile-list').value=name;byId('calc-status').textContent=`Perfil «${name}» guardado.`;}catch(e){byId('calc-status').textContent=e.message||'No se pudo guardar el perfil.';}
   });
-  byId('calc-load-profile').addEventListener('click', () => {
-    try {
-      const profile = JSON.parse(localStorage.getItem(COST_PROFILE_KEY) || 'null');
-      if (!profile || typeof profile !== 'object') throw new Error('EMPTY_PROFILE');
-      costProfileIds.forEach(id => {
-        if (Object.hasOwn(profile, id) && Number.isFinite(Number(profile[id]))) byId(id).value = profile[id];
-      });
-      calculate();
-      byId('calc-status').textContent = 'Perfil de costos cargado y cotización actualizada.';
-    } catch (error) {
-      byId('calc-status').textContent = 'Todavía no hay un perfil de costos guardado.';
-    }
-  });
+  byId('calc-load-profile').addEventListener('click',()=>{
+    try{const name=byId('calc-profile-list').value,profile=name?costProfiles[name]:JSON.parse(localStorage.getItem(COST_PROFILE_KEY)||'null');if(!profile||typeof profile!=='object')throw Error('Elegí un perfil guardado.');for(const id of costProfileIds){const n=Number(profile[id]),el=byId(id);if(!Number.isFinite(n)||n<0||(el.max&&n>Number(el.max)))throw Error('El perfil tiene costos no válidos.');}costProfileIds.forEach(id=>byId(id).value=profile[id]);byId('calc-profile-name').value=name;calculate();byId('calc-status').textContent='Costos recuperados y cotización actualizada.';}catch(e){byId('calc-status').textContent=e.message;}
+  });costProfileList();
+  const quoteArchive=document.createElement('details');quoteArchive.className='pro-detail';quoteArchive.innerHTML='<summary>Historial de cotizaciones</summary><div class="pro-actions"><button id="calc-save-quote" type="button">Guardar cotización</button><select id="calc-quote-history" aria-label="Cotizaciones guardadas"><option value="">Elegí una cotización</option></select><button id="calc-load-quote" type="button">Recuperar</button></div>';
+  byId('calc-save-profile').closest('.extra-control-scroll').append(quoteArchive);
+  let sheetHistory=[];try{const saved=JSON.parse(localStorage.getItem('momotus-sheet-quotes-v1')||'[]');if(Array.isArray(saved))sheetHistory=saved.slice(0,30);}catch{}
+  function sheetHistoryList(){byId('calc-quote-history').replaceChildren(new Option('Elegí una cotización',''),...sheetHistory.map((q,i)=>new Option(`${q.customer||'Cliente'} · ${q.reference||'DTF'} · ${new Date(q.time).toLocaleDateString('es-NI')}`,String(i))));}
+  byId('calc-save-quote').addEventListener('click',()=>{calculate();if(!latestQuote)return;if(sheetQuoteOverride){byId('calc-status').textContent='Guardá la plancha vinculada desde Producción DTF.';return;}try{const ids=[...calcIds,'calc-customer','calc-reference','calc-valid-days'];const next=[{time:Date.now(),customer:byId('calc-customer').value,reference:byId('calc-reference').value,settings:Object.fromEntries(ids.map(id=>[id,byId(id).type==='checkbox'?byId(id).checked:byId(id).value]))},...sheetHistory].slice(0,30);localStorage.setItem('momotus-sheet-quotes-v1',JSON.stringify(next));sheetHistory=next;sheetHistoryList();byId('calc-status').textContent='Cotización guardada en este navegador.';}catch{byId('calc-status').textContent='No se pudo guardar la cotización.';}});
+  byId('calc-load-quote').addEventListener('click',()=>{const value=byId('calc-quote-history').value;if(value==='')return;try{const q=sheetHistory[Number(value)];if(!q?.settings)throw Error('Cotización no válida.');for(const id of calcIds){const el=byId(id),v=q.settings[id];if(el.type==='checkbox'){if(typeof v!=='boolean')throw Error('Rotación no válida.');}else{const n=Number(v);if(!Number.isFinite(n)||(el.min&&n<Number(el.min))||(el.max&&n>Number(el.max))||(el.step==='1'&&!Number.isInteger(n)))throw Error('Medidas o costos no válidos.');}}sheetQuoteOverride=null;for(const [id,v]of Object.entries(q.settings)){const el=byId(id);if(!el||!el.closest('#calc-sheet-mode'))continue;if(el.type==='checkbox')el.checked=v;else el.value=v;}calculate();byId('calc-status').textContent='Cotización recuperada. Revisá los costos vigentes.';}catch(e){byId('calc-status').textContent=e.message;}});sheetHistoryList();
   byId('calc-whatsapp').addEventListener('click', () => {
     if (!latestQuote) return;
     const metadata = quoteMetadata();
@@ -762,7 +771,7 @@
     const metadata = quoteMetadata();
     const report = window.open('', '_blank', 'width=820,height=900');
     if (!report) return;
-    report.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Cotización DTF</title><style>body{font-family:Arial,sans-serif;margin:36px;color:#18181b}h1{margin:0 0 4px}small{color:#71717a}.brand{border-bottom:4px solid #facc15;padding-bottom:16px;margin-bottom:24px}.meta{display:flex;justify-content:space-between;gap:16px;margin-bottom:18px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.card{border:1px solid #d4d4d8;border-radius:10px;padding:14px}.card b{display:block;font-size:22px;margin-top:6px}.total{background:#facc15;border:0}table{width:100%;border-collapse:collapse;margin:22px 0}td{padding:9px;border-bottom:1px solid #e4e4e7}td:last-child{text-align:right;font-weight:bold}@media print{button{display:none}}</style></head><body><div class="brand"><h1>Momotus Core</h1><small>Cotización de producción DTF · momotuscore@gmail.com · 5501-0044</small></div><div class="meta"><div><b>${escapeHtml(metadata.customer)}</b><br><small>Cliente</small></div><div><b>${escapeHtml(metadata.reference)}</b><br><small>Válida hasta ${escapeHtml(metadata.validUntil)}</small></div></div><div class="grid"><div class="card">Pliego<b>${latestQuote.sheetWidth} × ${latestQuote.sheetHeight} cm</b></div><div class="card">Diseño<b>${escapeHtml(latestQuote.designLabel || `${latestQuote.designWidth} × ${latestQuote.designHeight} cm`)}</b></div><div class="card">Capacidad<b>${latestQuote.capacity} por pliego</b></div><div class="card">Pedido<b>${latestQuote.quantity} diseños · ${latestQuote.sheets} pliegos</b></div></div><table><tr><td>Distribución</td><td>${latestQuote.arrangement}</td></tr><tr><td>Aprovechamiento</td><td>${latestQuote.efficiency.toFixed(1)}%</td></tr><tr><td>Costo calculado</td><td>${currency.format(latestQuote.productionCost)}</td></tr><tr><td>Precio por diseño</td><td>${currency.format(latestQuote.unitQuote)}</td></tr></table><div class="card total">Cotización sugerida<b>${currency.format(latestQuote.quoteTotal)}</b></div><p><small>Estimación basada en las medidas, separación, costos, merma y margen ingresados. Confirmar consumos reales antes de producir.</small></p><button onclick="print()">Imprimir</button></body></html>`);
+    report.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Cotización DTF</title><style>body{font-family:Arial,sans-serif;margin:36px;color:#18181b}h1{margin:0 0 4px}small{color:#71717a}.brand{border-bottom:4px solid #facc15;padding-bottom:16px;margin-bottom:24px}.meta{display:flex;justify-content:space-between;gap:16px;margin-bottom:18px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.card{border:1px solid #d4d4d8;border-radius:10px;padding:14px}.card b{display:block;font-size:22px;margin-top:6px}.total{background:#facc15;border:0}table{width:100%;border-collapse:collapse;margin:22px 0}td{padding:9px;border-bottom:1px solid #e4e4e7}td:last-child{text-align:right;font-weight:bold}@media print{button{display:none}}</style></head><body><div class="brand"><h1>Momotus Core</h1><small>Cotización de producción DTF · momotuscore@gmail.com · 5501-0044</small></div><div class="meta"><div><b>${escapeHtml(metadata.customer)}</b><br><small>Cliente</small></div><div><b>${escapeHtml(metadata.reference)}</b><br><small>Válida hasta ${escapeHtml(metadata.validUntil)}</small></div></div><div class="grid"><div class="card">Pliego<b>${latestQuote.sheetWidth} × ${latestQuote.sheetHeight} cm</b></div><div class="card">Diseño<b>${escapeHtml(latestQuote.designLabel || `${latestQuote.designWidth} × ${latestQuote.designHeight} cm`)}</b></div><div class="card">Capacidad<b>${latestQuote.capacity} por pliego</b></div><div class="card">Pedido<b>${latestQuote.quantity} diseños · ${latestQuote.sheets} pliegos</b></div></div><table><tr><td>Distribución</td><td>${latestQuote.arrangement}</td></tr><tr><td>Aprovechamiento</td><td>${latestQuote.efficiency.toFixed(1)}%</td></tr>${byId('calc-report-scope').value==='internal'?`<tr><td>Costo calculado</td><td>${currency.format(latestQuote.productionCost)}</td></tr>`:''}<tr><td>Precio por diseño</td><td>${currency.format(latestQuote.unitQuote)}</td></tr></table><div class="card total">Cotización sugerida<b>${currency.format(latestQuote.quoteTotal)}</b></div><p><small>Estimación basada en las medidas, separación, costos, merma y margen ingresados. Confirmar consumos reales antes de producir.</small></p><button onclick="print()">Imprimir</button></body></html>`);
     report.document.close();
   });
   calculate();
