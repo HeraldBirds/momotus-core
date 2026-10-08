@@ -553,6 +553,8 @@
       return;
     }
     activeType = getActiveType();
+    const histogram = byId('editor-histogram')?.closest('.tool-histogram-wrap');
+    if (histogram) histogram.hidden = !window.MomotusToolsAPI?.hasDocument(activeType);
     const meta = toolMeta[activeType];
     const canvas = byId(`${activeType}-canvas`);
     const image = byId(`${activeType}-original`);
@@ -664,12 +666,34 @@
     document.querySelectorAll('.tool-preview canvas, #editor-image-info').forEach(element => observer.observe(element, { attributes: true, childList: true, characterData: true, subtree: true }));
   };
 
+  const addEmptyStates = () => {
+    const hints = {
+      quality: ['Prepará tu imagen para DTF', 'Cargá el original y elegí su medida de impresión. Revisá los detalles antes de exportar.'],
+      background: ['Elegí qué fondo eliminar', 'Cargá una imagen para seleccionar colores y revisar sus bordes y transparencia.'],
+      halftone: ['Creá una trama para tu estampado', 'Cargá el diseño y ajustá los puntos según el tamaño final de impresión.']
+    };
+    Object.entries(toolMeta).forEach(([type, meta]) => {
+      const preview = byId(`${type}-preview`);
+      if (!preview || preview.querySelector('.studio-empty-state')) return;
+      const empty = document.createElement('div');
+      empty.className = 'studio-empty-state';
+      empty.innerHTML = `<i class="fa-solid ${meta.icon}" aria-hidden="true"></i><strong>${hints[type][0]}</strong><p>${hints[type][1]}</p><button type="button">Cargar imagen</button>`;
+      empty.querySelector('button').addEventListener('click', () => byId(`${type}-file`).click());
+      preview.append(empty);
+      const sync = () => { const loaded = Boolean(window.MomotusToolsAPI?.hasDocument(type)); if (empty.hidden !== loaded) empty.hidden = loaded; };
+      new MutationObserver(sync).observe(preview, { subtree: true, attributes: true, attributeFilter: ['width', 'height', 'src', 'hidden'] });
+      window.addEventListener('momotus:result-ready', sync);
+      sync();
+    });
+  };
+
   const initializeStudio = () => {
     document.body.classList.add('momotus-studio');
     addWorkflowPipeline();
     addInspectorChrome();
     addPrecisionControls();
     addCanvasChrome();
+    addEmptyStates();
     bindHistory();
     bindCanvasInteractions();
     bindExportPreview();
