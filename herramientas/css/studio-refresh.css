@@ -321,3 +321,25 @@
  .production-brand > span { display: flex; flex-direction: column; gap: 3px; }
  .production-brand > i { flex-shrink: 0; }
 }
+
+/* Fill the desktop viewport without reserving space for the hidden intro. */
+@media (min-width: 1024px) {
+ body.momotus-studio {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  min-height: 0;
+ }
+ body.momotus-studio > #navbar-placeholder { flex: 0 0 auto; }
+ body.momotus-studio main.tools-editor-grid {
+  flex: 1 1 0;
+  height: auto;
+  max-height: none;
+  min-height: 0;
+ }
+ body.momotus-studio.effects-tool-active main.tools-editor-grid {
+  grid-template-rows: max-content minmax(0, 1fr);
+ }
+ body.momotus-studio.effects-tool-active .tools-editor-grid > nav { grid-row: 1 / -1; }
+ body.momotus-studio.effects-tool-active .studio-technical-bar { display: none; }
+}

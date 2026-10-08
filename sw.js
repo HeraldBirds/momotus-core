@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE_VERSION = 'momotus-runtime-20261007-tools-visual-review-1';
+const CACHE_VERSION = 'momotus-runtime-20261007-tools-space-1';
 const CACHEABLE_TYPES = new Set(['style', 'script', 'image', 'font', 'worker']);
 
 self.addEventListener('install', event => event.waitUntil(self.skipWaiting()));
