@@ -1,0 +1,20 @@
+MOCKUPS AGREGADOS A LA TIENDA
+
+Copiar esta carpeta img sobre la carpeta img del proyecto revisado.
+Los 14 mockups conservan exactamente su calidad y resolución originales.
+Los nombres y el stock de los productos se gestionan desde Administración.
+
+ID 100 | Arte clásico | img/products/urbano/arte-tipografia/urbano-100.webp
+ID 101 | Psychologist | img/products/urbano/arte-tipografia/urbano-101.webp
+ID 102 | Estatua y luna | img/products/urbano/arte-tipografia/urbano-102.webp
+ID 99 | Dominus | img/products/urbano/arte-tipografia/urbano-99.webp
+ID 89 | Ojo siniestro | img/products/urbano/cine-terror/urbano-89.webp
+ID 84 | BMW M4 GT4 | img/products/urbano/motor/urbano-84.webp
+ID 85 | Dodge Challenger | img/products/urbano/motor/urbano-85.webp
+ID 86 | West Coast Choppers | img/products/urbano/motor/urbano-86.webp
+ID 79 | DIO Holy Diver | img/products/urbano/musica/urbano-79.webp
+ID 80 | Malón Espíritu Combativo | img/products/urbano/musica/urbano-80.webp
+ID 94 | Wolfness | img/products/urbano/streetwear/urbano-94.webp
+ID 95 | Tired | img/products/urbano/streetwear/urbano-95.webp
+ID 96 | Dueño del Cielo | img/products/urbano/streetwear/urbano-96.webp
+ID 97 | No Gods Just Stars | img/products/urbano/streetwear/urbano-97.webp
