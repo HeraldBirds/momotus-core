@@ -29,6 +29,10 @@
   };
   let activeTool = 'halftone';
   let qualityProcessing = false;
+  let halftoneProofBusy = false;
+  let halftoneJob = null;
+  let halftoneBusy = false;
+  const H = window.MomotusHalftone;
   let qualityRevision = 0;
   let halftoneRenderRevision = 0;
   let backgroundRenderRevision = 0;
@@ -214,22 +218,24 @@
     || ALLOWED_IMAGE_EXTENSION.test(file.name || '')
   ));
 
-  const loadImageFile = (file, maxSide = 4500, internalTransfer = false) => new Promise((resolve, reject) => {
+  const loadImageFile = (file, maxSide = 4500, internalTransfer = false, preserveNative = false) => new Promise((resolve, reject) => {
     if (!isSupportedImageFile(file)) return reject(new Error('Escogé una imagen PNG, JPG o WebP.'));
     if (!internalTransfer && file.size > MAX_FILE_SIZE) return reject(new Error('La imagen debe pesar 24 MB o menos.'));
     const url = URL.createObjectURL(file);
     const image = new Image();
     image.decoding = 'async';
     image.onload = () => {
+      if (preserveNative && (image.naturalWidth > 16384 || image.naturalHeight > 16384 || image.naturalWidth * image.naturalHeight > MAX_INTERNAL_PIXELS)) { URL.revokeObjectURL(url); reject(new Error('Rango de color admite hasta 18 MP y 16.384 px por lado. No se reduce la resolución automáticamente.')); return; }
       const pixelLimit = internalTransfer ? MAX_INTERNAL_PIXELS : MAX_WORKING_PIXELS;
       const effectiveMaxSide = internalTransfer ? MAX_HALFTONE_SIDE : maxSide;
       const sideScale = effectiveMaxSide / Math.max(image.naturalWidth, image.naturalHeight);
       const pixelScale = Math.sqrt(pixelLimit / (image.naturalWidth * image.naturalHeight));
-      const scale = Math.min(1, sideScale, pixelScale);
+      const scale = preserveNative ? 1 : Math.min(1, sideScale, pixelScale);
       const width = Math.max(1, Math.round(image.naturalWidth * scale));
       const height = Math.max(1, Math.round(image.naturalHeight * scale));
       resolve({
         image,
+        sourceFile: ALLOWED_IMAGE_TYPES.has(file.type)?file:new File([file],file.name,{type:/\.webp$/i.test(file.name)?'image/webp':/\.jpe?g$/i.test(file.name)?'image/jpeg':'image/png',lastModified:file.lastModified}),
         width,
         height,
         naturalWidth: image.naturalWidth,
@@ -289,7 +295,7 @@
     const resultStripHeight = resultStrip?.offsetHeight || 0;
     const resultStripMargin = resultStrip ? parseFloat(getComputedStyle(resultStrip).marginBottom) || 0 : 0;
     const maximumWidth = Math.max(1, shell.clientWidth - horizontalPadding);
-    const maximumHeight = Math.max(1, shell.clientHeight - verticalPadding - toolbarHeight - toolbarMargin - resultStripHeight - resultStripMargin);
+    const maximumHeight = Math.max(1, shell.clientHeight - verticalPadding - toolbarHeight - toolbarMargin - resultStripHeight - resultStripMargin - (type==='halftone'?(shell.querySelector('.ht-review-toolbar')?.offsetHeight||0)+8:type==='quality'?(shell.querySelector('.qs-review')?.offsetHeight||0)+10:0));
     const stageWidth = maximumWidth;
     const stageHeight = maximumHeight;
 
@@ -579,6 +585,7 @@
 
   const scheduleRender = (type, callback, delay = 90) => {
     if (!states[type]) return;
+    if(type==='halftone')cancelHalftone();
     markToolDirty(type);
     const pendingView = type === 'background' && previewViews.background === 'mask' ? 'mask' : 'result';
     clearTimeout(renderTimers[type]);
@@ -716,33 +723,31 @@
     return output;
   };
 
-  const downloadCanvas = async (canvas, filename) => {
+  const downloadCanvas = async (canvas, filename, preserveAlpha = false) => {
     let exportCanvas;
     try {
-      exportCanvas = await prepareBinaryAlphaCanvas(canvas);
+      exportCanvas = preserveAlpha ? canvas : await prepareBinaryAlphaCanvas(canvas);
+      const blob = await new Promise((resolve, reject) => {
+        exportCanvas.toBlob(value => value ? resolve(value) : reject(new Error('No se pudo crear el PNG.')), 'image/png');
+      });
+      const png300Dpi = add300DpiMetadata(new Uint8Array(await blob.arrayBuffer()));
+      const outputBlob = new Blob([png300Dpi], { type: 'image/png' });
+      const url = URL.createObjectURL(outputBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 30000);
+      return true;
     } catch (error) {
-      console.error('No se pudo limpiar la transparencia del PNG:', error);
-      showToast('No se pudo preparar la transparencia para descargar.');
-      return;
+      console.error('No se pudo preparar el PNG a 300 DPI:', error);
+      showToast('No se pudo preparar la descarga. Volvé a intentarlo.');
+      return false;
+    } finally {
+      if (exportCanvas && exportCanvas !== canvas) exportCanvas.width = exportCanvas.height = 1;
     }
-    exportCanvas.toBlob(async blob => {
-      if (!blob) return showToast('No se pudo preparar la descarga.');
-      try {
-        const png300Dpi = add300DpiMetadata(new Uint8Array(await blob.arrayBuffer()));
-        const outputBlob = new Blob([png300Dpi], { type: 'image/png' });
-        const url = URL.createObjectURL(outputBlob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
-      } catch (error) {
-        console.error('No se pudo preparar el PNG a 300 DPI:', error);
-        showToast('No se pudo preparar la descarga.');
-      }
-    }, 'image/png');
   };
 
   const analyzeCanvasAlpha = canvas => {
@@ -781,7 +786,7 @@
     return { transparent, partial, opaque, edgePixels, lightFringePixels, total: transparent + partial + opaque };
   };
 
-  const buildPreflightChecks = (type, canvas) => {
+  const buildPreflightChecks = (type, canvas, preserveAlpha = false) => {
     const state = states[type];
     const checks = [];
     const widthCm = canvas.width / EXPORT_DPI * 2.54;
@@ -794,7 +799,8 @@
     else if (type === 'background') checks.push({ level: 'warning', message: 'No se detectó transparencia. Revisá el color, la tolerancia y el alcance antes de imprimir.' });
     else checks.push({ level: 'good', message: 'La imagen ocupa todo el lienzo; verificá que ese fondo completo sea intencional.' });
     const partialPercentage = alpha.total ? alpha.partial / alpha.total * 100 : 0;
-    if (partialPercentage > 0.3) checks.push({ level: 'warning', message: `${partialPercentage.toFixed(2)}% de píxeles semitransparentes. La descarga los convertirá a transparencia sólida mediante tramado.` });
+    if(preserveAlpha&&alpha.partial>0)checks.push({level:'warning',message:'Elegiste conservar el alfa: el PNG mantendrá las semitransparencias del resultado. Revisá su comportamiento en el RIP.'});
+    else if (partialPercentage > 0.3) checks.push({ level: 'warning', message: `${partialPercentage.toFixed(2)}% de píxeles semitransparentes. La descarga los convertirá a transparencia sólida mediante tramado.` });
     else if (alpha.partial > 0) checks.push({ level: 'good', message: 'Las pocas semitransparencias detectadas se convertirán a píxeles sólidos mediante tramado.' });
     else checks.push({ level: 'good', message: 'No se detectaron semitransparencias problemáticas.' });
     const fringePercentage = alpha.edgePixels ? alpha.lightFringePixels / alpha.edgePixels * 100 : 0;
@@ -807,6 +813,9 @@
       const requestedWidthCm = Number(byId('halftone-width-cm').value) || 28;
       sourceDpi = Math.round(state.naturalWidth / (requestedWidthCm / 2.54));
       safetyLimited = Boolean(state.halftoneOutputCache?.safetyLimited);
+      for(const message of state.halftoneDiagnostics?.warnings||[])checks.push({level:'warning',message});
+      if(state.halftoneMetrics?.opaque===0)checks.push({level:'error',message:'El resultado no contiene píxeles opacos. Revisá selección, punto y hueco antes de imprimir.'});
+      if(state.halftoneMetrics)checks.push({level:'warning',message:`Revisión orientativa: ${state.halftoneMetrics.narrowInk} carreras cortas de tinta y ${state.halftoneMetrics.narrowGap} huecos estrechos en ambos ejes. Revisá al 100 % y comprobá la muestra impresa.`});
       const frequency = Number(byId('halftone-frequency').value);
       const dotSize = Number(byId('halftone-dot-size').value);
       const minimumDot = Number(byId('halftone-min-dot').value);
@@ -831,12 +840,14 @@
   };
 
   const closePreflight = () => {
+    if (pendingPreflightDownload?.saving) return;
     byId('dtf-preflight-modal').hidden = true;
+    if (pendingPreflightDownload) pendingPreflightDownload.canvas.width = pendingPreflightDownload.canvas.height = 1;
     pendingPreflightDownload = null;
   };
 
-  const openPreflight = (type, canvas, filename) => {
-    const checks = buildPreflightChecks(type, canvas);
+  const renderPreflightChecks = (type, canvas, preserveAlpha = false) => {
+    const checks = buildPreflightChecks(type, canvas, preserveAlpha);
     const errors = checks.filter(check => check.level === 'error').length;
     const warnings = checks.filter(check => check.level === 'warning').length;
     const summary = byId('dtf-preflight-summary');
@@ -855,7 +866,30 @@
       item.append(icon, message);
       return item;
     }));
-    pendingPreflightDownload = { canvas, filename };
+    return errors;
+  };
+
+  const openPreflight = (type, canvas, filename) => {
+    if (pendingPreflightDownload?.saving) return;
+    // La revisión y la descarga usan la misma copia aunque cambie la vista de trabajo.
+    const snapshot = document.createElement('canvas');
+    try {
+      snapshot.width = canvas.width;
+      snapshot.height = canvas.height;
+      const context = snapshot.getContext('2d');
+      if (!context) throw new Error('No hay memoria para preparar la revisión.');
+      context.drawImage(canvas, 0, 0);
+    } catch (error) {
+      snapshot.width = snapshot.height = 1;
+      showToast(error.message || 'No se pudo preparar la revisión.');
+      return;
+    }
+    closePreflight();
+    canvas = snapshot;
+    const localQuality=type==='quality';
+    const errors=renderPreflightChecks(type,canvas,localQuality);
+    pendingPreflightDownload = { canvas, filename, type, canChooseAlpha: localQuality || type === 'background' && byId('background-scope').value === 'zones' };
+    byId('dtf-export-alpha-control').hidden=!pendingPreflightDownload.canChooseAlpha;byId('dtf-export-alpha').value=localQuality?'preserve':'binary';byId('dtf-export-format-label').textContent=localQuality?'PNG · 300 DPI · alfa conservado':'PNG · 300 DPI · transparencia sólida';
     const exportName = byId('dtf-export-name');
     if (exportName) exportName.value = filename.replace(/\.png$/i, '');
     const exportPreview = byId('dtf-export-preview-canvas');
@@ -872,61 +906,8 @@
     byId('dtf-preflight-close').focus();
   };
 
-  const drawHalftoneShape = (context, shape, x, y, radius, angle) => {
-    context.save();
-    context.translate(x, y);
-    context.rotate(angle);
-    context.beginPath();
-    if (shape === 'square') context.rect(-radius, -radius, radius * 2, radius * 2);
-    else if (shape === 'diamond') {
-      context.moveTo(0, -radius * 1.35); context.lineTo(radius * 1.35, 0);
-      context.lineTo(0, radius * 1.35); context.lineTo(-radius * 1.35, 0); context.closePath();
-    } else if (shape === 'line') context.rect(-radius * 1.45, -Math.max(0.55, radius * 0.38), radius * 2.9, Math.max(1.1, radius * 0.76));
-    else if (shape === 'ellipse') context.ellipse(0, 0, radius * 1.2, radius * 0.72, 0, 0, Math.PI * 2);
-    else context.arc(0, 0, radius, 0, Math.PI * 2);
-    context.fill();
-    context.restore();
-  };
-
-  const sampleHalftoneCell = (state, x, y, cellSize) => {
-    const data = state.imageData.data;
-    const radius = Math.max(1, cellSize * 0.34);
-    let red = 0, green = 0, blue = 0;
-    let redSquared = 0, greenSquared = 0, blueSquared = 0;
-    let alpha = 0, samples = 0;
-    for (let row = -1; row <= 1; row++) {
-      for (let column = -1; column <= 1; column++) {
-        const sampleX = Math.min(state.width - 1, Math.max(0, Math.round(x + column * radius)));
-        const sampleY = Math.min(state.height - 1, Math.max(0, Math.round(y + row * radius)));
-        const index = (sampleY * state.width + sampleX) * 4;
-        const pixelAlpha = data[index + 3] / 255;
-        red += data[index] * pixelAlpha;
-        green += data[index + 1] * pixelAlpha;
-        blue += data[index + 2] * pixelAlpha;
-        redSquared += data[index] * data[index] * pixelAlpha;
-        greenSquared += data[index + 1] * data[index + 1] * pixelAlpha;
-        blueSquared += data[index + 2] * data[index + 2] * pixelAlpha;
-        alpha += pixelAlpha;
-        samples++;
-      }
-    }
-    const averageRed = alpha > 0 ? red / alpha : 0;
-    const averageGreen = alpha > 0 ? green / alpha : 0;
-    const averageBlue = alpha > 0 ? blue / alpha : 0;
-    const channelVariance = alpha > 0
-      ? Math.max(0,
-        redSquared / alpha - averageRed * averageRed
-        + greenSquared / alpha - averageGreen * averageGreen
-        + blueSquared / alpha - averageBlue * averageBlue) / 3
-      : 0;
-    return {
-      r: averageRed,
-      g: averageGreen,
-      b: averageBlue,
-      a: alpha / samples,
-      variation: Math.sqrt(channelVariance)
-    };
-  };
+  // Alias para mantener el punto de integración de la revisión PNG. El motor vive en su módulo.
+  const drawHalftoneShape = (...args) => H.draw(...args);
 
   const clampUnit = value => Math.max(0, Math.min(1, value));
   const clampNumber = (value, minimum, maximum) => Math.max(minimum, Math.min(maximum, value));
@@ -1075,50 +1056,6 @@
     recordHistory('halftone');
   };
 
-  const halftoneColorStrength = (hueRange, red, green, blue, stats) => {
-    if (hueRange === 'all') return 1;
-    const color = getHueAndSaturation(red, green, blue);
-    if (hueRange === 'neutral') return clampUnit((0.32 - color.saturation) / 0.18);
-    if (hueRange === 'vivid') return clampUnit((color.saturation - 0.12) / 0.35);
-    if (color.saturation < 0.08) return 0;
-    const centers = { reds: 0, oranges: 30, yellows: 60, greens: 120, cyans: 180, blues: 225, purples: 300 };
-    const targetHue = hueRange === 'dominant' ? stats.dominantHue : centers[hueRange];
-    if (!Number.isFinite(targetHue)) return 1;
-    const distance = Math.min(Math.abs(color.hue - targetHue), 360 - Math.abs(color.hue - targetHue));
-    return clampUnit((65 - distance) / 35) * clampUnit(color.saturation / 0.22);
-  };
-
-  const halftoneSelectionStrength = (range, luminance, variation, protection, edgeProtection, amount, colorStrength = 1) => {
-    const shadowWeight = clampUnit((175 - luminance) / 145);
-    const highlightWeight = clampUnit((luminance - 80) / 155);
-    const midtoneWeight = clampUnit(1 - Math.abs(luminance - 128) / 105);
-    const detailWeight = clampUnit((variation - 3) / 40);
-    let rangeWeight = 1;
-    if (range === 'transitions') rangeWeight = Math.max(detailWeight, shadowWeight * 0.35);
-    else if (range === 'shadows') rangeWeight = shadowWeight;
-    else if (range === 'midtones') rangeWeight = midtoneWeight;
-    else if (range === 'highlights') rangeWeight = highlightWeight;
-    const solidProtection = (1 - protection) + protection * Math.max(0.15, detailWeight);
-    const fineDetailProtection = 1 - edgeProtection * clampUnit((variation - 18) / 55) * 0.72;
-    return clampUnit(rangeWeight * solidProtection * fineDetailProtection * amount * colorStrength);
-  };
-
-  const halftoneGridThreshold = (gridX, gridY) => {
-    const matrix = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
-    const column = ((gridX % 4) + 4) % 4;
-    const row = ((gridY % 4) + 4) % 4;
-    return (matrix[row * 4 + column] + 0.5) / 16;
-  };
-
-  const clearHalftoneCell = (context, x, y, cellSize, angle) => {
-    context.save();
-    context.translate(x, y);
-    context.rotate(angle);
-    const side = cellSize * 1.035;
-    context.clearRect(-side / 2, -side / 2, side, side);
-    context.restore();
-  };
-
   const prepareHalftoneOutput = (source, requestedWidthCm, finalOutput = false) => {
     const requestedWidth = Math.round(requestedWidthCm / 2.54 * EXPORT_DPI);
     const requestedHeight = Math.round(requestedWidth * source.naturalHeight / source.naturalWidth);
@@ -1153,121 +1090,18 @@
       safetyLimited: safetyScale < 0.999,
       imageData: sourceContext.getImageData(0, 0, width, height)
     };
+    for (const key of Object.keys(source.halftoneOutputCaches)) if (key.split(':')[0] === cacheKey.split(':')[0]) delete source.halftoneOutputCaches[key];
     source.halftoneOutputCaches[cacheKey] = output;
     if (finalOutput) source.halftoneOutputCache = output;
     return output;
   };
 
-  const estimateHalftoneBackground = (state, cellSize) => {
-    const margin = Math.max(1, cellSize * 0.55);
-    const corners = [
-      sampleHalftoneCell(state, margin, margin, cellSize),
-      sampleHalftoneCell(state, state.width - margin, margin, cellSize),
-      sampleHalftoneCell(state, margin, state.height - margin, cellSize),
-      sampleHalftoneCell(state, state.width - margin, state.height - margin, cellSize)
-    ].filter(sample => sample.a > 0.25);
-    if (corners.length < 2) return null;
-    let closestPair = [corners[0], corners[1]];
-    let closestDistance = Infinity;
-    for (let first = 0; first < corners.length; first++) {
-      for (let second = first + 1; second < corners.length; second++) {
-        const distance = perceptualColorDistance(corners[first].r, corners[first].g, corners[first].b, corners[second]);
-        if (distance < closestDistance) {
-          closestDistance = distance;
-          closestPair = [corners[first], corners[second]];
-        }
-      }
-    }
-    return {
-      r: (closestPair[0].r + closestPair[1].r) / 2,
-      g: (closestPair[0].g + closestPair[1].g) / 2,
-      b: (closestPair[0].b + closestPair[1].b) / 2
-    };
-  };
-
-  const getHalftoneBackgroundMask = async (state, cellSize, tolerance, mode, isCancelled = () => false) => {
-    if (mode !== 'edge') return null;
-    const cacheKey = `${cellSize.toFixed(3)}:${tolerance}`;
-    if (state.halftoneMaskCache?.key === cacheKey) return state.halftoneMaskCache;
-    const columns = Math.ceil(state.width / cellSize);
-    const rows = Math.ceil(state.height / cellSize);
-    const count = columns * rows;
-    const candidates = new Uint8Array(count);
-    const background = new Uint8Array(count);
-    const target = estimateHalftoneBackground(state, cellSize);
-
-    for (let row = 0; row < rows; row++) {
-      for (let column = 0; column < columns; column++) {
-        const sample = sampleHalftoneCell(state, (column + 0.5) * cellSize, (row + 0.5) * cellSize, cellSize);
-        const transparent = sample.a < 0.08;
-        const matchesEdgeColor = target && sample.a > 0.2
-          && perceptualColorDistance(sample.r, sample.g, sample.b, target) <= tolerance;
-        candidates[row * columns + column] = transparent || matchesEdgeColor ? 1 : 0;
-      }
-      if (row > 0 && row % 36 === 0) {
-        await nextFrame();
-        if (isCancelled()) return null;
-      }
-    }
-
-    const queue = new Int32Array(count);
-    let queueStart = 0;
-    let queueEnd = 0;
-    const enqueue = index => {
-      if (!candidates[index] || background[index]) return;
-      background[index] = 1;
-      queue[queueEnd++] = index;
-    };
-    for (let column = 0; column < columns; column++) {
-      enqueue(column);
-      enqueue((rows - 1) * columns + column);
-    }
-    for (let row = 1; row < rows - 1; row++) {
-      enqueue(row * columns);
-      enqueue(row * columns + columns - 1);
-    }
-    while (queueStart < queueEnd) {
-      const index = queue[queueStart++];
-      const row = Math.floor(index / columns);
-      const column = index - row * columns;
-      if (column > 0) enqueue(index - 1);
-      if (column + 1 < columns) enqueue(index + 1);
-      if (row > 0) enqueue(index - columns);
-      if (row + 1 < rows) enqueue(index + columns);
-      if (queueStart % 120000 === 0) {
-        await nextFrame();
-        if (isCancelled()) return null;
-      }
-    }
-    state.halftoneMaskCache = { key: cacheKey, background, columns, rows };
-    return state.halftoneMaskCache;
-  };
-
-  const renderHalftone = async (finalOutput = false) => {
-    const sourceState = states.halftone;
-    if (!sourceState) return;
-    const renderRevision = ++halftoneRenderRevision;
-    previewViews.halftone = 'result';
-    updatePreviewButtons('halftone');
-    showResult('halftone');
-    const canvas = byId('halftone-canvas');
-    const context = canvas.getContext('2d');
-    const requestedWidthCm = Math.max(8, Math.min(38, Number(byId('halftone-width-cm').value) || 28));
-    byId('halftone-width-cm').value = String(requestedWidthCm);
-    setStatus('halftone-status', 'Preparando la imagen para el semitono…');
-    setProcessingProgress('halftone', 3, finalOutput ? 'Preparando salida completa…' : 'Creando vista rápida…');
-    await nextFrame();
-    if (renderRevision !== halftoneRenderRevision || sourceState !== states.halftone) return false;
-    const state = prepareHalftoneOutput(sourceState, requestedWidthCm, finalOutput);
+  const halftoneOptions = () => {
     const frequency = Number(byId('halftone-frequency').value);
-    const cellSize = state.effectiveDpi / frequency;
     const maximumDotMm = Number(byId('halftone-dot-size').value);
-    const maximumDotRadius = maximumDotMm / 25.4 * state.effectiveDpi / 2;
     const minimumDotMm = Number(byId('halftone-min-dot').value);
-    const minimumDotRadius = minimumDotMm / 25.4 * state.effectiveDpi / 2;
     const dotGain = Number(byId('halftone-dot-gain').value) / 100;
     const angleDegrees = Number(byId('halftone-angle').value);
-    const angle = angleDegrees * Math.PI / 180;
     const contrast = Number(byId('halftone-contrast').value);
     const invert = byId('halftone-invert').checked;
     const transparent = byId('halftone-transparent').checked;
@@ -1283,111 +1117,44 @@
     const keepSolids = byId('halftone-keep-solids').checked;
     const inkColor = byId('halftone-color').value;
     const backgroundColor = byId('halftone-background-color').value;
-    const renderKey = JSON.stringify({
-      requestedWidthCm, frequency, maximumDotMm, minimumDotMm, dotGain, angleDegrees, contrast, invert, transparent,
-      shape, colorMode, maskMode, maskTolerance, tonalRange, hueRange, amount, solidProtection, edgeProtection,
-      keepSolids, inkColor, backgroundColor, finalOutput
-    });
-    const renderKeyName = finalOutput ? 'halftoneRenderKeyFinal' : 'halftoneRenderKeyPreview';
-    const statusName = finalOutput ? 'halftoneStatusFinal' : 'halftoneStatusPreview';
-    if (sourceState[renderKeyName] === renderKey && canvas.width === state.width && canvas.height === state.height) {
-      setToolResultReady('halftone', true);
-      markToolClean('halftone');
-      if (sourceState[statusName]) setStatus('halftone-status', sourceState[statusName]);
-      applyPreviewZoom('halftone');
-      centerPreview('halftone');
-      return true;
-    }
-    setStatus('halftone-status', 'Generando semitono profesional…');
-    setProcessingProgress('halftone', 12, 'Analizando color y máscara…');
-    await nextFrame();
-    if (renderRevision !== halftoneRenderRevision || sourceState !== states.halftone) return false;
-    const workCanvas = document.createElement('canvas');
-    workCanvas.width = state.width;
-    workCanvas.height = state.height;
-    const workContext = workCanvas.getContext('2d');
-    if (keepSolids) workContext.putImageData(state.imageData, 0, 0);
-    const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
-    const cosine = Math.cos(angle), sine = Math.sin(angle);
-    const centerX = state.width / 2, centerY = state.height / 2;
-    const diagonal = Math.hypot(state.width, state.height);
-    const backgroundMask = await getHalftoneBackgroundMask(
-      state,
-      cellSize,
-      maskTolerance,
-      maskMode,
-      () => renderRevision !== halftoneRenderRevision || sourceState !== states.halftone
-    );
-    if (renderRevision !== halftoneRenderRevision || sourceState !== states.halftone) return false;
-    setProcessingProgress('halftone', 25, 'Construyendo la trama…');
-    const colorStats = analyzeHalftoneColors(sourceState);
-    let gridRow = 0;
-    const totalGridRows = Math.max(1, Math.ceil(diagonal / cellSize) + 1);
-    for (let gridY = -diagonal / 2; gridY <= diagonal / 2; gridY += cellSize, gridRow++) {
-      let gridColumn = 0;
-      for (let gridX = -diagonal / 2; gridX <= diagonal / 2; gridX += cellSize, gridColumn++) {
-        const x = centerX + gridX * cosine - gridY * sine;
-        const y = centerY + gridX * sine + gridY * cosine;
-        if (x < 0 || y < 0 || x >= state.width || y >= state.height) continue;
-        if (backgroundMask) {
-          const maskColumn = Math.min(backgroundMask.columns - 1, Math.floor(x / cellSize));
-          const maskRow = Math.min(backgroundMask.rows - 1, Math.floor(y / cellSize));
-          if (backgroundMask.background[maskRow * backgroundMask.columns + maskColumn]) {
-            if (keepSolids) clearHalftoneCell(workContext, x, y, cellSize, angle);
-            continue;
-          }
-        }
-        const sample = sampleHalftoneCell(state, x, y, cellSize);
-        if (sample.a < 0.015) continue;
-        const red = Math.max(0, Math.min(255, factor * (sample.r - 128) + 128));
-        const green = Math.max(0, Math.min(255, factor * (sample.g - 128) + 128));
-        const blue = Math.max(0, Math.min(255, factor * (sample.b - 128) + 128));
-        const luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue;
-        const colorStrength = halftoneColorStrength(hueRange, red, green, blue, colorStats);
-        const selectionStrength = halftoneSelectionStrength(tonalRange, luminance, sample.variation, solidProtection, edgeProtection, amount, colorStrength);
-        if (selectionStrength < halftoneGridThreshold(gridColumn, gridRow)) continue;
-        const tone = invert ? luminance / 255 : 1 - luminance / 255;
-        const baseCoverage = colorMode === 'original' ? Math.max(0.18, tone) : tone;
-        const coverage = Math.max(0, Math.min(1, baseCoverage + dotGain));
-        const calculatedRadius = cellSize * 0.46 * Math.sqrt(Math.max(0, coverage * sample.a));
-        const radius = coverage > 0.005 ? Math.min(maximumDotRadius, Math.max(minimumDotRadius, calculatedRadius)) : 0;
-        if (keepSolids) clearHalftoneCell(workContext, x, y, cellSize, angle);
-        workContext.fillStyle = colorMode === 'original'
-          ? `rgb(${Math.round(red)}, ${Math.round(green)}, ${Math.round(blue)})`
-          : inkColor;
-        if (radius >= 0.25) drawHalftoneShape(workContext, shape, x, y, radius, angle);
-      }
-      if (gridRow > 0 && gridRow % 28 === 0) {
-        setProcessingProgress('halftone', 25 + gridRow / totalGridRows * 70, 'Construyendo la trama…');
-        await nextFrame();
-        if (renderRevision !== halftoneRenderRevision || sourceState !== states.halftone) return false;
-      }
-    }
-    setProcessingProgress('halftone', 100, 'Montando el resultado…');
-    canvas.width = state.width;
-    canvas.height = state.height;
-    context.clearRect(0, 0, canvas.width, canvas.height);
-    if (!transparent) {
-      context.fillStyle = backgroundColor;
-      context.fillRect(0, 0, canvas.width, canvas.height);
-    }
-    context.drawImage(workCanvas, 0, 0);
-    setToolResultReady('halftone', true);
-    const modeLabel = colorMode === 'original' ? 'color conservado' : 'una tinta';
-    const maskLabel = maskMode === 'edge' ? 'fondo excluido' : maskMode === 'alpha' ? 'máscara alfa' : 'imagen completa';
-    const rangeLabels = { transitions: 'sombras y transiciones', shadows: 'sombras', midtones: 'medios tonos', highlights: 'luces', all: 'imagen completa' };
-    const sourceDpi = Math.round(sourceState.naturalWidth / (requestedWidthCm / 2.54));
-    const limitedLabel = state.safetyLimited ? ' · medida limitada por seguridad' : '';
-    const previewLabel = state.isPreview ? ' · vista rápida; salida completa al descargar' : '';
-    sourceState[statusName] = `${state.width} × ${state.height} px · ${state.actualWidthCm.toFixed(1)} × ${state.actualHeightCm.toFixed(1)} cm · ${frequency} LPI · punto máx. ${maximumDotMm.toFixed(2)} mm · origen ${sourceDpi} DPI${limitedLabel}${previewLabel}.`;
-    setStatus('halftone-status', sourceState[statusName]);
-    sourceState[renderKeyName] = renderKey;
-    markToolClean('halftone');
-    delete previewBoundsCache.halftone;
-    drawHistogram('halftone', canvas);
-    applyPreviewZoom('halftone');
-    centerPreview('halftone');
-    return true;
+    const basis=byId('halftone-basis').value,holeMm=Number(byId('halftone-hole').value),curve=['light','mid','dark'].map(k=>Number(byId('halftone-curve-'+k).value));
+    return {frequency,maximumDotMm,minimumDotMm,dotGain,angleDegrees,contrast,invert,transparent,shape,colorMode,maskMode,maskTolerance,tonalRange,hueRange,amount,solidProtection,edgeProtection,keepSolids,inkColor,backgroundColor,basis,holeMm,curve};
+  };
+  const cancelHalftone = () => {
+    halftoneRenderRevision++;halftoneBusy=false;
+    if(halftoneJob){const j=halftoneJob;halftoneJob=null;j.worker.terminate();const e=Error('Semitonos cancelado. El último resultado se conserva.');e.name='AbortError';j.reject(e);}
+    document.querySelector('[data-processing="halftone"]').hidden=true;
+    window.dispatchEvent(new CustomEvent('momotus:halftone-busy',{detail:{busy:false}}));
+  };
+  const runHalftone = (payload,revision) => {
+    if(halftoneJob){const j=halftoneJob;halftoneJob=null;j.worker.terminate();const e=Error('Proceso sustituido.');e.name='AbortError';j.reject(e);}
+    if(typeof Worker!=='function')return H.render(payload,null,nextFrame,()=>revision!==halftoneRenderRevision,v=>setProcessingProgress('halftone',v,'Construyendo puntos…'));
+    return new Promise((resolve,reject)=>{const worker=new Worker(new URL('herramientas/js/tools-halftone-worker.js?v='+encodeURIComponent(window.MOMOTUS_TOOLS_VERSION),document.baseURI));halftoneJob={worker,reject};worker.onmessage=e=>{if(e.data.type==='progress'){setProcessingProgress('halftone',e.data.value,'Construyendo puntos…');return;}if(halftoneJob?.worker===worker)halftoneJob=null;worker.terminate();if(e.data.type==='error')reject(Error(e.data.message));else resolve({...e.data.result,data:new Uint8ClampedArray(e.data.result.data)});};worker.onerror=e=>{if(halftoneJob?.worker===worker)halftoneJob=null;worker.terminate();reject(Error(e.message||'No se pudo procesar la trama.'));};const message={...payload,data:payload.data.slice().buffer,manual:payload.manual?{...payload.manual}:null},transfers=[message.data];if(message.manual)for(const key of ['apply','protect'])if(message.manual[key]){message.manual[key]=message.manual[key].slice().buffer;transfers.push(message.manual[key]);}worker.postMessage(message,transfers);});
+  };
+  const renderHalftone = async (finalOutput = false) => {
+    const source=states.halftone;if(!source)return false;clearTimeout(renderTimers.halftone);
+    const revision=++halftoneRenderRevision;halftoneBusy=true;
+    window.dispatchEvent(new CustomEvent('momotus:halftone-busy',{detail:{busy:true}}));
+    setProcessingProgress('halftone',2,finalOutput?'Preparando PNG final…':'Creando vista rápida…');
+    try{
+      const requested=Math.max(8,Math.min(38,Number(byId('halftone-width-cm').value)||28));byId('halftone-width-cm').value=String(requested);
+      if(!H)throw Error('No se pudo cargar el motor de Semitonos. Actualizá para reintentar.');
+      const options=halftoneOptions();H.validateOptions(options);await nextFrame();if(revision!==halftoneRenderRevision)return false;
+      const state=prepareHalftoneOutput(source,requested,finalOutput),manual=source.halftoneMasks?.get(source.halftoneMaskVersion||0)||null;
+      const signature=JSON.stringify({options,source:state.key,finalOutput,mask:source.halftoneMaskVersion||0});
+      const hit=source.halftoneSignature===signature&&byId('halftone-canvas').width===state.width&&byId('halftone-canvas').height===state.height;
+      const result=hit?{metrics:source.halftoneMetrics}:await runHalftone({width:state.width,height:state.height,data:state.imageData.data,dpi:state.effectiveDpi,options,stats:analyzeHalftoneColors(source),manual},revision);
+      if(revision!==halftoneRenderRevision||source!==states.halftone)return false;
+      const canvas=byId('halftone-canvas');if(!hit){canvas.width=state.width;canvas.height=state.height;canvas.getContext('2d').putImageData(new ImageData(result.data,state.width,state.height),0,0);}source.halftoneSignature=signature;
+      source.halftoneMetrics=result.metrics;source.halftoneDiagnostics=H.diagnostics(options,300);source.halftoneFinal=finalOutput;
+      previewViews.halftone='result';updatePreviewButtons('halftone');showResult('halftone');setToolResultReady('halftone',true);markToolClean('halftone');delete previewBoundsCache.halftone;
+      const d=source.halftoneDiagnostics,stats=result.metrics;
+      byId('halftone-physical-info').textContent=`Detalle mínimo ${H.geometry(options.shape,options.minimumDotMm).feature.toFixed(3)} mm · ${d.minFeaturePx.toFixed(2)} px · cobertura por celda hasta ${Math.round(d.maxCoverage*100)} %. ${d.warnings.join(' ')}`;
+      setStatus('halftone-status',`${state.width} × ${state.height} px · ${state.actualWidthCm.toFixed(2)} × ${state.actualHeightCm.toFixed(2)} cm · ${options.frequency} LPI · ${Math.round(stats.coverage*100)} % de superficie opaca${state.safetyLimited?' · medida limitada por seguridad':''}${state.isPreview?' · vista aproximada; revisá PNG final':''}.`);
+      window.dispatchEvent(new CustomEvent('momotus:halftone-result',{detail:{final:finalOutput,metrics:stats,diagnostics:d}}));
+      applyPreviewZoom('halftone');centerPreview('halftone');return true;
+    }catch(error){if(error.name!=='AbortError'){setStatus('halftone-status',error.message);showToast(error.message);}return false;}
+    finally{if(revision===halftoneRenderRevision){halftoneBusy=false;document.querySelector('[data-processing="halftone"]').hidden=true;window.dispatchEvent(new CustomEvent('momotus:halftone-busy',{detail:{busy:false}}));}}
   };
 
   const getConnectedBackgroundMask = async (state, color, tolerance, softness, isCancelled) => {
@@ -1440,6 +1207,7 @@
     const sourceState = states.background;
     if (!sourceState) return;
     const renderRevision = ++backgroundRenderRevision;
+    if (byId('background-scope').value === 'zones' && byId('background-mode').value === 'remove') return renderZonedBackground(sourceState, maskPreview, finalOutput, renderRevision);
     previewViews.background = maskPreview ? 'mask' : 'result';
     updatePreviewButtons('background');
     showResult('background');
@@ -1544,6 +1312,18 @@
     applyPreviewZoom('background');
     centerPreview('background');
     return true;
+  };
+
+  const renderZonedBackground = async (state, maskPreview, finalOutput, revision) => {
+    previewViews.background=maskPreview?'mask':'result';updatePreviewButtons('background');showResult('background');
+    setStatus('background-status','Preparando las zonas editadas a resolución original…');await nextFrame();
+    if(revision!==backgroundRenderRevision||states.background!==state)return false;
+    const version=state.zoneVersion||0,mask=state.zoneVersions?.get(version),key=version+':'+maskPreview;
+    if(state.zoneCanvasKey!==key){const native=document.createElement('canvas');native.width=state.width;native.height=state.height;const data=new Uint8ClampedArray(state.zoneColors?.get(version)||state.imageData.data);let removed=0;
+      for(let i=0;i<state.width*state.height;i++){const alpha=mask?Math.min(mask[i],data[i*4+3]):data[i*4+3];if(alpha<data[i*4+3])removed++;data[i*4+3]=alpha;if(maskPreview){data[i*4]=data[i*4+1]=data[i*4+2]=alpha;data[i*4+3]=255;}}
+      native.getContext('2d').putImageData(new ImageData(data,state.width,state.height),0,0);state.zoneCanvas=native;state.zoneCanvasKey=key;state.zoneAffected=removed;
+    }
+    const scale=finalOutput?1:Math.min(1,MAX_PREVIEW_SIDE/Math.max(state.width,state.height),Math.sqrt(MAX_PREVIEW_PIXELS/(state.width*state.height))),canvas=byId('background-canvas');canvas.width=Math.max(1,Math.round(state.width*scale));canvas.height=Math.max(1,Math.round(state.height*scale));canvas.getContext('2d').drawImage(state.zoneCanvas,0,0,canvas.width,canvas.height);setToolResultReady('background',true);markToolClean('background');delete previewBoundsCache.background;drawHistogram('background',canvas);applyPreviewZoom('background');centerPreview('background');setStatus('background-status',`${state.zoneAffected.toLocaleString('es-NI')} píxeles editados por zonas · ${state.width} × ${state.height} px originales${maskPreview?' · máscara: blanco conserva, negro elimina':''}. Abrí «Editar color por zonas» para continuar.`);return true;
   };
 
   const renderActiveBackground = () => renderBackground(previewViews.background === 'mask');
@@ -1683,6 +1463,14 @@
     }
   };
 
+  const qualityBasic = () => Object.fromEntries(['brightness','contrast','saturation','sharpness','clarity','denoise','recovery'].map(k=>[k,Number(byId('quality-'+k).value)]));
+  const qualityStudio = () => {const state=states.quality,Q=window.MomotusQuality,m=Q.clone(state?.qualityStudioVersions?.get(state.qualityStudioVersion||0)||Q.model(),false);m.global={...m.global,...qualityBasic()};return m;};
+  let qualityStudioJob=null;
+  const cancelQualityStudio = () => {qualityRevision++;if(states.quality)setStatus('quality-status','Proceso cancelado. Se conserva el último resultado; los cambios siguen pendientes.');if(qualityStudioJob){const j=qualityStudioJob;qualityStudioJob=null;j.worker.terminate();j.reject(Object.assign(Error('Calidad cancelada. Se conserva el último resultado.'),{name:'AbortError'}));}};
+  const runQualityStudio = (payload,revision) => {
+    if(typeof Worker!=='function')return window.MomotusQuality.render(payload,nextFrame,()=>revision!==qualityRevision,v=>setProcessingProgress('quality',40+v*.55,'Procesando color, detalle y capas…'));
+    return new Promise((resolve,reject)=>{const worker=new Worker(new URL('herramientas/js/tools-quality-worker.js?v='+encodeURIComponent(window.MOMOTUS_TOOLS_VERSION),document.baseURI));qualityStudioJob={worker,reject};worker.onmessage=e=>{if(e.data.type==='progress'){setProcessingProgress('quality',40+e.data.value*.55,'Procesando color, detalle y capas…');return;}if(qualityStudioJob?.worker===worker)qualityStudioJob=null;worker.terminate();if(e.data.type==='error')reject(Error(e.data.message));else resolve({...e.data.result,data:new Uint8ClampedArray(e.data.result.data)});};worker.onerror=e=>{if(qualityStudioJob?.worker===worker)qualityStudioJob=null;worker.terminate();reject(Error(e.message||'No se pudo procesar Calidad.'));};worker.postMessage(payload);}).catch(error=>{if(error.name==='AbortError')throw error;return window.MomotusQuality.render(payload,nextFrame,()=>revision!==qualityRevision,v=>setProcessingProgress('quality',40+v*.55,'Procesando con el motor local…'));});
+  };
   const updateQualityAssessment = () => {
     const state = states.quality;
     const assessment = byId('quality-assessment');
@@ -1718,6 +1506,9 @@
     const sourceToken = uploadTokens.quality;
     const renderRevision = qualityRevision;
     qualityProcessing = true;
+    window.dispatchEvent(new CustomEvent('momotus:quality-busy',{detail:{busy:true}}));
+    let localBase=null;
+    const localMask=state.qualityLocalVersions?.get(state.qualityLocalVersion||0);
     const requestedWidthCm = Math.max(2, Math.min(45, Number(byId('quality-width-cm').value) || 30));
     byId('quality-width-cm').value = String(requestedWidthCm);
     const requestedWidth = Math.round(requestedWidthCm / 2.54 * EXPORT_DPI);
@@ -1738,7 +1529,7 @@
     byId('quality-process').disabled = true;
     try {
       await nextFrame();
-      const canvas = byId('quality-canvas');
+      const canvas = document.createElement('canvas');
       canvas.width = width;
       canvas.height = height;
       const context = canvas.getContext('2d');
@@ -1750,23 +1541,24 @@
       if (sourceToken !== uploadTokens.quality || renderRevision !== qualityRevision) return false;
       context.imageSmoothingEnabled = smoothing !== 'pixel';
       context.imageSmoothingQuality = smoothing === 'logo' ? 'medium' : 'high';
-      context.filter = `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%)`;
-      context.drawImage(progressiveSource, 0, 0, width, height);
-      setProcessingProgress('quality', 36, 'Ajustando color y contraste…');
-      context.filter = 'none';
-      progressiveSource.width = 1;
-      progressiveSource.height = 1;
-      if (smoothing !== 'pixel') {
-        await enhanceCanvas(
-          canvas,
-          Number(byId('quality-sharpness').value),
-          Number(byId('quality-clarity').value),
-          Number(byId('quality-denoise').value),
-          Number(byId('quality-recovery').value),
-          progress => setProcessingProgress('quality', 40 + progress * 0.56, 'Reconstruyendo bordes y reduciendo bloques…')
-        );
-      }
+      if(localMask){localBase=document.createElement('canvas');localBase.width=width;localBase.height=height;localBase.getContext('2d').drawImage(progressiveSource,0,0,width,height);}
+      context.drawImage(progressiveSource,0,0,width,height);progressiveSource.width=progressiveSource.height=1;
+      const raw=context.getImageData(0,0,width,height),studio=qualityStudio();
+      if(smoothing==='pixel'){studio.global={...studio.global,sharpness:0,clarity:0,denoise:0,recovery:0,noiseLuma:0,noiseChroma:0,deblock:0};studio.layers=studio.layers.map(l=>({...l,settings:{...l.settings,sharpness:0,clarity:0,denoise:0,recovery:0,noiseLuma:0,noiseChroma:0,deblock:0}}));}
+      const rendered=await runQualityStudio({data:raw.data,width,height,model:studio,scale:width/fullWidth,sourceScale:width/state.naturalWidth},renderRevision);
+      if(sourceToken!==uploadTokens.quality||renderRevision!==qualityRevision)return false;
+      context.putImageData(new ImageData(rendered.data,width,height),0,0);
       if (sourceToken !== uploadTokens.quality || renderRevision !== qualityRevision) return false;
+      if(localMask){
+        const C=window.MomotusColorZonesCore;if(!C)throw Error('No se pudo cargar el motor de selección local.');
+        const maskCanvas=document.createElement('canvas');maskCanvas.width=localMask.width;maskCanvas.height=localMask.height;const pixels=new Uint8ClampedArray(localMask.mask.length*4);for(let i=0;i<localMask.mask.length;i++)pixels[i*4+3]=localMask.mask[i];maskCanvas.getContext('2d').putImageData(new ImageData(pixels,localMask.width,localMask.height),0,0);
+        const tile=document.createElement('canvas');tile.width=width;tile.height=128;const mc=tile.getContext('2d',{willReadFrequently:true}),base=localBase.getContext('2d',{willReadFrequently:true});
+        for(let y=0;y<height;y+=128){const rows=Math.min(128,height-y);mc.clearRect(0,0,width,128);mc.drawImage(maskCanvas,0,-y,width,height);const a=mc.getImageData(0,0,width,rows).data,mask=new Uint8Array(width*rows);for(let i=0;i<mask.length;i++)mask[i]=a[i*4+3];const output=C.blendLocal(base.getImageData(0,y,width,rows).data,context.getImageData(0,y,width,rows).data,mask);context.putImageData(new ImageData(output,width,rows),0,y);await nextFrame();if(sourceToken!==uploadTokens.quality||renderRevision!==qualityRevision)return false;}
+        tile.width=tile.height=maskCanvas.width=maskCanvas.height=1;
+      }
+      const visible=byId('quality-canvas');visible.width=width;visible.height=height;visible.getContext('2d').drawImage(canvas,0,0);
+      if(localMask)rendered.metrics=window.MomotusQuality.measure(localBase.getContext('2d').getImageData(0,0,width,height).data,context.getImageData(0,0,width,height).data);
+      state.qualityMetrics=rendered.metrics;window.dispatchEvent(new CustomEvent('momotus:quality-result',{detail:{metrics:rendered.metrics,final:finalOutput}}));
       setProcessingProgress('quality', 100, 'Montando el resultado…');
       setToolResultReady('quality', true);
       byId('quality-download').disabled = false;
@@ -1787,7 +1579,7 @@
       const limited = safetyScale < 0.999 ? ' · tamaño ajustado para proteger la memoria del dispositivo' : '';
       const previewLabel = state.qualityPreviewOnly ? `Vista rápida ${width} × ${height} px · salida completa ${fullWidth} × ${fullHeight} px al descargar` : `${fullWidth} × ${fullHeight} px`;
       markToolClean('quality');
-      setStatus('quality-status', `${previewLabel} · ${actualWidthCm} × ${actualHeightCm} cm a 300 DPI · detalle y bordes protegidos${limited}.`);
+      setStatus('quality-status', `${previewLabel} · ${actualWidthCm} × ${actualHeightCm} cm a 300 DPI · ajustes de color y detalle · alfa conservado${localMask?' · ajustes solo en la selección local':''}${limited}.`);
       delete previewBoundsCache.quality;
       applyPreviewZoom('quality');
       centerPreview('quality');
@@ -1798,11 +1590,15 @@
       console.error('No se pudo procesar la imagen:', error);
       setToolResultReady('quality', false);
       byId('quality-download').disabled = true;
-      setStatus('quality-status', 'El dispositivo no pudo procesar ese tamaño. Probá con un ancho menor.');
+      setStatus('quality-status',error.message||'No se pudo procesar ese tamaño.');
       showToast('Probá con un ancho de impresión menor.');
       return false;
     } finally {
+      if(localBase)localBase.width=localBase.height=1;
       qualityProcessing = false;
+      if(states.quality===state&&renderRevision!==qualityRevision)markToolDirty('quality');
+      document.querySelector('[data-processing="quality"]').hidden=true;
+      window.dispatchEvent(new CustomEvent('momotus:quality-busy',{detail:{busy:false}}));
       byId('quality-process').disabled = false;
     }
   };
@@ -1813,15 +1609,15 @@
   };
 
   const settingIds = {
-    halftone: ['halftone-range', 'halftone-hue-range', 'halftone-amount', 'halftone-solid-protection', 'halftone-edge-protection', 'halftone-keep-solids', 'halftone-width-cm', 'halftone-frequency', 'halftone-dot-size', 'halftone-min-dot', 'halftone-dot-gain', 'halftone-mode', 'halftone-mask-mode', 'halftone-mask-tolerance', 'halftone-angle', 'halftone-contrast', 'halftone-shape', 'halftone-color', 'halftone-background-color', 'halftone-transparent', 'halftone-invert'],
+    halftone: ['halftone-basis','halftone-hole','halftone-curve-light','halftone-curve-mid','halftone-curve-dark','halftone-range', 'halftone-hue-range', 'halftone-amount', 'halftone-solid-protection', 'halftone-edge-protection', 'halftone-keep-solids', 'halftone-width-cm', 'halftone-frequency', 'halftone-dot-size', 'halftone-min-dot', 'halftone-dot-gain', 'halftone-mode', 'halftone-mask-mode', 'halftone-mask-tolerance', 'halftone-angle', 'halftone-contrast', 'halftone-shape', 'halftone-color', 'halftone-background-color', 'halftone-transparent', 'halftone-invert'],
     background: ['background-mode', 'background-scope', 'background-color', 'background-tolerance', 'background-softness', 'background-edge-shift', 'background-decontaminate', 'background-trim'],
     quality: ['quality-width-cm', 'quality-smoothing', 'quality-brightness', 'quality-contrast', 'quality-saturation', 'quality-clarity', 'quality-sharpness', 'quality-denoise', 'quality-recovery']
   };
 
-  const captureSettings = type => Object.fromEntries(settingIds[type].map(id => {
+  const captureSettings = type => ({...Object.fromEntries(settingIds[type].map(id => {
     const element = byId(id);
     return [id, element.type === 'checkbox' ? element.checked : element.value];
-  }));
+  })), ...(type==='background'?{__zoneVersion:states.background?.zoneVersion||0}:type==='quality'?{__qualityLocalVersion:states.quality?.qualityLocalVersion||0,__qualityStudioVersion:states.quality?.qualityStudioVersion||0}:type==='halftone'?{__halftoneMaskVersion:states.halftone?.halftoneMaskVersion||0}:{})});
 
   const updateHistoryButtons = (changes = null) => {
     const history = histories[activeTool];
@@ -1845,6 +1641,11 @@
     history.entries.push(snapshot);
     if (history.entries.length > 30) history.entries.shift();
     history.index = history.entries.length - 1;
+    if(type==='background'&&states.background?.zoneVersions){const versions=states.background.zoneVersions;const prune=()=>{const used=new Set(history.entries.map(e=>e.__zoneVersion||0));used.add(states.background.zoneVersion||0);used.add(0);for(const key of versions.keys())if(!used.has(key)){versions.delete(key);states.background.zoneRecipes?.delete(key);states.background.zoneColors?.delete(key);}};prune();while([...versions.entries()].reduce((n,[key,m])=>n+(m?.byteLength||0)+(states.background.zoneColors?.get(key)?.byteLength||0)+(states.background.zoneRecipes?.get(key)?.protect?.byteLength||0)+(states.background.zoneRecipes?.get(key)?.allowed?.byteLength||0)+(states.background.zoneRecipes?.get(key)?.protections||[]).reduce((sum,p)=>sum+p.mask.byteLength,0),0)>64*1024*1024&&history.entries.length>1){history.entries.shift();history.index--;prune();}}
+    if(type==='halftone'&&states.halftone?.halftoneMasks){const source=states.halftone;const prune=()=>{const used=new Set(history.entries.map(e=>e.__halftoneMaskVersion||0));used.add(source.halftoneMaskVersion||0);used.add(0);for(const k of source.halftoneMasks.keys())if(!used.has(k))source.halftoneMasks.delete(k);};prune();while([...source.halftoneMasks.values()].reduce((n,m)=>n+(m?.apply?.byteLength||0)+(m?.protect?.byteLength||0),0)>96*1024*1024&&history.entries.length>1){history.entries.shift();history.index--;prune();}}
+    if(type==='quality'&&states.quality?.qualityLocalVersions){const state=states.quality,used=new Set(history.entries.map(e=>e.__qualityLocalVersion||0));used.add(state.qualityLocalVersion||0);used.add(0);for(const key of state.qualityLocalVersions.keys())if(!used.has(key))state.qualityLocalVersions.delete(key);}
+    if(type==='quality'&&states.quality?.qualityStudioVersions){const state=states.quality;const prune=()=>{const used=new Set(history.entries.map(e=>e.__qualityStudioVersion||0));used.add(state.qualityStudioVersion||0);for(const key of state.qualityStudioVersions.keys())if(!used.has(key))state.qualityStudioVersions.delete(key);};const bytes=()=>{const arrays=new Set();for(const m of state.qualityStudioVersions.values())for(const l of m.layers)arrays.add(l.mask.data);return [...arrays].reduce((n,a)=>n+a.byteLength,0);};prune();while(history.entries.length>1&&bytes()>128*1024*1024){history.entries.shift();history.index--;prune();}}
+
     if (type === activeTool) updateHistoryButtons(changes);
     else window.dispatchEvent(new CustomEvent('momotus:history-update', {
       detail: { type, index: history.index, length: history.entries.length, changes }
@@ -1867,7 +1668,9 @@
     const removesColor = byId('background-mode').value === 'remove';
     byId('background-scope').disabled = !removesColor;
     byId('background-scope-control').classList.toggle('is-disabled', !removesColor);
-    byId('background-decontaminate').disabled = !removesColor;
+    const zones=removesColor&&byId('background-scope').value==='zones';
+    for(const id of ['background-decontaminate','background-edge-shift','background-softness','background-tolerance','background-color'])byId(id).disabled=zones||!removesColor&&id==='background-decontaminate';
+    byId('background-zones-note').hidden=!zones;
   };
 
   const syncSettingLabels = type => {
@@ -1898,6 +1701,10 @@
 
   const applySettings = (type, snapshot) => {
     Object.entries(snapshot).forEach(([id, value]) => {
+      if(id==='__halftoneMaskVersion'){if(states.halftone)states.halftone.halftoneMaskVersion=value;return;}
+      if(id==='__zoneVersion'){if(states.background)states.background.zoneVersion=value;return;}
+      if(id==='__qualityStudioVersion'){if(states.quality)states.quality.qualityStudioVersion=value;return;}
+      if(id==='__qualityLocalVersion'){if(states.quality)states.quality.qualityLocalVersion=value;return;}
       const element = byId(id);
       if (element.type === 'checkbox') element.checked = Boolean(value);
       else element.value = value;
@@ -1918,16 +1725,16 @@
   };
 
   const resetHalftone = () => {
-    const defaults = { 'halftone-range': 'transitions', 'halftone-hue-range': 'all', 'halftone-amount': '55', 'halftone-solid-protection': '75', 'halftone-edge-protection': '45', 'halftone-keep-solids': true, 'halftone-width-cm': '28', 'halftone-frequency': '55', 'halftone-dot-size': '0.40', 'halftone-min-dot': '0.10', 'halftone-dot-gain': '0', 'halftone-mode': 'original', 'halftone-mask-mode': 'edge', 'halftone-mask-tolerance': '38', 'halftone-angle': '45', 'halftone-contrast': '12', 'halftone-shape': 'circle', 'halftone-color': '#000000', 'halftone-background-color': '#ffffff', 'halftone-transparent': true, 'halftone-invert': false };
+    const defaults = { __halftoneMaskVersion:0,'halftone-basis':'tone','halftone-hole':'0','halftone-curve-light':'25','halftone-curve-mid':'50','halftone-curve-dark':'75','halftone-range': 'transitions', 'halftone-hue-range': 'all', 'halftone-amount': '55', 'halftone-solid-protection': '75', 'halftone-edge-protection': '45', 'halftone-keep-solids': true, 'halftone-width-cm': '28', 'halftone-frequency': '55', 'halftone-dot-size': '0.40', 'halftone-min-dot': '0.10', 'halftone-dot-gain': '0', 'halftone-mode': 'original', 'halftone-mask-mode': 'edge', 'halftone-mask-tolerance': '38', 'halftone-angle': '45', 'halftone-contrast': '12', 'halftone-shape': 'circle', 'halftone-color': '#000000', 'halftone-background-color': '#ffffff', 'halftone-transparent': true, 'halftone-invert': false };
     applySettings('halftone', defaults);
     document.querySelectorAll('[data-halftone-preset], [data-halftone-auto]').forEach(item => item.classList.remove('active'));
   };
 
   const resetQuality = () => {
-    const defaults = { 'quality-width-cm': '30', 'quality-smoothing': 'illustration', 'quality-brightness': '0', 'quality-contrast': '6', 'quality-saturation': '8', 'quality-clarity': '24', 'quality-sharpness': '50', 'quality-denoise': '12', 'quality-recovery': '20' };
+    const defaults = { __qualityStudioVersion:0,__qualityLocalVersion:0, 'quality-width-cm': '30', 'quality-smoothing': 'illustration', 'quality-brightness': '0', 'quality-contrast': '0', 'quality-saturation': '0', 'quality-clarity': '0', 'quality-sharpness': '0', 'quality-denoise': '0', 'quality-recovery': '0' };
     applySettings('quality', defaults);
     document.querySelectorAll('[data-quality-preset], [data-quality-width]').forEach(item => item.classList.remove('active'));
-    document.querySelector('[data-quality-preset="dtf"]')?.classList.add('active');
+    document.querySelector('[data-quality-preset="neutral"]')?.classList.add('active');
   };
 
   const updatePreviewButtons = type => {
@@ -2018,12 +1825,14 @@
 
   const processFile = async (file, type, input = null, internalTransfer = false) => {
     if (!file) return;
+    if(type==='halftone'&&halftoneProofBusy){showToast('Esperá a que termine la muestra de Semitonos antes de cargar otro archivo.');return false;}
     const token = ++uploadTokens[type];
     let source = null;
     let accepted = false;
     try {
       setStatus(`${type}-status`, 'Cargando imagen…');
-      source = await loadImageFile(file, 4500, internalTransfer);
+      if(type==='background'){const header=new Uint8Array(await file.slice(0,33).arrayBuffer());if([137,80,78,71,13,10,26,10].every((n,i)=>header[i]===n)&&header[24]>8)throw new Error('PNG de más de 8 bits por canal: conservá el original. Rango de color no lo convierte automáticamente.');}
+      source = await loadImageFile(file, 4500, internalTransfer, type === 'background');
       if (token !== uploadTokens[type]) {
         URL.revokeObjectURL(source.sourceUrl);
         return false;
@@ -2037,13 +1846,15 @@
       updatePreviewButtons(type);
       if (type === 'halftone') {
         const prepared = drawSource(source);
-        states.halftone = { ...source, imageData: prepared.imageData };
+        cancelHalftone();states.halftone = { ...source, imageData: prepared.imageData,halftoneMaskVersion:0,nextHalftoneMaskVersion:1,halftoneMasks:new Map([[0,null]]) };
+        histories.halftone.entries=[];histories.halftone.index=-1;recordHistory('halftone');
         accepted = true;
         byId('halftone-download').disabled = false;
         renderHalftone();
       } else if (type === 'background') {
         const prepared = drawSource(source);
-        states.background = { ...source, imageData: prepared.imageData };
+        states.background = { ...source, imageData: prepared.imageData, zoneVersion: 0, nextZoneVersion: 1, zoneVersions: new Map([[0,null]]), zoneRecipes: new Map(), zoneColors: new Map() };
+        histories.background.entries=[];histories.background.index=-1;if(byId('background-scope').value==='zones')byId('background-scope').value='connected';syncBackgroundMode();recordHistory('background');
         accepted = true;
         byId('background-download').disabled = false;
         byId('background-corner').disabled = false;
@@ -2052,7 +1863,8 @@
         byId('background-apply-global').disabled = false;
         pickBackgroundColor();
       } else {
-        states.quality = source;
+        if(!window.MomotusQuality)throw Error('No se pudo cargar el motor de Calidad. Recargá para reintentar.');cancelQualityStudio();states.quality = {...source,qualityStudioVersion:0,nextQualityStudioVersion:1,qualityStudioVersions:new Map([[0,window.MomotusQuality.model()]]),qualityLocalVersion:0,nextQualityLocalVersion:1,qualityLocalVersions:new Map([[0,null]])};
+        histories.quality.entries=[];histories.quality.index=-1;recordHistory('quality');
         markToolDirty('quality');
         accepted = true;
         byId('quality-process').disabled = qualityProcessing;
@@ -2145,6 +1957,7 @@
   };
 
   const resetBackground = () => {
+    if(states.background)states.background.zoneVersion=0;
     byId('background-mode').value = 'remove';
     byId('background-scope').value = 'connected';
     byId('background-color').value = '#ffffff';
@@ -2163,7 +1976,7 @@
   };
 
   const invalidateQualityResult = () => {
-    qualityRevision++;
+    cancelQualityStudio();
     if (!states.quality) return;
     markToolDirty('quality');
     setToolResultReady('quality', false);
@@ -2264,6 +2077,7 @@
       });
     });
     document.addEventListener('paste', event => {
+      if (document.querySelector('dialog[open]')) return;
       const visiblePanel = document.querySelector('.tool-panel:not([hidden])')?.id;
       if (!['semitonos', 'eliminar-fondo', 'mejorar-calidad'].includes(visiblePanel)) return;
       const image = [...(event.clipboardData?.items || [])].find(item => item.type.startsWith('image/'))?.getAsFile();
@@ -2291,6 +2105,7 @@
       syncHalftoneMode();
       scheduleRender('halftone', renderHalftone, 0);
     }));
+    for(const id of ['halftone-basis','halftone-hole','halftone-curve-light','halftone-curve-mid','halftone-curve-dark'])byId(id).addEventListener('change',()=>{recordHistory('halftone');scheduleRender('halftone',renderHalftone,120);});
     syncHalftoneMode();
     const halftonePresets = {
       suave: { range: 'shadows', amount: 30, protection: 88, edgeProtection: 60, frequency: 48, dotSize: 0.45, angle: 45, shape: 'circle', contrast: 6 },
@@ -2324,7 +2139,7 @@
     bindRange('background-edge-shift', 'background-edge-shift-value', ' px', () => scheduleRender('background', renderActiveBackground));
     byId('background-color').addEventListener('input', () => {
       byId('background-mode').value = 'remove';
-      byId('background-scope').value = 'global';
+      if(byId('background-scope').value!=='zones')byId('background-scope').value = 'global';
       syncBackgroundMode();
       syncBackgroundPalette();
       previewViews.background = 'result';
@@ -2340,7 +2155,7 @@
     document.querySelectorAll('[data-background-color]').forEach(button => button.addEventListener('click', () => {
       byId('background-color').value = button.dataset.backgroundColor;
       byId('background-mode').value = 'remove';
-      byId('background-scope').value = 'global';
+      if(byId('background-scope').value!=='zones')byId('background-scope').value = 'global';
       syncBackgroundMode();
       syncBackgroundPalette();
       setBackgroundPaletteOpen(false);
@@ -2357,6 +2172,7 @@
       if (!event.target.closest('.background-palette-picker')) setBackgroundPaletteOpen(false);
     });
     document.addEventListener('keydown', event => {
+      if (document.querySelector('dialog[open]')) return;
       if (event.key === 'Escape') setBackgroundPaletteOpen(false);
     });
     syncBackgroundPalette();
@@ -2374,7 +2190,7 @@
     byId('background-apply-connected').addEventListener('click', () => applyBackgroundRemoval('connected'));
     byId('background-apply-global').addEventListener('click', () => applyBackgroundRemoval('global'));
     byId('background-reset').addEventListener('click', () => { resetBackground(); recordHistory('background'); });
-    byId('background-canvas').addEventListener('click', event => pickBackgroundColor(event.clientX, event.clientY, true));
+    byId('background-canvas').addEventListener('click', event => {if(byId('background-scope').value==='zones')return;pickBackgroundColor(event.clientX,event.clientY,true);});
     byId('background-download').addEventListener('click', async () => {
       if (!states.background) return;
       const rendered = await renderBackground(false, true);
@@ -2459,6 +2275,7 @@
       if (event.target === byId('tool-shortcuts-panel')) closeShortcutPanel();
     });
     document.addEventListener('keydown', event => {
+      if (document.querySelector('dialog[open]')) return;
       if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 'z') return;
       if (['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
       event.preventDefault();
@@ -2541,6 +2358,7 @@
       select.dispatchEvent(new Event('change', { bubbles: true }));
     }));
     document.addEventListener('keydown', event => {
+      if (document.querySelector('dialog[open]')) return;
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName) || !byId('dtf-preflight-modal').hidden || !byId('tool-shortcuts-panel').hidden) return;
       const select = document.querySelector(`[data-preview-zoom="${activeTool}"]`);
       if (!select || !states[activeTool]) return;
@@ -2564,6 +2382,7 @@
       document.querySelectorAll('.tool-preview.space-pan').forEach(preview => preview.classList.remove('space-pan'));
     };
     document.addEventListener('keydown', event => {
+      if (document.querySelector('dialog[open]')) return;
       if (event.code !== 'Space' || event.repeat || ['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON'].includes(document.activeElement?.tagName)) return;
       event.preventDefault();
       byId(`${activeTool}-preview`)?.classList.add('space-pan');
@@ -2627,6 +2446,7 @@
       preview.classList.toggle('preview-light', select.value === 'light');
     }));
     document.addEventListener('keydown', event => {
+      if (document.querySelector('dialog[open]')) return;
       if (event.key !== 'Escape') return;
       if (!byId('tool-shortcuts-panel').hidden) closeShortcutPanel();
       else if (!byId('dtf-preflight-modal').hidden) closePreflight();
@@ -2644,9 +2464,10 @@
     byId('dtf-preflight-modal').addEventListener('click', event => {
       if (event.target === byId('dtf-preflight-modal')) closePreflight();
     });
+    byId('dtf-export-alpha').addEventListener('change',()=>{const p=pendingPreflightDownload;if(!p||!p.canChooseAlpha)return;const preserve=byId('dtf-export-alpha').value==='preserve';renderPreflightChecks(p.type,p.canvas,preserve);byId('dtf-export-format-label').textContent=preserve?'PNG · 300 DPI · alfa conservado':'PNG · 300 DPI · transparencia sólida';});
     byId('dtf-preflight-download').addEventListener('click', async () => {
       const pending = pendingPreflightDownload;
-      if (!pending) return;
+      if (!pending || pending.saving) return;
       const requestedName = byId('dtf-export-name')?.value
         ?.trim()
         .replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑüÜ._-]+/g, '-')
@@ -2654,8 +2475,22 @@
         .replace(/\.png$/i, '')
         .slice(0, 90);
       const filename = `${requestedName || pending.filename.replace(/\.png$/i, '')}.png`;
-      closePreflight();
-      await downloadCanvas(pending.canvas, filename);
+      const preserveAlpha=pending.canChooseAlpha&&byId('dtf-export-alpha').value==='preserve';
+      pending.saving = true;
+      const controls = ['dtf-preflight-download','dtf-preflight-close','dtf-preflight-back','dtf-export-name','dtf-export-alpha'].map(byId).filter(Boolean);
+      controls.forEach(control => { control.disabled = true; });
+      const button = byId('dtf-preflight-download'), label = button.innerHTML;
+      button.textContent = 'Preparando PNG a 300 DPI…';
+      try {
+        if (await downloadCanvas(pending.canvas, filename, preserveAlpha)) {
+          pending.saving = false;
+          closePreflight();
+        }
+      } finally {
+        pending.saving = false;
+        controls.forEach(control => { control.disabled = false; });
+        button.innerHTML = label;
+      }
     });
     let previewResizeFrame = 0;
     window.addEventListener('resize', () => {
@@ -2668,13 +2503,72 @@
     window.addEventListener('beforeunload', () => Object.values(states).forEach(state => {
       if (state?.sourceUrl) URL.revokeObjectURL(state.sourceUrl);
     }));
-    window.addEventListener('beforeunload', () => activeWorkerJobs.forEach(job => job.worker.terminate()));
+    window.addEventListener('beforeunload', () => {cancelQualityStudio();cancelHalftone();activeWorkerJobs.forEach(job => job.worker.terminate());});
     Object.keys(histories).forEach(recordHistory);
     syncBackgroundMode();
     updateHistoryButtons();
   };
 
   window.MomotusToolsAPI = Object.freeze({
+    getColorZoneDocument: () => {
+      const state=states.background;if(!state)return null;const version=state.zoneVersion||0,alpha=state.zoneVersions.get(version),recipe=state.zoneRecipes.get(version);
+      return {sourceFile:state.sourceFile,recipe:recipe?{...recipe,settings:structuredClone(recipe.settings),protections:(recipe.protections||[]).map(p=>({name:p.name,mask:p.mask.slice()})),protect:recipe.protect?.slice()||null,allowed:recipe.allowed?.slice()||null}:null,documentId:uploadTokens.background,width:state.width,height:state.height,filename:state.filename,data:state.imageData.data.slice(),rgba:state.zoneColors?.get(version)?.slice()||null,alpha:alpha?alpha.slice():Uint8Array.from({length:state.width*state.height},(_,i)=>state.imageData.data[i*4+3])};
+    },
+    commitColorZones: async (documentId,alpha,recipe=null,rgba=null) => {
+      const state=states.background;if(!state||documentId!==uploadTokens.background)throw Error('La imagen cambió. Volvé a abrir el editor por zonas.');
+      if(!(alpha instanceof Uint8Array)||alpha.length!==state.width*state.height)throw Error('Máscara de zonas inválida.');for(let i=0;i<alpha.length;i++)if(alpha[i]>state.imageData.data[i*4+3])throw Error('La máscara no puede crear opacidad que no existe en el original.');
+      if(rgba&&(!(rgba instanceof Uint8ClampedArray)||rgba.length!==state.imageData.data.length))throw Error('Corrección de color inválida.');
+      if(recipe)for(const key of ['allowed','protect'])if(recipe[key]&&(!(recipe[key] instanceof Uint8Array)||recipe[key].length!==alpha.length||recipe[key].some(v=>v!==0&&v!==255)))throw Error('Protección o límite inválidos.');
+      if(recipe?.protections&&(!Array.isArray(recipe.protections)||recipe.protections.length>8||recipe.protections.some(p=>typeof p.name!=='string'||p.name.length>40||!(p.mask instanceof Uint8Array)||p.mask.length!==alpha.length||p.mask.some(v=>v!==0&&v!==255))))throw Error('Protecciones guardadas inválidas.');
+      const mask=alpha.slice(),colors=rgba?.slice()||null,saved=recipe?{settings:structuredClone(recipe.settings),protections:(recipe.protections||[]).map(p=>({name:p.name,mask:p.mask.slice()})),protect:recipe.protect?.some(Boolean)?recipe.protect.slice():null,allowed:recipe.allowed&&!recipe.allowed.every(v=>v===255)?recipe.allowed.slice():null}:null;
+      const version=state.nextZoneVersion++;state.zoneVersions.set(version,mask);if(colors)state.zoneColors.set(version,colors);if(saved)state.zoneRecipes.set(version,saved);state.zoneVersion=version;byId('background-mode').value='remove';byId('background-scope').value='zones';syncBackgroundMode();recordHistory('background');markToolDirty('background');return renderBackground(false);
+    },
+    restoreColorZoneProject: async project => {
+      if(!window.MomotusRasterProject)throw Error('No se pudo cargar el formato de proyecto.');window.MomotusRasterProject.validate(project);
+      const file=new File([project.sourceFile],project.sourceName||project.filename,{type:project.sourceFile.type});const header=new Uint8Array(await file.slice(0,33).arrayBuffer());if([137,80,78,71,13,10,26,10].every((v,i)=>header[i]===v)&&header[24]>8)throw Error('El original del proyecto debe ser de 8 bits por canal.');const source=await loadImageFile(file,4500,true,true);
+      if(source.width!==project.width||source.height!==project.height){URL.revokeObjectURL(source.sourceUrl);throw Error('Las dimensiones del original no coinciden con el proyecto.');}
+      let next;try{next={...source,imageData:new ImageData(project.originalData.slice(),project.width,project.height),zoneVersion:1,nextZoneVersion:2,zoneVersions:new Map([[0,null],[1,project.alpha.slice()]]),zoneColors:new Map(project.rgba?[[1,project.rgba.slice()]]:[]),zoneRecipes:new Map([[1,{settings:structuredClone(project.settings),protect:project.protect.slice(),allowed:project.allowed.slice(),protections:project.protections.map(p=>({name:p.name,mask:p.mask.slice()}))}]])};}catch(error){URL.revokeObjectURL(source.sourceUrl);throw error;}
+      const previous=states.background;uploadTokens.background++;backgroundRenderRevision++;states.background=next;histories.background.entries=[];histories.background.index=-1;byId('background-original').src=next.sourceUrl;byId('background-mode').value='remove';byId('background-scope').value='zones';syncBackgroundMode();recordHistory('background');byId('background-download').disabled=false;for(const id of ['background-corner','background-reset','background-apply-connected','background-apply-global'])byId(id).disabled=false;if(previous?.sourceUrl)URL.revokeObjectURL(previous.sourceUrl);switchTool('eliminar-fondo');await renderBackground(false);return window.MomotusToolsAPI.getColorZoneDocument();
+    },
+    getQualityStudio:()=>states.quality?{documentId:uploadTokens.quality,model:window.MomotusQuality.clone(qualityStudio()),settings:Object.fromEntries(settingIds.quality.map(k=>[k,byId(k).value]))}:null,
+    setQualityStudio:(documentId,model,basic=null)=>{const state=states.quality,Q=window.MomotusQuality;if(!state||documentId!==uploadTokens.quality)throw Error('El documento de Calidad cambió.');Q.validate(model,state.naturalWidth,state.naturalHeight);if(basic){const existing=Object.fromEntries(settingIds.quality.map(k=>[k,byId(k).value]));window.MomotusQualityProject.settings({...existing,...basic});for(const [id,value]of Object.entries(basic))byId(id).value=value;syncSettingLabels('quality');}const old=state.qualityStudioVersions.get(state.qualityStudioVersion||0),next=Q.clone(model);for(const layer of next.layers){const prior=old?.layers.find(l=>l.id===layer.id);if(prior&&prior.mask.width===layer.mask.width&&prior.mask.height===layer.mask.height&&prior.mask.data.every((v,i)=>v===layer.mask.data[i]))layer.mask=prior.mask;}const version=state.nextQualityStudioVersion++;state.qualityStudioVersion=version;state.qualityStudioVersions.set(version,next);invalidateQualityResult();recordHistory('quality');},
+    setQualitySettings:settings=>{const allowed=new Set(settingIds.quality),previous=Object.fromEntries(settingIds.quality.map(k=>[k,byId(k).value]));if(!settings||Object.keys(settings).some(k=>!allowed.has(k)))throw Error('Ajuste de Calidad desconocido.');window.MomotusQualityProject.settings({...previous,...settings});for(const [id,value]of Object.entries(settings))byId(id).value=value;syncSettingLabels('quality');document.querySelectorAll('[data-quality-preset]').forEach(b=>b.classList.remove('active'));invalidateQualityResult();recordHistory('quality');},
+    qualityIsBusy:()=>qualityProcessing,
+    cancelQuality:cancelQualityStudio,
+    renderQualityFinal:()=>processQuality(true),
+    getQualityEditDocument:(output=false)=>{const state=states.quality;if(!state)return null;const print=window.MomotusToolsAPI.getPrintDimensions('quality'),ratio=Math.min(1,1600/state.naturalWidth,1600/state.naturalHeight),width=output?print.pixelWidth:Math.max(1,Math.round(state.naturalWidth*ratio)),height=output?print.pixelHeight:Math.max(1,Math.round(state.naturalHeight*ratio)),canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;canvas.getContext('2d').drawImage(state.image,0,0,width,height);return {documentId:uploadTokens.quality,width,height,canvas,print};},
+    getQualityOriginalAtOutput:async()=>{const state=states.quality;if(!state)throw Error('Primero cargá una imagen.');const id=uploadTokens.quality,dimensions=window.MomotusToolsAPI.getPrintDimensions('quality'),canvas=await createProgressiveSource(state,dimensions.pixelWidth,dimensions.pixelHeight,byId('quality-smoothing').value);if(id!==uploadTokens.quality){canvas.width=canvas.height=1;throw Error('El documento cambió.');}return canvas;},
+    getQualityProject:()=>{const state=states.quality;if(!state)return null;const legacy=state.qualityLocalVersions.get(state.qualityLocalVersion||0);return {sourceFile:state.sourceFile,width:state.naturalWidth,height:state.naturalHeight,filename:state.filename,settings:Object.fromEntries(settingIds.quality.map(k=>[k,byId(k).value])),studio:window.MomotusQuality.clone(qualityStudio()),legacy:legacy?{...legacy,mask:legacy.mask.slice()}:null};},
+    restoreQualityProject:async p=>{if(qualityProcessing)throw Error('Cancelá el proceso de Calidad antes de recuperar.');window.MomotusQualityProject.validate(p);const file=new File([p.sourceFile],p.sourceName||p.filename,{type:p.sourceFile.type}),source=await loadImageFile(file,4500,true);if(source.naturalWidth!==p.width||source.naturalHeight!==p.height){URL.revokeObjectURL(source.sourceUrl);throw Error('Las medidas del original no coinciden.');}const previous=states.quality;cancelQualityStudio();uploadTokens.quality++;states.quality={...source,filename:p.filename,qualityLocalVersion:p.legacy?1:0,nextQualityLocalVersion:2,qualityLocalVersions:new Map([[0,null],[1,p.legacy?{...p.legacy,mask:p.legacy.mask.slice()}:null]]),qualityStudioVersion:1,nextQualityStudioVersion:2,qualityStudioVersions:new Map([[0,window.MomotusQuality.model()],[1,window.MomotusQuality.clone(p.studio)]])};byId('quality-original').src=source.sourceUrl;histories.quality.entries=[];histories.quality.index=-1;applySettings('quality',p.settings);recordHistory('quality');if(previous?.sourceUrl)URL.revokeObjectURL(previous.sourceUrl);byId('quality-process').disabled=false;switchTool('mejorar-calidad');updateQualityAssessment();},
+    getQualityLegacySelection:()=>{const m=states.quality?.qualityLocalVersions?.get(states.quality.qualityLocalVersion||0);return m?{...m,mask:m.mask.slice()}:null;},
+    getQualityLocalStatus: () => ({active:!!states.quality?.qualityLocalVersions?.get(states.quality.qualityLocalVersion||0)}),
+    getQualityLocalDocument: () => {
+      const state=states.quality;if(!state||qualityProcessing)return null;const ratio=Math.min(1,1600/state.naturalWidth,1600/state.naturalHeight),width=Math.max(1,Math.round(state.naturalWidth*ratio)),height=Math.max(1,Math.round(state.naturalHeight*ratio)),canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;canvas.getContext('2d').drawImage(state.image,0,0,width,height);const existing=state.qualityLocalVersions?.get(state.qualityLocalVersion||0);return {documentId:uploadTokens.quality,width,height,canvas,mask:existing?.mask.slice()||new Uint8Array(width*height)};
+    },
+    commitQualityLocal: (documentId,mask,width,height) => {
+      const state=states.quality;if(!state||documentId!==uploadTokens.quality||qualityProcessing)throw Error('La imagen cambió o está procesándose.');const ratio=Math.min(1,1600/state.naturalWidth,1600/state.naturalHeight);if(mask!==null&&(width!==Math.max(1,Math.round(state.naturalWidth*ratio))||height!==Math.max(1,Math.round(state.naturalHeight*ratio))))throw Error('La máscara no coincide con esta imagen.');if(mask!==null&&(!(mask instanceof Uint8Array)||mask.length!==width*height||width*height>2560000||!Number.isInteger(width)||!Number.isInteger(height)||width<1||height<1))throw Error('Selección local inválida.');
+      const version=state.nextQualityLocalVersion++;state.qualityLocalVersions.set(version,mask?{mask:mask.slice(),width,height}:null);state.qualityLocalVersion=version;recordHistory('quality');invalidateQualityResult();window.dispatchEvent(new CustomEvent('momotus:quality-local',{detail:{active:!!mask}}));return true;
+    },
+    halftoneIsBusy:()=>halftoneProofBusy||halftoneBusy,
+    getHalftoneSettings:()=>captureSettings('halftone'),
+    getHalftoneOptions:()=>halftoneOptions(),
+    setHalftoneSettings:settings=>{if(halftoneProofBusy)throw Error('Esperá a que termine la muestra.');const P=window.MomotusHalftoneProject;if(!P)throw Error('El editor todavía está cargando.');const previous=captureSettings('halftone'),clean={...previous};delete clean.__halftoneMaskVersion;P.settings(settings,true);P.settings({...clean,...settings});for(const [id,value]of Object.entries(settings)){const input=byId(id);if(input.type==='range'){const step=Number(input.step)||1,units=(Number(value)-Number(input.min))/step;if(Math.abs(units-Math.round(units))>1e-7)throw Error('El ajuste no coincide con el paso de '+id);}}for(const [id,value]of Object.entries(settings)){const e=byId(id);if(e.type==='checkbox')e.checked=value;else e.value=value;}if(Object.keys(settings).length)document.querySelectorAll('[data-halftone-preset], [data-halftone-auto]').forEach(b=>b.classList.remove('active'));syncSettingLabels('halftone');markToolDirty('halftone');recordHistory('halftone');scheduleRender('halftone',renderHalftone,0);},
+    getHalftoneProject:()=>{const s=states.halftone;if(!s)return null;const settings=captureSettings('halftone');delete settings.__halftoneMaskVersion;return {sourceFile:s.sourceFile,width:s.naturalWidth,height:s.naturalHeight,filename:s.filename,settings,manual:s.halftoneMasks.get(s.halftoneMaskVersion||0)||null};},
+    restoreHalftoneProject:async p=>{if(halftoneProofBusy)throw Error('Esperá a que termine la muestra.');window.MomotusHalftoneProject.validate(p);const file=new File([p.sourceFile],p.sourceName||p.filename+'.png',{type:p.sourceFile.type});const source=await loadImageFile(file,4500,true);if(source.naturalWidth!==p.width||source.naturalHeight!==p.height){URL.revokeObjectURL(source.sourceUrl);throw Error('Las dimensiones no coinciden con el original.');}const prepared=drawSource(source),old=states.halftone;cancelHalftone();uploadTokens.halftone++;states.halftone={...source,filename:p.filename,imageData:prepared.imageData,halftoneMaskVersion:1,nextHalftoneMaskVersion:2,halftoneMasks:new Map([[0,null],[1,p.manual]])};byId('halftone-original').src=source.sourceUrl;histories.halftone.entries=[];histories.halftone.index=-1;applySettings('halftone',p.settings);clearTimeout(renderTimers.halftone);recordHistory('halftone');if(old?.sourceUrl)URL.revokeObjectURL(old.sourceUrl);byId('halftone-download').disabled=false;switchTool('semitonos');await renderHalftone(false);},
+    getHalftoneMaskDocument:(options={})=>{const s=states.halftone;if(!s)return null;const m=s.halftoneMasks.get(s.halftoneMaskVersion||0),ratio=Math.min(1,1600/s.naturalWidth,1600/s.naturalHeight),print=window.MomotusToolsAPI.getPrintDimensions('halftone');let width=m?.width||Math.max(1,Math.round(s.naturalWidth*ratio)),height=m?.height||Math.max(1,Math.round(s.naturalHeight*ratio));if(options.resolution==='output'){width=print.pixelWidth;height=print.pixelHeight;}const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;canvas.getContext('2d').drawImage(s.image,0,0,width,height);const plane=(key,fill)=>!m?new Uint8Array(width*height).fill(fill):m.width===width&&m.height===height?m[key].slice():window.MomotusHalftoneEdit.resample(m[key],m.width,m.height,width,height);return {documentId:uploadTokens.halftone,width,height,canvas,print,apply:plane('apply',255),protect:plane('protect',0)};},
+    commitHalftoneMasks:(id,m)=>{const s=states.halftone;if(!s||id!==uploadTokens.halftone||halftoneProofBusy)throw Error('El documento cambió o está ocupado.');window.MomotusHalftoneProject.validateMask(s.naturalWidth,s.naturalHeight,m);const version=s.nextHalftoneMaskVersion++;s.halftoneMaskVersion=version;s.halftoneMasks.set(version,m?{width:m.width,height:m.height,apply:m.apply.slice(),protect:m.protect.slice()}:null);markToolDirty('halftone');recordHistory('halftone');scheduleRender('halftone',renderHalftone,0);},
+    getHalftoneEditPreviewPayload:(id,m)=>{const s=states.halftone;if(!s||id!==uploadTokens.halftone||halftoneProofBusy)throw Error('El documento cambió o está ocupado.');window.MomotusHalftoneProject.validateMask(s.naturalWidth,s.naturalHeight,m);const dims=window.MomotusToolsAPI.getPrintDimensions('halftone'),state=prepareHalftoneOutput(s,dims.widthCm,false);return {width:state.width,height:state.height,data:state.imageData.data.slice(),dpi:state.effectiveDpi,options:halftoneOptions(),stats:analyzeHalftoneColors(s),manual:m};},
+    renderHalftoneFinal:()=>renderHalftone(true),
+    cancelHalftone,
+    createHalftoneSamples: async ({frequencies,sizeCm=4,x=.5,y=.5,signal,parameter='frequency',values=null}) => {
+      const source=states.halftone;if(!source)throw Error('Primero cargá una imagen en Semitonos.');if(halftoneProofBusy)throw Error('Ya se está generando una muestra.');if(!Array.isArray(frequencies)||frequencies.length<2||frequencies.length>4||frequencies.some(n=>!Number.isInteger(n)||n<45||n>70)||!Number.isFinite(sizeCm)||sizeCm<1||sizeCm>5||![x,y].every(n=>Number.isFinite(n)&&n>=0&&n<=1))throw Error('Configuración de muestras inválida.');
+      const field={frequency:'halftone-frequency',minimum:'halftone-min-dot',gain:'halftone-dot-gain',angle:'halftone-angle'}[parameter];if(!field)throw Error('Parámetro de muestra inválido.');const limits={frequency:[45,70],minimum:[.05,.3],gain:[-20,20],angle:[-90,90]}[parameter];const variants=values||frequencies;if(!Array.isArray(variants)||variants.length!==frequencies.length||variants.some(v=>!Number.isFinite(v)||v<limits[0]||v>limits[1]))throw Error('Valores de muestra inválidos.');
+      const settings=captureSettings('halftone'),side=Math.round(sizeCm/2.54*300),gap=48,label=80,footer=100,out=document.createElement('canvas');out.width=frequencies.length*side+(frequencies.length-1)*gap;out.height=side+label+footer;const ctx=out.getContext('2d');clearTimeout(renderTimers.halftone);halftoneProofBusy=true;signal?.addEventListener('abort',cancelHalftone,{once:true});
+      try{for(let i=0;i<frequencies.length;i++){if(signal?.aborted)throw Error('Muestras canceladas.');if(states.halftone!==source)throw Error('La imagen cambió.');byId(field).value=variants[i];if(!await renderHalftone(true))throw Error(signal?.aborted?'Muestras canceladas.':'No se pudo generar una muestra.');const full=byId('halftone-canvas'),w=Math.min(side,full.width),h=Math.min(side,full.height),sx=Math.round((full.width-w)*x),sy=Math.round((full.height-h)*y),dx=i*(side+gap);ctx.drawImage(full,sx,sy,w,h,dx,label,w,h);ctx.fillStyle='#fff';ctx.fillRect(dx,0,side,label);ctx.fillStyle='#000';ctx.font='bold 24px Arial';ctx.save();ctx.beginPath();ctx.rect(dx,0,side,label);ctx.clip();ctx.font='bold 16px Arial';ctx.fillText(`${variants[i]} ${parameter==='frequency'?'LPI':parameter==='minimum'?'mm':parameter==='gain'?'%':'°'}`,dx+4,25);ctx.font='18px Arial';ctx.font='11px Arial';ctx.fillText(`Máx. ${settings['halftone-dot-size']} mm`,dx+4,47);ctx.fillText(`Hueco ${settings['halftone-hole']} mm`,dx+4,65);ctx.restore();}
+        if(signal?.aborted)throw Error('Muestras canceladas.');ctx.fillStyle='#fff';ctx.fillRect(0,side+label,out.width,footer);ctx.fillStyle='#000';ctx.font='20px Arial';ctx.fillText('Muestra de prueba · imprimir al 100 % · 300 DPI',8,side+label+28,out.width-16);const ruler=Math.round(2/2.54*300);ctx.fillRect(8,side+label+51,ruler,3);ctx.fillRect(8,side+label+43,2,18);ctx.fillRect(8+ruler-2,side+label+43,2,18);ctx.fillText('2 cm',ruler+22,side+label+61);const first=ctx.getImageData(0,label,side,side).data;let same=true;for(let i=1;i<frequencies.length&&same;i++){const current=ctx.getImageData(i*(side+gap),label,side,side).data;for(let j=0;j<first.length;j++)if(first[j]!==current[j]){same=false;break;}}const proof=await prepareBinaryAlphaCanvas(out);proof.samplesIdentical=same;return proof;
+      }finally{try{if(states.halftone===source){applySettings('halftone',settings);syncSettingLabels('halftone');clearTimeout(renderTimers.halftone);await renderHalftone(false);}}finally{signal?.removeEventListener('abort',cancelHalftone);halftoneProofBusy=false;window.dispatchEvent(new CustomEvent('momotus:halftone-busy',{detail:{busy:halftoneBusy}}));}}
+    },
+
     getActiveType: () => byId('efectos-dtf') && !byId('efectos-dtf').hidden ? 'effects' : activeTool,
     hasDocument: type => (type || window.MomotusToolsAPI.getActiveType()) === 'effects' ? Boolean(window.MomotusEffectsAPI?.hasDocument()) : Boolean(states[type || activeTool]),
     getDocumentInfo: type => {

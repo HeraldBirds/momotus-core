@@ -5,27 +5,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <base href="../">
   <title>Tienda Momotus Core | Diseños en Nicaragua</title>
-  <meta name="description" content="Explorá los diseños de Momotus Core: Fauna Nica, Anime, Urbano, Games y opciones únicas, con pedidos por WhatsApp en Nicaragua.">
+  <meta name="description" content="Explorá los diseños de Momotus Core: Fauna Nica, Anime, Urbanas y Games, con pedidos por WhatsApp en Nicaragua.">
   <meta name="theme-color" content="#09090b">
   <meta property="og:type" content="website">
   <meta property="og:title" content="Tienda Momotus Core">
   <meta property="og:description" content="Escogé tu diseño, revisá las tallas disponibles y mandá tu pedido por WhatsApp.">
-  <meta property="og:image" content="img/heroes/hero-tienda.webp">
+  <meta property="og:image" content="img/heroes/web/hero-tienda.webp">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" href="img/icons/icon-nica.webp" type="image/webp">
   
   <!-- === SEGURIDAD NETLIFY - Momotus Core (Abril 2026) === -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self';">
 
-  <link rel="preload" href="img/heroes/hero-tienda.webp" as="image" type="image/webp" media="(min-width: 768px)" fetchpriority="high">
-  <link rel="preload" href="img/heroes/hero-tienda-mobile.webp" as="image" type="image/webp" media="(max-width: 767px)" fetchpriority="high">
+  <link rel="preload" href="img/heroes/web/hero-tienda.webp" as="image" type="image/webp" media="(min-width: 768px)" fetchpriority="high">
+  <link rel="preload" href="img/heroes/web/hero-tienda-mobile.webp" as="image" type="image/webp" media="(max-width: 767px)" fetchpriority="high">
 
   
   <link rel="stylesheet" href="css/tailwind.css?v=20261006-1">
 
-  <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css?v=20261006-1" 
+  <link rel="stylesheet" href="vendor/fontawesome/css/site.min.css?v=20261020-perf-1" 
         crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <link rel="stylesheet" href="css/style.css?v=20261005-1">
+  <link rel="stylesheet" href="css/style.css?v=20261020-perf-1">
   <link rel="stylesheet" href="tienda/css/tienda.css?v=20261007-ui-2">
   <link rel="stylesheet" href="tienda/css/temporadas.css?v=20261005-4">
   <link rel="stylesheet" href="css/store-experience.css?v=20261007-original-6">
@@ -124,10 +124,6 @@
           <img src="img/icons/icon-games.webp" alt="Games" class="filter-icon">
           Games
         </button>
-        <button onclick="filterCategory('unica')" id="filter-unica" class="filter-btn px-8 py-3 rounded-3xl text-sm font-medium transition flex items-center gap-3">
-          <img src="img/icons/icon-unica.webp" alt="Únicas" class="filter-icon">
-          Únicas
-        </button>
         <button onclick="filterCategory('aguizotes')" id="filter-aguizotes" class="filter-btn px-8 py-3 rounded-3xl text-sm font-medium transition flex items-center gap-3" aria-controls="seasonal-event"><i class="fa-solid fa-moon" aria-hidden="true"></i> Agüizotes</button>
       </div>
 
@@ -220,15 +216,15 @@
   <div id="cart-modal-placeholder"></div>
 
   <script src="tienda/js/product-images.js?v=20261007-category-1"></script>
-  <script src="tienda/js/store-config-core.js?v=20261007-category-1"></script>
+  <script src="tienda/js/store-config-core.js?v=20261019-opt-1"></script>
   <script src="tienda/js/configuracion.js?v=20261007-shop-1"></script>
-  <script src="tienda/js/catalogo.js?v=20261007-slots-1"></script>
+  <script src="tienda/js/catalogo.js?v=20261019-opt-1"></script>
   <script src="tienda/js/store-selection.js?v=20261007-category-1"></script>
-  <script src="js/script.js?v=20261007-category-1"></script>
+  <script src="tienda/js/photo-previews.js?v=20261020-perf-1"></script>
+  <script src="js/script.js?v=20261020-perf-1"></script>
   <script src="tienda/js/temporadas.js?v=20261007-category-1"></script>
   <script src="tienda/js/tienda.js?v=20261007-category-1"></script>
   <script src="js/performance.js?v=20261006-1" defer></script>
-  <script src="tienda/js/photo-previews.js?v=20261007-category-1"></script>
-  <script src="js/store-experience.js?v=20261007-category-1" defer></script>
+  <script src="js/store-experience.js?v=20261020-perf-1" defer></script>
 </body>
 </html>

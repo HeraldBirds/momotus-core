@@ -1,0 +1,35 @@
+(function(root,factory){const api=factory(typeof module==='object'&&module.exports?require('./core.js'):root.MomotusTypeCore,typeof module==='object'&&module.exports?require('./preset-core.js'):root.MomotusTypePresets);if(typeof module==='object'&&module.exports)module.exports=api;else root.MomotusTypeTemplates=api;})(globalThis,(C,P)=>{
+'use strict';const main=(family,style={},options={})=>({family,style,text:'$main',size:1,dx:0,dy:0,...options}),sub=(text,family,style,options)=>main(family,style,{text,...options});
+const templates=[
+{id:'cosmos',label:'Cosmos · línea retro',image:1,parts:[main('Bungee Inline',{fill:'#ffdda3',outline:.35,outlineColor:'#b56824',shadow:true,shadowX:1.2,shadowY:1.2,shadowColor:'#c77d30'}),sub('CRASH','Anton',{fill:'#c58032'},{size:.35,dy:17,align:'left',dx:-60})]},
+{id:'king',label:'King · gótico y corona',image:2,parts:[main('UnifrakturCook',{fill:'#ffc716'}),sub('The','Pirata One',{fill:'#ffc716'},{size:.3,dx:-45,dy:-31}),sub('TU ESTILO','Covered By Your Grace',{fill:'#ffc716'},{size:.24,dx:-65,dy:12,rotation:-25}),sub('TU TEXTO','Covered By Your Grace',{fill:'#ffc716'},{size:.24,dx:65,dy:12,rotation:20}),sub('TU FIRMA','Covered By Your Grace',{fill:'#ffc716'},{size:.45,dy:-52,rotation:-12})],crown:true},
+{id:'psychonaut',label:'Psychonaut · arco desgastado',image:3,parts:[main('Pirata One',{fill:'#f4f0e4',arc:-38,cutMode:'distress',cutWidth:.35,cutCount:120,cutSeed:17,scaleY:1.25})]},
+{id:'charger',label:'Charger · bloque racing',image:4,parts:[main('Racing Sans One',{fill:'#f3f7ff',skew:-10}),sub('TU TEXTO','Russo One',{fill:'#ffffff'},{size:.26,dy:-32})],slashes:true},
+{id:'community',label:'Speed Community · bandas',image:5,parts:[main('Racing Sans One',{hollow:true,fill:'#ffffff',outline:.5,outlineColor:'#ffffff',skew:-12,outer:.25,outerColor:'#141b24'}),sub('THE','Racing Sans One',{fill:'#141b24'},{size:.3,dy:-31,dx:-50}),sub('COMMUNITY','Racing Sans One',{fill:'#141b24',skew:-12},{size:.33,dy:18})],speedLines:true},
+{id:'deathnote',label:'Death Note · metal amarillo',image:6,parts:[main('Metal Mania',{fill:'#ffe62a',outline:.12,outlineColor:'#ffea52',scaleY:1.25,cutMode:'stripes',cutWidth:.12,cutSpacing:9,cutAngle:30})]},
+{id:'mentality',label:'Mentality · franja cian',image:7,parts:[main('Anton',{fill:'#ffffff',fill2:'#00bce8',gradient:true,gradientAngle:90,banded:true,arc:-14,tracking:.6,scaleY:1.1})]},
+{id:'speed',label:'Speed · bloque amarillo',image:8,parts:[main('Alfa Slab One',{fill:'#ffc819',scaleX:1.1})]},
+{id:'moonlight',label:'Moon Light · negro y destellos',image:9,parts:[main('Pirata One',{fill:'#06090e',scaleY:1.25}),sub('LIGHT','Anton',{fill:'#ff1aaf'},{size:.2,dy:-10})],stars:true},
+{id:'spider',label:'Spider · eco de contornos',image:10,parts:[main('Anton',{fill:'#ffffff',hollow:true,outline:.22,outlineColor:'#ffffff'},{dy:-16}),main('Anton',{fill:'#ffffff'},{dy:4})]},
+{id:'motocross',label:'Motocross · repetición vertical',image:11,parts:[main('Anton',{fill:'#ffffff'},{dy:-40}),...[-6,28,62].map(dy=>main('Anton',{fill:'#ffffff',hollow:true,outline:.22,outlineColor:'#ffffff'},{dy})),main('Anton',{fill:'#ffffff'},{dy:96}),sub('VIDA DEL\nMOTOCROSS','Racing Sans One',{fill:'#ffffff'},{size:.24,dy:-90})],blueLine:true},
+{id:'tribute',label:'Tribute · bloque y firma',image:12,parts:[main('Racing Sans One',{fill:'#ffd318',skew:-10}),sub('Tu firma','Kaushan Script',{fill:'#ef2636',outline:.2,outlineColor:'#10151e'},{size:.55,dy:14,dx:-25}),sub('2026','Anton',{fill:'#ffd318'},{size:.33,dy:18,dx:62})]},
+{id:'yakusa',label:'Yakusa · pincel y acento rojo',image:13,parts:[main('Knewave',{fill:'#ffffff',outline:.15,outlineColor:'#e84848',skew:-10,shadow:true,shadowX:.6,shadowY:.6,shadowColor:'#ee5050',cutMode:'stripes',cutWidth:.12,cutSpacing:9,cutAngle:30})]}
+];
+const find=id=>{const t=templates.find(t=>t.id===id);if(!t)throw Error('Composición desconocida.');return t;};
+function build(document,source,id,catalog,fonts,uid=()=>crypto.randomUUID()){
+ const t=find(id);if(!source||source.locked||source.vector)throw Error('Seleccioná una capa de texto desbloqueada.');if(!source.text.trim()||source.text.includes('\n'))throw Error('Estas composiciones necesitan un título de una sola línea.');
+ const group=uid(),k=source.size/35,layers=[];for(let i=0;i<t.parts.length;i++){const spec=t.parts[i],entry=catalog.find(f=>f.family===spec.family),font=fonts.get(entry?.id)?.font||fonts.get(entry?.id);if(!entry||!font)throw Error('Falta la fuente '+spec.family);const input=C.layer(uid(),entry.id);Object.assign(input,{name:t.label+' · '+(spec.text==='$main'?'título':'detalle '+(i+1)),text:spec.text==='$main'?source.text:spec.text,size:source.size*spec.size,x:150+spec.dx*k,y:100+spec.dy*k,rotation:spec.rotation||0,group});const p=P.build(input,{family:spec.family,...spec.style},entry.id,font);p.align=spec.align||'center';layers.push(p);}
+ const fontId=layers[0].font;
+ function graphic(name,points,color,dx,dy){const p=C.layer(uid(),fontId);Object.assign(p,{name:t.label+' · '+name,text:'*',group,size:source.size,x:150+dx*k,y:100+dy*k,fill:color});p.vector=[{index:0,char:'*',fill:color,commands:[...points.map(([x,y],i)=>({type:i?'L':'M',x:x*k,y:y*k})),{type:'Z'}]}];layers.push(p);}
+ if(t.crown){graphic('corona',[[-12,0],[-17,-13],[-5,-7],[0,-19],[6,-7],[18,-13],[12,0]],'#ffc716',42,-34);Object.assign(layers.at(-1),{hollow:true,outline:.45*k,outlineColor:'#ffc716'});}
+ if(t.slashes)for(const dx of [-65,-56,56,65])graphic('barra roja',[[0,0],[3,0],[7,-5],[4,-5]],'#f1292c',dx,-34);
+ if(t.speedLines)for(const dy of [-35,22])graphic('línea de velocidad',[[-75,0],[70,-9],[71,-8],[-74,1]],'#fa1bb4',0,dy);
+ if(t.blueLine)graphic('banda azul',[[-60,0],[60,0],[60,1],[-60,1]],'#1389ed',0,-75);
+ if(t.stars)for(const dx of [-55,-43,-31,31,43,55])graphic('destello',[[0,-3],[.6,-.6],[3,0],[.6,.6],[0,3],[-.6,.6],[-3,0],[-.6,-.6]],'#ff1aaf',dx,-13);
+ if(document.layers.length+layers.length>C.MAX_LAYERS)throw Error('La composición necesita '+layers.length+' capas libres; el máximo es '+C.MAX_LAYERS+'.');
+ const layout=C.compose({...document,layers},fonts),b={x1:Math.min(...layout.layers.map(q=>q.box.x1)),y1:Math.min(...layout.layers.map(q=>q.box.y1)),x2:Math.max(...layout.layers.map(q=>q.box.x2)),y2:Math.max(...layout.layers.map(q=>q.box.y2))};const availableW=(document.widthCm-document.marginCm*2)*10,availableH=(document.heightCm-document.marginCm*2)*10;const scale=Math.min(1,availableW*.92/(b.x2-b.x1),availableH*.92/(b.y2-b.y1));if(!Number.isFinite(scale)||scale<=0)throw Error('El documento no tiene espacio para la composición.');
+ const cx=(b.x1+b.x2)/2,cy=(b.y1+b.y2)/2;for(let i=0;i<layers.length;i++){const p=layers[i],q=layout.layers.find(q=>q.layer.id===p.id),local={x:(q.box.x1+q.box.x2)/2,y:(q.box.y1+q.box.y2)/2};if(scale<1)C.resizeLayer(p,q,(q.box.x2-q.box.x1)*scale,(q.box.y2-q.box.y1)*scale,true);p.x+=document.widthCm*5-cx+(local.x-cx)*(scale-1);p.y+=document.heightCm*5-cy+(local.y-cy)*(scale-1);}
+ const output=C.compose({...document,layers},fonts);C.artwork(document,output);return{layers,group,layout:output,template:t};
+}
+return Object.freeze({templates,find,build});
+});

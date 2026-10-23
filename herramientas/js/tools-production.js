@@ -1101,6 +1101,8 @@
         sheetWidth: Number(byId('sheet-width').value),
         sheetHeight: Number(byId('sheet-height').value),
         pieces: placed,
+        gap:Number(byId('sheet-gap').value)/10,margin:Number(byId('sheet-margin').value)/10,rotate:byId('sheet-auto-rotate').checked,
+        references:state.sheetItems.map(item=>({name:item.name,width:item.widthCm,height:item.widthCm*item.canvas.height/item.canvas.width,quantity:item.quantity,image:item.canvas.toDataURL('image/png'),pixelWidth:item.canvas.width,pixelHeight:item.canvas.height})),
         efficiency: Number(preview.dataset.efficiency || 0),
         preview: byId('sheet-preview').toDataURL('image/png')
       } }));

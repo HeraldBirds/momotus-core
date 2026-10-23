@@ -1,0 +1,1 @@
+Referencias JPG facilitadas por el usuario. Se conservan sin modificación. No son fuentes TTF/OTF ni se incorporan a los PNG o SVG exportados. Las familias editables tienen licencia independiente en fonts/. references.js conserva nombre original y SHA-256.

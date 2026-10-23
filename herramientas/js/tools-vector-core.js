@@ -2,8 +2,8 @@
 (function(root){
   'use strict';
   function contours(labels,width,height,color){
-    const edges=new Map(),stride=width+1;
-    const add=(x,y,nx,ny,d)=>{const key=y*stride+x;if(!edges.has(key))edges.set(key,[]);edges.get(key).push({end:ny*stride+nx,d});};
+    const edges=new Map(),stride=width+1;let edgeCount=0;
+    const add=(x,y,nx,ny,d)=>{if(++edgeCount>400000)throw Error("Contorno demasiado complejo. Procesá un recorte o reducí el detalle; no se borraron formas.");const key=y*stride+x;if(!edges.has(key))edges.set(key,[]);edges.get(key).push({end:ny*stride+nx,d});};
     for(let y=0;y<height;y++)for(let x=0;x<width;x++){
       if(labels[y*width+x]!==color)continue;
       if(y===0||labels[(y-1)*width+x]!==color)add(x,y,x+1,y,0);

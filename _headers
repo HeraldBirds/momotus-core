@@ -5,13 +5,13 @@
 
 /*
   # === Content Security Policy (CSP) - Muy estricto ===
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; worker-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none';
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; worker-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'self';
 
   # === Seguridad HTTPS y protección contra ataques ===
   Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
 
-  # === Evita que carguen tu página dentro de iframes (anti-clickjacking) ===
-  X-Frame-Options: DENY
+  # === Solo marcos del mismo origen para integrar el editor; bloquea sitios externos ===
+  X-Frame-Options: SAMEORIGIN
 
   # === Evita ataques MIME-type sniffing ===
   X-Content-Type-Options: nosniff

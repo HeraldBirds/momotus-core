@@ -221,6 +221,7 @@
   let settings = globalThis.MomotusStoreConfig || {version:1,products:{}};
   let configured = products;
   try { if(globalThis.MomotusStoreConfigCore) configured=globalThis.MomotusStoreConfigCore.apply(products,settings); } catch(error) { console.warn('Configuración inválida; se conserva el catálogo original.',error.message); settings=globalThis.MomotusStoreConfigCore.blank(); }
+  configured=configured.map(product=>product.category==='unica'?{...product,published:false}:product);
   validate(products);
   const catalog = Object.freeze({ urbanSubcategories, products: Object.freeze(configured), originalProducts: Object.freeze(products), settings, validate, garmentOrder: Object.freeze([...garmentOrder]) });
   globalThis.MomotusCatalog = catalog;

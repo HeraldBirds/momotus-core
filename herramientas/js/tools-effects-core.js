@@ -1,9 +1,11 @@
 /* Momotus: motor determinista de efectos raster. No produce archivos de bordado. */
 (function (root, factory) {
-  const api = factory();
+  const H = typeof module === 'object' && module.exports ? require('./tools-halftone-core.js') : root.MomotusHalftone;
+  const E = typeof module === 'object' && module.exports ? require('./tools-effects-edit-core.js') : root.MomotusEffectsEdit;
+  const api = factory(H,E);
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.MomotusEffectsCore = api;
-})(typeof self !== 'undefined' ? self : globalThis, function () {
+})(typeof self !== 'undefined' ? self : globalThis, function (H,E) {
   'use strict';
   const styles = ['original','satin','tatami','chenille','screen','halftone','vintage','puff','metal','glitter'];
   const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
@@ -12,6 +14,11 @@
   const distance = (r,g,b,c) => Math.max(Math.abs(r-c[0]),Math.abs(g-c[1]),Math.abs(b-c[2]));
   const hash = (x,y) => { let n = Math.imul(x|0,374761393) ^ Math.imul(y|0,668265263); n = Math.imul(n ^ (n>>>13),1274126177); return ((n ^ (n>>>16))>>>0)/4294967295; };
   const limits = Object.freeze({side:16384,pixels:64000000});
+  function validateSourceHeader(bytes) {
+    const png = bytes.length >= 25 && [137,80,78,71,13,10,26,10].every((v,i) => bytes[i] === v);
+    if (png && bytes[24] > 8) throw Error('PNG de más de 8 bits por canal: conservá el original. Efectos trabaja en RGB de 8 bits y no lo convertirá automáticamente.');
+    return true;
+  }
   const dimensions = (width,height,widthCm) => {
     if (!Number.isInteger(width) || !Number.isInteger(height) || width<1 || height<1) throw Error('La imagen no tiene dimensiones válidas.');
     if (!Number.isFinite(Number(widthCm)) || widthCm<1 || widthCm>65) throw Error('El ancho final debe estar entre 1 y 65 cm.');
@@ -20,6 +27,8 @@
     return {width:w,height:h,dpi:300,heightCm:h/300*2.54,upscaled:w>width};
   };
   const normalize = opts => ({
+    ...E.defaults(),...Object.fromEntries(Object.keys(E.schema).filter(k=>opts[k]!==undefined).map(k=>[k,clamp(finite(opts[k],E.schema[k][2]),E.schema[k][0],E.schema[k][1])])),
+    targets:Array.isArray(opts.targets)?opts.targets.map(rgb):[],alphaMode:opts.alphaMode||'effect',
     style:styles.includes(opts.style) ? opts.style : 'satin',
     strength:clamp(finite(opts.strength,65),0,100)/100,
     angle:clamp(finite(opts.angle,35),-180,180)*Math.PI/180,
@@ -54,7 +63,7 @@
       const i=(y*width+x)*4,r=data[i],g=data[i+1],b=data[i+2],a=data[i+3];
       if(!a)continue;
       if(o.protect&&distance(r,g,b,o.background)<=o.tolerance){if(o.remove)out[i+3]=0;continue;}
-      if(o.selective&&distance(r,g,b,o.target)>o.targetTolerance)continue;
+      if(o.selective&&!(o.targets.length?o.targets:[o.target]).some(t=>distance(r,g,b,t)<=o.targetTolerance))continue;
       if(o.style==='original'||o.strength===0)continue;
       const gx=x+offsetX,gy=y+offsetY;
       const theta=direction?direction.field[Math.floor(gy/(direction.scaleY||direction.scale))*direction.width+Math.floor(gx/(direction.scaleX||direction.scale))]+o.angle:0;
@@ -62,36 +71,38 @@
       const u=(gx*cx+gy*sy)/step,v=(-gx*sy+gy*cx)/step;
       let light=0,base=[r,g,b];
       if(o.style==='satin'){
-        const rib=Math.cos(2*Math.PI*v), stitch=Math.cos(2*Math.PI*(u/5+Math.floor(v)*0.37));
-        light=0.31*rib+0.09*stitch+0.045*Math.sin(v*2*Math.PI*5);
+        const rib=Math.cos(2*Math.PI*v*o.density), stitch=Math.cos(2*Math.PI*(u/o.stitchLength+Math.floor(v*o.density)*0.37));
+        light=0.31*Math.sign(rib)*Math.pow(Math.abs(rib),1/o.threadWidth)+0.09*stitch+0.045*Math.sin(v*2*Math.PI*5);
       }else if(o.style==='tatami'){
-        const rib=Math.cos(v*2*Math.PI),segment=Math.cos((u+((Math.floor(v)&1)*2))/4*2*Math.PI);
-        const end=Math.abs(Math.sin((u+((Math.floor(v)&1)*2))/4*Math.PI));
-        light=0.23*rib+0.14*segment+0.04*Math.sin(v*2*Math.PI*6)-0.13*(end<0.16?1:0);
+        const rib=Math.cos(v*o.density*2*Math.PI),segment=Math.cos((u+((Math.floor(v*o.density)&1)*o.stitchLength/2))/o.stitchLength*2*Math.PI);
+        const end=Math.abs(Math.sin((u+((Math.floor(v*o.density)&1)*o.stitchLength/2))/o.stitchLength*Math.PI));
+        light=0.23*Math.sign(rib)*Math.pow(Math.abs(rib),1/o.threadWidth)+0.14*segment+0.04*Math.sin(v*2*Math.PI*6)-0.13*(end<0.16?1:0);
       }else if(o.style==='chenille'){
-        const cell=hash(Math.floor(u*2),Math.floor(v*2));
-        const fu=u-Math.floor(u)-0.5,fv=v-Math.floor(v)-0.5,ring=Math.hypot(fu,fv);
+        const cu=u/o.loopSize*o.density,cv=v/o.loopSize*o.density,cell=hash(Math.floor(cu*2)+o.seed,Math.floor(cv*2));
+        const fu=cu-Math.floor(cu)-0.5,fv=cv-Math.floor(cv)-0.5,ring=Math.hypot(fu,fv);
         light=0.23*Math.cos((ring-0.3)*18)+0.18*(cell-0.5)-0.12*(ring<0.15?1:0);
       }else if(o.style==='screen'){
         base=base.map(c=>Math.round(c/255*(o.levels-1))/(o.levels-1)*255);
       }else if(o.style==='halftone'){
-        const lum=(0.2126*r+0.7152*g+0.0722*b)/255;
-        const fu=u-Math.floor(u)-0.5,fv=v-Math.floor(v)-0.5;
-        // Mayor luminosidad = mayor superficie de tinta; agujeros transparentes, sin base blanca artificial.
-        if(Math.hypot(fu,fv)>Math.sqrt(clamp(lum,0.08,1)/Math.PI)){out[i+3]=Math.round(a*(1-o.strength));}
+        const cell=25.4/o.frequency*o.pixelsPerMm,hu=(gx*cx+gy*sy)/cell,hv=(-gx*sy+gy*cx)/cell;
+        const col=Math.floor(hu),row=Math.floor(hv),lum=clamp((0.2126*r+0.7152*g+0.0722*b)/255+o.gain,0,1);
+        const dot=H.point('circle',cell,lum,o.minimumDot*o.pixelsPerMm,o.maximumDot*o.pixelsPerMm,o.gap*o.pixelsPerMm,col,row);
+        if(!dot.diameter||Math.hypot((hu-col-.5)*cell,(hv-row-.5)*cell)>dot.diameter/2)out[i+3]=Math.round(a*(1-o.strength));
       }else if(o.style==='vintage'){
-        const patch=hash(Math.floor(u),Math.floor(v)),grain=hash(Math.floor(u*4),Math.floor(v*4));
-        if(patch<0.12+o.strength*0.12&&grain<0.62)out[i+3]=Math.round(a*(1-o.strength));
+        const patch=hash(Math.floor(u/o.wearSize)+o.seed,Math.floor(v/o.wearSize)),grain=hash(Math.floor(u/o.wearSize*4)+o.seed,Math.floor(v/o.wearSize*4));
+        if(patch<o.wearCoverage&&grain<0.62)out[i+3]=Math.round(a*(1-o.strength));
       }else if(o.style==='puff'){
-        const offset=Math.max(1,Math.round(step*0.8));
-        light=(cover(x-offset,y-offset)-cover(x+offset,y+offset))*0.65+0.06*Math.sin((u+v)*0.6);
+        const offset=Math.max(1,Math.round(step*0.8*o.softness)),angle=o.lightAngle*Math.PI/180,dx=Math.round(Math.cos(angle)*offset),dy=Math.round(Math.sin(angle)*offset);
+        light=((cover(x-dx,y-dy)-cover(x+dx,y+dy))*0.65+0.06*Math.sin((u+v)*0.6))*o.depth;
       }else if(o.style==='metal'){
-        light=0.38*Math.sin((u+v)*0.7)+0.11*Math.sin(v*2*Math.PI)+0.15*Math.sin((u+v)*1.5);
+        light=(0.38*Math.sin((u+v)*0.7/o.reflection)+0.11*Math.sin(v*2*Math.PI)*o.roughness/.35+0.15*Math.sin((u+v)*1.5/o.reflection))*o.shine;
       }else if(o.style==='glitter'){
-        const grain=hash(Math.floor(u*3),Math.floor(v*3));light=(grain>0.86?0.8:grain<0.16?-0.38:(grain-0.5)*0.25);
+        const grain=hash(Math.floor(u*3/o.particleSize)+o.seed,Math.floor(v*3/o.particleSize));light=(grain>1-Math.min(.65,.14*o.density)?0.8:grain<0.16?-0.38:(grain-0.5)*0.25)*o.shine;
       }
+      if(o.alphaMode==='preserve')out[i+3]=a;
       for(let c=0;c<3;c++){
-        const value=light>=0?base[c]+(255-base[c])*light:base[c]*(1+light);
+        const raw=light>=0?base[c]+(255-base[c])*light:base[c]*(1+light),factor=Math.min(Math.max(0,1+light),255/Math.max(r,g,b,1)),preserve=light?o.colorPreserve:0;
+        const value=raw*(1-preserve)+data[i+c]*factor*preserve;
         out[i+c]=clamp(Math.round(data[i+c]+(value-data[i+c])*o.strength),0,255);
       }
     }
@@ -102,15 +113,26 @@
     for(let k=0;k<mask.length;k++){const m=mask[k]/255,i=k*4;if(m===1)continue;if(!m){changed.set(base.subarray(i,i+4),i);continue;}const a=base[i+3]/255,b=changed[i+3]/255,alpha=a*(1-m)+b*m;for(let c=0;c<3;c++)changed[i+c]=alpha?Math.round((base[i+c]*a*(1-m)+changed[i+c]*b*m)/alpha):0;changed[i+3]=Math.round(alpha*255);}
     return changed;
   }
+  function blendLayer(base,changed,mask,options={}){
+    const opacity=clamp(finite(options.opacity,100),0,100)/100,mode=options.blend||'normal';
+    if(mode!=='normal')for(let i=0;i<changed.length;i+=4)for(let c=0;c<3;c++){const a=base[i+c]/255,b=changed[i+c]/255;changed[i+c]=Math.round(255*(mode==='multiply'?a*b:mode==='screen'?1-(1-a)*(1-b):a<.5?2*a*b:1-2*(1-a)*(1-b)));}
+    if(!mask&&opacity===1)return changed;
+    const coverage=new Uint8ClampedArray(base.length/4);for(let k=0;k<coverage.length;k++)coverage[k]=Math.round((mask?mask[k]:255)*opacity);
+    return blendMask(base,changed,coverage);
+  }
   function renderStack(data,width,height,options,layers=[]) {
     if(!Array.isArray(layers)||layers.length>8)throw Error('El proyecto admite hasta 8 zonas.');
-    let result=render(data,width,height,{...options,style:'original'});
-    for(const layer of layers){
+    let result=render(data,width,height,{...options,style:'original',remove:options.remove&&options.removeMode!=='exterior'});
+    if(options.remove&&options.removeMode==='exterior'){const mask=options.backgroundMask||E.backgroundMask(data,width,height,options.background||'#000000',options.tolerance??12,true);for(let k=0;k<mask.length;k++)if(mask[k])result[k*4+3]=Math.round(result[k*4+3]*(1-mask[k]/255));}
+    const visible=layers.filter((layer,index)=>layer.enabled!==false&&(options.soloIndex===undefined||options.soloIndex===index));
+    if(options.roundTrip)result=options.roundTrip(result,width,height);
+    for(const [index,layer] of visible.entries()){
+
       if(layer.enabled===false)continue;
       const mask=layer.mask;if(mask&&(!(mask instanceof Uint8ClampedArray)||mask.length!==width*height))throw Error('Máscara de zona no válida.');
-      const changed=render(result,width,height,{...layer.options,pixelsPerMm:options.pixelsPerMm,protect:options.protect,background:options.background,remove:options.remove,tolerance:options.tolerance});
-      if(!mask){result=changed;continue;}
-      result=blendMask(result,changed,mask);
+      const changed=render(result,width,height,{...layer.options,pixelsPerMm:options.pixelsPerMm,protect:options.protect,background:options.background,remove:false,tolerance:options.tolerance});
+      result=blendLayer(result,changed,mask,layer.options);
+      if(options.roundTrip&&index<visible.length-1)result=options.roundTrip(result,width,height);
     }
     return result;
   }
@@ -118,7 +140,7 @@
     if(!meta||meta.format!=='momotus-effects-project'||meta.version!==1)throw Error('Proyecto de Efectos no compatible.');
     if(!Array.isArray(meta.layers)||!meta.layers.length||meta.layers.length>8)throw Error('Cantidad de zonas no válida.');
     dimensions(100,100,meta.widthCm);
-    for(const layer of meta.layers){if(!styles.includes(layer.options?.style)||!Number.isFinite(layer.options.strength)||layer.options.strength<0||layer.options.strength>100||!Number.isFinite(layer.options.pitch)||layer.options.pitch<0.2||layer.options.pitch>3)throw Error('Ajustes de zona no válidos.');if(layer.options.angle!==undefined&&(!Number.isFinite(layer.options.angle)||Math.abs(layer.options.angle)>180))throw Error('Dirección de puntadas no válida.');if(layer.options.levels!==undefined&&(!Number.isInteger(layer.options.levels)||layer.options.levels<2||layer.options.levels>8))throw Error('Escalones de color no válidos.');}
+    for(const layer of meta.layers){E.validate(layer.options);if(!styles.includes(layer.options?.style)||!Number.isFinite(layer.options.strength)||layer.options.strength<0||layer.options.strength>100||!Number.isFinite(layer.options.pitch)||layer.options.pitch<0.2||layer.options.pitch>3)throw Error('Ajustes de zona no válidos.');if(layer.options.angle!==undefined&&(!Number.isFinite(layer.options.angle)||Math.abs(layer.options.angle)>180))throw Error('Dirección de puntadas no válida.');if(layer.options.levels!==undefined&&(!Number.isInteger(layer.options.levels)||layer.options.levels<2||layer.options.levels>8))throw Error('Escalones de color no válidos.');}
     return true;
   }
   function crc32(bytes){let crc=0xffffffff;for(const byte of bytes){crc^=byte;for(let j=0;j<8;j++)crc=(crc>>>1)^((crc&1)?0xedb88320:0);}return (crc^0xffffffff)>>>0;}
@@ -130,5 +152,5 @@
     while(pos<bytes.length){if(pos+12>bytes.length)throw Error('PNG incompleto.');const n=view.getUint32(pos);if(n>bytes.length-pos-12)throw Error('PNG incompleto.');const type=String.fromCharCode(...bytes.subarray(pos+4,pos+8));if(type!=='pHYs')chunks.push(bytes.subarray(pos,pos+n+12));if(type==='IHDR'){chunks.push(phys);inserted=true;}pos+=n+12;}
     if(!inserted)throw Error('PNG sin cabecera.');const result=new Uint8Array(8+chunks.reduce((s,c)=>s+c.length,0));result.set(bytes.subarray(0,8));let offset=8;for(const c of chunks){result.set(c,offset);offset+=c.length;}return result;
   }
-  return Object.freeze({styles,limits,render,renderStack,blendMask,directionMap:(data,width,height,opts)=>orientation(data,width,height,normalize(opts)),validateProject,normalize,dimensions,png300,crc32});
+  return Object.freeze({styles,limits,render,renderStack,blendMask,blendLayer,directionMap:(data,width,height,opts)=>orientation(data,width,height,normalize(opts)),validateSourceHeader,validateProject,normalize,dimensions,png300,crc32});
 });

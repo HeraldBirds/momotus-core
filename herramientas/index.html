@@ -10,20 +10,21 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; worker-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self'; connect-src 'self';">
   
   <script>
-    window.MOMOTUS_TOOLS_VERSION = '20261007-precision-1';
+    window.MOMOTUS_TOOLS_VERSION = '20261023-catalog-preserved-1';
     window.MOMOTUS_TOOLS_DESKTOP = window.matchMedia('(min-width: 1024px)').matches;
     if (!window.MOMOTUS_TOOLS_DESKTOP) document.documentElement.classList.add('tools-page-mobile');
   </script>
   <script>
     if (window.MOMOTUS_TOOLS_DESKTOP) {
-      document.write('<link rel="stylesheet" href="vendor/fontawesome/css/all.min.css?v=20261006-1" crossorigin="anonymous" referrerpolicy="no-referrer">');
+      document.write('<link rel="stylesheet" href="vendor/fontawesome/css/site.min.css?v=20261023-catalog-preserved-1" crossorigin="anonymous" referrerpolicy="no-referrer">');
     }
   </script>
   <link rel="stylesheet" href="css/tailwind.css?v=20261006-1" media="(min-width: 1024px)">
-  <link rel="stylesheet" href="css/style.css?v=20261005-1">
+  <link rel="stylesheet" href="css/style.css?v=20261023-catalog-preserved-1">
   <link rel="stylesheet" href="herramientas/css/tools.css?v=20261007-precision-1" media="(min-width: 1024px)">
   <link rel="stylesheet" href="herramientas/css/tools-precision.css?v=20261007-precision-1" media="(min-width: 1024px)">
-  <link rel="stylesheet" href="herramientas/css/studio-refresh.css?v=20261007-precision-1" media="(min-width: 1024px)">
+  <link rel="stylesheet" href="herramientas/css/tools-drop-upload.css?v=20261023-catalog-preserved-1" media="(min-width: 1024px)">
+  <link rel="stylesheet" href="herramientas/css/studio-refresh.css?v=20261023-catalog-preserved-1" media="(min-width: 1024px)">
 </head>
 <body class="momotus-studio bg-zinc-950 text-white">
   <section class="tools-mobile-gate" aria-labelledby="tools-desktop-title">
@@ -33,6 +34,7 @@
       <h1 id="tools-desktop-title">Disponibles solamente en computadora</h1>
       <p>El procesamiento de imágenes necesita más memoria y pantalla. Abrí esta sección desde una PC para trabajar fluido y sin atrasar el resto de la página en tu celular.</p>
       <a href="index.html">Volver al inicio</a>
+      <a href="herramientas/pliegos/">Abrir Preparador de pliegos DTF</a><a href="herramientas/tipografias/">Abrir Estudio de tipografías</a>
     </div>
   </section>
   <div id="navbar-placeholder"></div>
@@ -55,10 +57,12 @@
       <button type="button" class="tool-shortcut" data-extra-tool="vectorizacion" role="tab" aria-selected="false"><i class="fa-solid fa-bezier-curve"></i><span><strong>Vectorizar</strong><small>SVG por colores</small></span></button>
       <button type="button" class="tool-shortcut" data-extra-tool="calculadora-dtf" role="tab" aria-selected="false"><i class="fa-solid fa-calculator"></i><span><strong>Cotizador</strong><small>Pliegos y costos</small></span></button>
       <button type="button" class="tool-shortcut" data-extra-tool="efectos-dtf" role="tab" aria-selected="false"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i><span><strong>Efectos</strong><small>Bordado y acabados</small></span></button>
+      <button type="button" class="tool-shortcut" data-extra-tool="tipografias" role="tab" aria-selected="false"><i class="fa-solid fa-font" aria-hidden="true"></i><span><strong>Tipografías</strong><small>Texto y composición</small></span></button>
     </nav>
 
     <div class="tool-probar" aria-label="Controles del editor">
       <div class="tool-workspace-brand"><span><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i></span><div><strong>Momotus Studio</strong><small>Editor profesional DTF</small></div></div>
+      <a class="tool-preparation-link" href="herramientas/pliegos/">Preparador de pliegos</a>
       <div class="tool-history-actions">
         <button id="tool-undo" type="button" disabled title="Deshacer (Ctrl + Z)" aria-label="Deshacer"><i class="fa-solid fa-rotate-left"></i><span>Deshacer</span></button>
         <button id="tool-redo" type="button" disabled title="Rehacer (Ctrl + Shift + Z)" aria-label="Rehacer"><i class="fa-solid fa-rotate-right"></i><span>Rehacer</span></button>
@@ -129,13 +133,13 @@
           <details id="halftone-pattern" class="tool-control-group">
             <summary><span><i class="fa-solid fa-border-all"></i> Trama</span><i class="fa-solid fa-chevron-down"></i></summary>
             <div class="tool-control-content">
-            <label class="tool-field-row"><span>Ancho final de impresión</span><span class="tool-number-input"><input id="halftone-width-cm" type="number" min="8" max="38" step="1" value="28"><span>cm</span></span></label>
-            <label class="tool-field">Frecuencia <span id="halftone-frequency-value">55 LPI</span><input id="halftone-frequency" type="range" min="45" max="70" value="55"></label>
-            <label class="tool-field">Diámetro máximo del punto <span id="halftone-dot-size-value">0.40 mm</span><input id="halftone-dot-size" type="range" min="0.30" max="0.60" step="0.05" value="0.40"></label>
-            <label class="tool-field">Punto mínimo imprimible <span id="halftone-min-dot-value">0.10 mm</span><input id="halftone-min-dot" type="range" min="0.05" max="0.30" step="0.05" value="0.10"></label>
+            <label class="tool-field-row"><span>Ancho final de impresión</span><span class="tool-number-input"><input id="halftone-width-cm" type="number" min="8" max="38" step="0.01" value="28"><span>cm</span></span></label>
+            <label class="tool-field">Frecuencia <span id="halftone-frequency-value">55 LPI</span><input id="halftone-frequency" type="range" min="45" max="70" step="0.1" value="55"></label>
+            <label class="tool-field">Extensión máxima del punto <span id="halftone-dot-size-value">0.40 mm</span><input id="halftone-dot-size" type="range" min="0.30" max="0.60" step="0.01" value="0.40"></label>
+            <label class="tool-field">Extensión mínima del punto <span id="halftone-min-dot-value">0.10 mm</span><input id="halftone-min-dot" type="range" min="0.05" max="0.30" step="0.01" value="0.10"></label>
             <label class="tool-field">Compensación de ganancia <span id="halftone-dot-gain-value">0%</span><input id="halftone-dot-gain" type="range" min="-20" max="20" step="1" value="0"></label>
-            <label class="tool-field">Ángulo <span id="halftone-angle-value">45°</span><input id="halftone-angle" type="range" min="-90" max="90" value="45"></label>
-            <label class="tool-field">Contraste <span id="halftone-contrast-value">12</span><input id="halftone-contrast" type="range" min="-80" max="100" value="12"></label>
+            <label class="tool-field">Ángulo <span id="halftone-angle-value">45°</span><input id="halftone-angle" type="range" min="-90" max="90" step="0.1" value="45"></label>
+            <label class="tool-field">Contraste tonal <span id="halftone-contrast-value">12</span><input id="halftone-contrast" type="range" min="-80" max="100" value="12"></label>
             <label class="tool-field-row"><span>Forma del punto</span><select id="halftone-shape"><option value="circle">Círculo</option><option value="ellipse">Elipse</option><option value="square">Cuadrado</option><option value="diamond">Diamante</option><option value="line">Línea</option></select></label>
             </div>
           </details>
@@ -150,6 +154,15 @@
             <label class="tool-check"><input id="halftone-transparent" type="checkbox" checked><span>Fondo transparente</span></label>
             <label class="tool-check"><input id="halftone-invert" type="checkbox"><span>Invertir tamaño tonal</span></label>
             </div>
+          </details>
+          <details id="halftone-professional" class="tool-control-group">
+            <summary><span>Control de impresión y máscaras</span></summary><div class="tool-control-content">
+            <label class="tool-field-row"><span>Generar puntos desde</span><select id="halftone-basis"><option value="tone">Luminosidad y color</option><option value="alpha">Solo transparencia · conserva opacos</option></select></label>
+            <label class="tool-field">Hueco mínimo entre celdas (mm)<input id="halftone-hole" type="number" min="0" max="0.30" step="0.01" value="0"></label>
+            <p class="tool-field-help">Curva de cobertura: entradas de 25, 50 y 75 %. Debe subir de luces a sombras.</p>
+            <div class="ht-curve"><label>Luces<input id="halftone-curve-light" type="number" min="0" max="100" value="25"></label><label>Medios<input id="halftone-curve-mid" type="number" min="0" max="100" value="50"></label><label>Sombras<input id="halftone-curve-dark" type="number" min="0" max="100" value="75"></label></div>
+            <p id="halftone-physical-info" class="tool-field-help" role="status">Las medidas se calculan a 300 DPI. La impresión se valida con una muestra.</p>
+            <div id="halftone-advanced-actions"></div></div>
           </details>
           <div class="tool-action-dock"><button id="halftone-download" type="button" class="tool-download" disabled title="Revisar y descargar PNG"><i class="fa-solid fa-clipboard-check"></i> Revisar y descargar</button><p id="halftone-status" class="tool-status" role="status">Subí una imagen para comenzar.</p></div>
         </div>
@@ -187,7 +200,7 @@
             <summary><span><i class="fa-solid fa-eye-dropper"></i> Color y selección</span><i class="fa-solid fa-chevron-down"></i></summary>
             <div class="tool-control-content">
               <label class="tool-field-row"><span>Acción</span><select id="background-mode"><option value="remove">Eliminar color escogido</option><option value="keep">Conservar solo ese color</option></select></label>
-              <label id="background-scope-control" class="tool-field-row"><span>Área de eliminación</span><select id="background-scope"><option value="connected">Solo fondo conectado al borde</option><option value="global">Ese color en toda la imagen</option></select></label>
+              <label id="background-scope-control" class="tool-field-row"><span>Área de eliminación</span><select id="background-scope"><option value="connected">Solo fondo conectado al borde</option><option value="global">Ese color en toda la imagen</option><option value="zones">Zonas editadas manualmente</option></select></label>
               <div class="background-palette-picker">
                 <button id="background-palette-toggle" class="background-palette-toggle" type="button" aria-expanded="false" aria-controls="background-color-palette" aria-haspopup="listbox">
                   <span id="background-palette-current" class="background-palette-current" style="--selected-color:#ffffff" aria-hidden="true"></span>
@@ -214,7 +227,7 @@
                   <p><i class="fa-solid fa-circle-info" aria-hidden="true"></i> Para quitar negro de un diseño destinado a una prenda clara, empezá con tolerancia baja. Usá “solo fondo conectado” si querés proteger detalles negros interiores.</p>
                 </div>
               </div>
-              <button id="background-corner" type="button" class="tool-secondary" disabled><i class="fa-solid fa-eye-dropper"></i> Tomar color de la esquina</button>
+              <p id="background-zones-note" class="tool-field-help" hidden>Este resultado usa la máscara del editor por zonas. Los ajustes globales de color y bordes no se aplican a esa máscara.</p><button id="background-corner" type="button" class="tool-secondary" disabled><i class="fa-solid fa-eye-dropper"></i> Tomar color de la esquina</button>
               <button id="background-apply-connected" type="button" class="tool-secondary" disabled><i class="fa-solid fa-object-ungroup"></i> Quitar solo el fondo exterior</button>
               <button id="background-apply-global" type="button" class="tool-download" disabled><i class="fa-solid fa-eraser"></i> Eliminar este color en toda la imagen</button>
             </div>
@@ -236,6 +249,7 @@
         <div class="tool-preview-shell">
           <div class="tool-preview-toolbar">
             <div class="tool-segmented"><button type="button" data-preview-tool="background" data-preview-view="original">Original</button><button type="button" data-preview-tool="background" data-preview-view="result" class="active">Resultado</button><button type="button" data-preview-tool="background" data-preview-view="mask">Máscara</button></div>
+            <button id="background-zones-open" type="button" class="tool-compare-toggle" title="Eliminar un color solo en las zonas que selecciones"><i class="fa-solid fa-object-group" aria-hidden="true"></i><span>Color por zonas</span></button>
             <button type="button" class="tool-compare-toggle" data-preview-compare="background" aria-pressed="false" disabled title="Comparar con deslizador"><i class="fa-solid fa-left-right"></i><span>Comparar</span></button>
             <button type="button" class="tool-expand-preview" data-preview-expand="background" aria-pressed="false" title="Ampliar lienzo"><i class="fa-solid fa-expand"></i><span>Vista amplia</span></button>
             <button type="button" class="tool-magnify" data-preview-magnify="background" aria-pressed="false" title="Revisar detalles grandes"><i class="fa-solid fa-magnifying-glass-plus"></i><span>Lupa</span></button>
@@ -255,7 +269,7 @@
     <section id="mejorar-calidad" class="tool-panel" aria-labelledby="quality-title" hidden>
       <div class="tool-panel-heading">
         <div class="tool-number">03</div>
-        <div><p class="text-yellow-400 font-bold">RECONSTRUCCIÓN PARA IMPRESIÓN DTF</p><h2 id="quality-title" class="text-3xl md:text-4xl font-black">Mejorar y preparar a 300 DPI</h2></div>
+        <div><p class="text-yellow-400 font-bold">EDICIÓN Y PREPARACIÓN PARA DTF</p><h2 id="quality-title" class="text-3xl md:text-4xl font-black">Mejorar y preparar a 300 DPI</h2></div>
       </div>
       <div class="tool-layout">
         <div class="tool-controls">
@@ -275,18 +289,18 @@
                 <button type="button" data-quality-width="28">Frente 28 cm</button>
                 <button type="button" data-quality-width="35">Espalda 35 cm</button>
               </div>
-              <label class="tool-field-row"><span>Ancho de impresión</span><span class="tool-number-input"><input id="quality-width-cm" type="number" min="2" max="45" step="0.5" value="30"><span>cm</span></span></label>
+              <label class="tool-field-row"><span>Ancho de impresión</span><span class="tool-number-input"><input id="quality-width-cm" type="number" min="2" max="45" step="0.01" value="30"><span>cm</span></span></label>
               <label class="tool-field-row"><span>Tipo de imagen</span><select id="quality-smoothing"><option value="illustration">Ilustración</option><option value="photo">Fotografía</option><option value="logo">Logo con bordes definidos</option><option value="pixel">Pixel art, sin suavizado</option></select></label>
             </div>
           </details>
           <details id="quality-quick-panel" class="tool-control-group">
             <summary><span><i class="fa-solid fa-bolt"></i> Ajustes rápidos</span><i class="fa-solid fa-chevron-down"></i></summary>
             <div class="tool-control-content tool-presets" aria-label="Ajustes rápidos de calidad">
-              <button type="button" data-quality-preset="dtf" class="active">DTF balanceado</button>
+              <button type="button" data-quality-preset="dtf">DTF balanceado</button>
               <button type="button" data-quality-preset="illustration">Ilustración viva</button>
               <button type="button" data-quality-preset="photo">Fotografía limpia</button>
               <button type="button" data-quality-preset="logo">Logo definido</button>
-              <button type="button" data-quality-preset="rescue">Rescatar pixelada</button>
+              <button type="button" data-quality-preset="rescue">Suavizar imagen pixelada</button>
               <button type="button" data-quality-preset="text">Texto pequeño</button>
             </div>
           </details>
@@ -294,17 +308,17 @@
             <summary><span><i class="fa-solid fa-sliders"></i> Color</span><i class="fa-solid fa-chevron-down"></i></summary>
             <div class="tool-control-content">
             <label class="tool-field">Brillo <span id="quality-brightness-value">0</span><input id="quality-brightness" type="range" min="-50" max="50" value="0"></label>
-            <label class="tool-field">Contraste <span id="quality-contrast-value">6</span><input id="quality-contrast" type="range" min="-50" max="50" value="6"></label>
-            <label class="tool-field">Saturación <span id="quality-saturation-value">8</span><input id="quality-saturation" type="range" min="-100" max="100" value="8"></label>
+            <label class="tool-field">Contraste <span id="quality-contrast-value">0</span><input id="quality-contrast" type="range" min="-50" max="50" value="0"></label>
+            <label class="tool-field">Saturación <span id="quality-saturation-value">0</span><input id="quality-saturation" type="range" min="-100" max="100" value="0"></label>
             </div>
           </details>
           <details id="quality-detail-panel" class="tool-control-group">
             <summary><span><i class="fa-solid fa-wand-magic-sparkles"></i> Detalle protegido</span><i class="fa-solid fa-chevron-down"></i></summary>
             <div class="tool-control-content">
-            <label class="tool-field">Claridad local <span id="quality-clarity-value">24</span><input id="quality-clarity" type="range" min="0" max="70" value="24"></label>
-            <label class="tool-field">Nitidez <span id="quality-sharpness-value">50</span><input id="quality-sharpness" type="range" min="0" max="100" value="50"></label>
-            <label class="tool-field">Reducir ruido/compresión <span id="quality-denoise-value">12</span><input id="quality-denoise" type="range" min="0" max="60" value="12"></label>
-            <label class="tool-field">Recuperar pixelado <span id="quality-recovery-value">20</span><input id="quality-recovery" type="range" min="0" max="100" value="20"></label>
+            <label class="tool-field">Claridad local <span id="quality-clarity-value">0</span><input id="quality-clarity" type="range" min="0" max="70" value="0"></label>
+            <label class="tool-field">Nitidez <span id="quality-sharpness-value">0</span><input id="quality-sharpness" type="range" min="0" max="100" value="0"></label>
+            <label class="tool-field">Reducir ruido/compresión <span id="quality-denoise-value">0</span><input id="quality-denoise" type="range" min="0" max="60" value="0"></label>
+            <label class="tool-field">Suavizar pixelado · no reconstruye detalle <span id="quality-recovery-value">0</span><input id="quality-recovery" type="range" min="0" max="100" value="0"></label>
             <small class="tool-field-help">Suaviza bloques y compresión antes de reforzar los bordes. No inventa texto ni detalle que no exista en la imagen original.</small>
             </div>
           </details>
@@ -331,103 +345,47 @@
     <section id="vectorizacion" class="tool-panel extra-tool-panel" aria-labelledby="vector-title" hidden>
       <div class="extra-studio-grid">
         <aside class="extra-controls" aria-label="Propiedades de vectorización">
-          <div class="extra-inspector-title"><span>TRAZADO VECTORIAL</span><h2 id="vector-title"><i class="fa-solid fa-bezier-curve"></i> Vectorización</h2><p>Convertí logos e ilustraciones en formas SVG escalables.</p></div>
-          <label class="extra-upload" for="vector-file"><i class="fa-solid fa-cloud-arrow-up"></i><span><strong>Subir imagen</strong><small>PNG, JPG o WebP · máximo 24 MB</small></span><input id="vector-file" type="file" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp" class="sr-only"></label>
+          <div class="extra-inspector-title"><span>TRAZADO VECTORIAL</span><h2 id="vector-title"><i class="fa-solid fa-bezier-curve"></i> Vectorización</h2><button id="vector-panel-expand" type="button" aria-expanded="false">Ampliar panel</button><p>Convertí logos e ilustraciones en formas SVG escalables.</p></div>
+          <div id="vector-inspector-tabs" role="tablist" aria-label="Secciones de Vectorizar"><button type="button" role="tab" data-vector-page="trace" aria-controls="vector-page-trace" aria-selected="true">Trazado</button><button type="button" role="tab" data-vector-page="edit" aria-controls="vector-page-edit" aria-selected="false">Edición</button><button type="button" role="tab" data-vector-page="output" aria-controls="vector-page-output" aria-selected="false">Salida</button></div>
+          <div class="extra-control-scroll"><div id="vector-page-trace" role="tabpanel" aria-label="Trazado">
+          <label class="extra-upload" for="vector-file"><i class="fa-solid fa-cloud-arrow-up"></i><span><strong>Subir o arrastrar imagen</strong><small>PNG, JPG o WebP · máximo 24 MB</small></span><input id="vector-file" type="file" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp" class="sr-only"></label>
           <div class="extra-preset-grid" aria-label="Ajustes rápidos de vectorización">
             <button type="button" data-vector-preset="logo" class="active"><i class="fa-solid fa-copyright"></i><span>Logo</span></button>
             <button type="button" data-vector-preset="illustration"><i class="fa-solid fa-palette"></i><span>Ilustración</span></button>
             <button type="button" data-vector-preset="mono"><i class="fa-solid fa-circle-half-stroke"></i><span>Una tinta</span></button>
           </div>
-          <div class="extra-control-scroll">
-            <label class="extra-field-row"><span>Método</span><select id="vector-method"><option value="contours">Contornos editables</option><option value="blocks">Bloques · método anterior</option></select></label>
-            <label class="extra-field"><span>Simplificar contornos</span><input id="vector-path-tolerance" type="range" min="0" max="2" step="0.1" value="0"><small>0 conserva los detalles. Aumentar elimina nodos y puede cambiar bordes pequeños.</small></label>
-            <label class="extra-check"><input id="vector-curves" type="checkbox"><span>Redondear esquinas con curvas suaves</span></label>
-            <label class="extra-field-row"><span>Colores finales</span><span><input id="vector-colors" type="number" min="2" max="16" value="4"><small>2–16</small></span></label>
-            <label class="extra-field"><span>Detalle del trazado <output id="vector-detail-value">420 px</output></span><input id="vector-detail" type="range" min="180" max="2000" step="10" value="420"></label>
-            <label class="extra-field"><span>Suavizado previo <output id="vector-smoothing-value">1.0 px</output></span><input id="vector-smoothing" type="range" min="0" max="2.5" step="0.25" value="1"></label>
-            <label class="extra-field"><span>Eliminar ruido <output id="vector-noise-value">4 px</output></span><input id="vector-noise" type="range" min="0" max="30" step="1" value="4"></label>
-            <label class="extra-field"><span>Eliminar blancos <output id="vector-white-value">245</output></span><input id="vector-white" type="range" min="200" max="255" step="1" value="245"></label>
-            <label class="extra-check"><input id="vector-ignore-white" type="checkbox" checked><span>Convertir el blanco en transparencia</span></label>
-            <label class="extra-field-row"><span>Ancho físico</span><span><input id="vector-width-cm" type="number" min="2" max="57" step="0.5" value="30"><small>cm</small></span></label>
-            <label class="extra-check"><input id="vector-optimize" type="checkbox" checked><span>Optimizar y unir formas contiguas</span></label>
-          <small class="pro-help">Detalle controla los píxeles analizados. Suavizado actúa antes del trazado; limpieza elimina regiones pequeñas.</small><details class="pro-detail" open><summary>Paleta del resultado</summary><div id="vector-palette"><small>Vectorizá para editar los colores.</small></div></details></div>
-          <div class="extra-action-dock"><button id="vector-process" type="button" class="extra-secondary" disabled><i class="fa-solid fa-wand-magic-sparkles"></i> Vectorizar imagen</button><button id="vector-download" type="button" class="extra-primary" disabled><i class="fa-solid fa-download"></i> Descargar SVG</button></div>
+
+            <label class="extra-field-row"><span>Modo</span><select id="vector-mode"><option value="fidelity">Fidelidad al original</option><option value="simple">Simplificar diseño</option></select></label>
+            <label class="extra-field"><span>Detalle del análisis <output id="vector-detail-value">2400 px</output></span><input id="vector-detail" type="range" min="180" max="6000" step="10" value="2400"><small>Hasta 18 MP. Se conserva la proporción y nunca se amplía el original.</small></label>
+            <label class="extra-field-row"><span>Colores</span><input id="vector-colors" type="number" min="2" max="32" step="1" value="16"></label>
+            <label class="extra-field"><span>Desviación máxima <output id="vector-tolerance-value">0 px</output></span><input id="vector-path-tolerance" type="range" min="0" max="2" step="0.1" value="0"><small>0 conserva los segmentos originales. Las curvas requieren una desviación mayor a 0; se rechazan si alteran píxeles, huecos o esquinas protegidas.</small></label>
+            <label class="extra-check"><input id="vector-curves" type="checkbox"><span>Ajustar curvas Bézier al contorno</span></label>
+            <label class="extra-field"><span>Suavizado previo <output id="vector-smoothing-value">0 px</output></span><input id="vector-smoothing" type="range" min="0" max="2.5" step="0.25" value="0"><small>Modifica el análisis; usá 0 para máxima fidelidad.</small></label>
+            <label class="extra-check"><input id="vector-ignore-white" type="checkbox"><span>Quitar solo blanco conectado al exterior</span></label>
+            <label class="extra-field"><span>Umbral de blanco <output id="vector-white-value">245</output></span><input id="vector-white" type="range" min="200" max="255" step="1" value="245"><small>Los blancos interiores quedan protegidos.</small></label>
+            <label class="extra-field-row"><span>Ancho físico · cm</span><input id="vector-width-cm" type="number" min="2" max="57" step="0.01" value="30"></label>
+            <details class="pro-detail" open><summary>Paleta y colores protegidos</summary><div class="vector-buttons"><input id="vector-pin-color" type="color" value="#ffffff" aria-label="Color a proteger"><button id="vector-pin" type="button">Proteger color</button><button id="vector-eyedropper" type="button">Cuentagotas</button></div><div id="vector-pins"></div><small>Los colores protegidos se mantienen fijos al recalcular. El cuentagotas toma el original.</small><div id="vector-palette"></div></details>
+            </div><div id="vector-page-edit" role="tabpanel" aria-label="Edición" hidden>
+            <label class="extra-field-row"><span>Herramienta</span><select id="vector-tool"><option value="select">Seleccionar y mover</option><option value="nodes">Nodos y manejadores</option><option value="add">Añadir nodo sobre borde</option><option value="remove">Eliminar nodo</option><option value="measure">Medir trazo o separación</option><option value="eyedropper">Cuentagotas original</option></select></label><details id="vector-transform-panel" class="pro-detail" open><summary>Transformar selección</summary><div class="vector-number-grid"><label>X · mm<input id="vector-object-x" type="number" step="0.01"></label><label>Y · mm<input id="vector-object-y" type="number" step="0.01"></label><label>Ancho · mm<input id="vector-object-width" type="number" min="0.001" step="0.01"></label><label>Alto · mm<input id="vector-object-height" type="number" min="0.001" step="0.01"></label></div><label class="extra-check"><input id="vector-object-proportions" type="checkbox" checked><span>Conservar proporciones</span></label><div class="vector-buttons"><button id="vector-object-apply" type="button" data-advanced-action data-need="objects">Aplicar posición y tamaño</button><button id="vector-flip-x" type="button" data-advanced-action data-need="objects">Reflejar horizontal</button><button id="vector-flip-y" type="button" data-advanced-action data-need="objects">Reflejar vertical</button></div><label class="extra-field-row"><span>Giro adicional · °</span><input id="vector-object-angle" type="number" step="0.1" value="0"></label><button id="vector-object-rotate" type="button" data-advanced-action data-need="objects">Girar selección</button><small>Seleccionar muestra un marco con tiradores. Arrastrá una esquina para cambiar tamaño o el tirador superior para girar. Shift limita el giro a pasos de 15°.</small></details>
+            <details id="vector-nodes-panel" class="pro-detail"><summary>Edición precisa</summary><label class="extra-field-row"><span>Manejadores</span><select id="vector-handle-mode"><option value="free">Independientes</option><option value="aligned">Alineados</option><option value="symmetric">Simétricos</option></select></label><div class="vector-buttons"><button id="vector-nodes-align-x" type="button" data-advanced-action data-need="nodes">Alinear nodos en X</button><button id="vector-nodes-align-y" type="button" data-advanced-action data-need="nodes">Alinear nodos en Y</button></div><small>Shift + clic selecciona varios nodos. Arrastrá un rectángulo vacío para seleccionarlos. X/Y desplaza todo el conjunto desde el nodo activo.</small><div class="vector-buttons"><button id="vector-sharp" type="button">Nodo angular</button><button id="vector-smooth" type="button">Nodo suave</button></div><label class="extra-field-row"><span>Color de selección</span><select id="vector-object-color" aria-label="Color para los objetos seleccionados"></select></label><button id="vector-object-color-apply" type="button" class="extra-secondary">Aplicar color a selección</button><div class="vector-coordinates"><label>X · mm<input id="vector-node-x" type="number" step="0.01" disabled></label><label>Y · mm<input id="vector-node-y" type="number" step="0.01" disabled></label><button id="vector-node-apply" type="button">Aplicar posición</button></div><details class="pro-detail"><summary>Manejadores relativos · mm</summary><div class="vector-number-grid"><label>Entrada X<input id="vector-handle-in-x" type="number" step="0.01"></label><label>Entrada Y<input id="vector-handle-in-y" type="number" step="0.01"></label><label>Salida X<input id="vector-handle-out-x" type="number" step="0.01"></label><label>Salida Y<input id="vector-handle-out-y" type="number" step="0.01"></label></div><button id="vector-handles-apply" type="button" data-advanced-action data-need="nodes">Aplicar manejadores a nodos</button></details><p id="vector-node-info">Seleccioná un objeto; sus nodos aparecen en modo Nodos.</p><div class="vector-buttons"><button id="vector-unite" type="button">Unir</button><button id="vector-subtract" type="button">Restar</button><button id="vector-intersect" type="button">Intersectar</button></div><small>Operaciones entre dos objetos desbloqueados. Restar quita el segundo seleccionado del primero. Conservá una copia con Duplicar.</small></details>
+            <details class="pro-detail"><summary>Organizar objetos</summary><label class="extra-field"><span>Nombre del objeto o grupo</span><input id="vector-object-name" type="text" maxlength="80"></label><div class="vector-buttons"><button id="vector-name-apply" type="button" data-advanced-action data-need="objects">Renombrar</button><button id="vector-group" type="button" data-advanced-action data-need="objects">Agrupar</button><button id="vector-ungroup" type="button" data-advanced-action data-need="objects">Desagrupar</button></div><div class="vector-buttons"><button id="vector-order-front" type="button" data-advanced-action data-need="objects">Al frente</button><button id="vector-order-up" type="button" data-advanced-action data-need="objects">Subir</button><button id="vector-order-down" type="button" data-advanced-action data-need="objects">Bajar</button><button id="vector-order-back" type="button" data-advanced-action data-need="objects">Al fondo</button></div><label class="extra-field-row"><span>Alinear</span><select id="vector-align-mode"><option value="left">Izquierda</option><option value="center-x">Centro horizontal</option><option value="right">Derecha</option><option value="top">Arriba</option><option value="center-y">Centro vertical</option><option value="bottom">Abajo</option><option value="document-x">Centrar en documento · X</option><option value="document-y">Centrar en documento · Y</option></select></label><div class="vector-buttons"><button id="vector-align" type="button" data-advanced-action data-need="objects">Alinear</button><button id="vector-distribute-x" type="button" data-advanced-action data-need="objects">Distribuir horizontal</button><button id="vector-distribute-y" type="button" data-advanced-action data-need="objects">Distribuir vertical</button></div><small>Los grupos se seleccionan y transforman juntos; sus piezas mantienen el orden interno. Distribuir requiere tres objetos o grupos.</small></details>
+            <details class="pro-detail"><summary>Objetos y limpieza revisable</summary><label class="extra-field"><span>Detalle pequeño · hasta <output id="vector-noise-value">4 px²</output></span><input id="vector-noise" type="range" min="0" max="100" step="1" value="4"></label><label class="extra-check"><input id="vector-residues" type="checkbox"><span>Mostrar solo candidatos pequeños</span></label><div class="vector-buttons"><button id="vector-select-residues" type="button">Seleccionar candidatos</button><button id="vector-delete" type="button">Eliminar selección</button><button id="vector-duplicate" type="button">Duplicar</button></div><small>La limpieza no borra automáticamente. Shift + clic añade objetos a la selección.</small><div id="vector-objects"></div><button id="vector-more" type="button" hidden>Mostrar más objetos</button></details>
+            </div><div id="vector-page-output" role="tabpanel" aria-label="Salida" hidden>
+            <details class="pro-detail" open><summary>Revisar diseño a resolución completa</summary><div class="vector-number-grid"><label>Mínimo trazo/hueco · mm<input id="vector-diagnostic-mm" type="number" min="0.01" max="5" step="0.01" value="0.25"></label><label>Pieza pequeña · mm²<input id="vector-diagnostic-area" type="number" min="0" max="100" step="0.01" value="0.10"></label></div><button id="vector-diagnose" type="button" data-advanced-action data-need="document">Analizar trazos, huecos y contornos</button><p id="vector-diagnostic-info" role="status">Analizá el diseño para localizar cruces y detalles pequeños.</p><label class="extra-check"><input id="vector-diagnostic-show" type="checkbox" checked><span>Mostrar avisos en el lienzo</span></label><div id="vector-diagnostic-list"></div><label class="extra-field-row"><span>Umbral RGB/alfa · 0–255</span><input id="vector-native-threshold" type="number" min="0" max="255" step="1" value="24"></label><button id="vector-review-native" type="button" data-advanced-action data-need="document">Comparar todos los píxeles</button><p id="vector-native-info" role="status">La revisión completa compara cada píxel a la resolución del análisis.</p><label class="extra-check"><input id="vector-native-show" type="checkbox"><span>Mostrar mapa de revisión completa</span></label><div class="vector-buttons"><button id="vector-native-previous" type="button">Cambio anterior</button><button id="vector-native-next" type="button">Cambio siguiente</button></div><small>Rosa: pérdida de cobertura; azul: cobertura añadida; ámbar: color o alfa. Las medidas raster tienen precisión de un píxel del análisis. Los avisos no modifican el diseño.</small></details>
+
+            <details class="pro-detail" open><summary>Proyecto y exportación</summary><div class="vector-buttons"><button id="vector-project-save" type="button">Guardar .vector</button><button id="vector-project-open" type="button">Abrir .vector</button><button id="vector-local-restore" type="button">Recuperar guardado local</button></div><input id="vector-project-file" type="file" accept=".vector" hidden><small id="vector-save-info">El proyecto incluye el original, objetos, colores y ajustes. Guardado local automático después de editar.</small><label class="extra-field-row"><span>SVG por color</span><select id="vector-export-color" aria-label="Color a exportar"></select></label><div class="vector-buttons"><button id="vector-download-color" type="button">Descargar color SVG</button><button id="vector-download-png" type="button">PNG transparente · 300 DPI</button></div></details></div></div>
+          <div class="extra-action-dock"><button id="vector-process" type="button" class="extra-secondary" disabled><i class="fa-solid fa-wand-magic-sparkles"></i> Vectorizar imagen</button><button id="vector-cancel" type="button" class="extra-secondary" hidden>Cancelar</button><button id="vector-download" type="button" class="extra-primary" disabled><i class="fa-solid fa-download"></i> Descargar SVG</button></div>
         </aside>
         <div class="extra-workspace">
-          <div class="extra-toolbar"><div class="tool-segmented"><button type="button" data-vector-view="original">Original</button><button type="button" data-vector-view="result" class="active">Vector</button></div><span id="vector-document-info">Sin documento</span><button id="vector-undo" type="button" disabled aria-label="Deshacer vectorización">↶</button><button id="vector-redo" type="button" disabled aria-label="Rehacer vectorización">↷</button><label>Zoom <select id="vector-zoom" aria-label="Zoom vectorial"><option value="fit">Ajustar</option><option value="100">100%</option><option value="200">200%</option><option value="400">400%</option></select></label><label><input id="vector-compare" type="checkbox"> Comparar</label><input id="vector-divider" type="range" min="0" max="100" value="50" aria-label="División original y vector"><button id="vector-fit" type="button" title="Ajustar a la mesa"><i class="fa-solid fa-expand"></i> Ajustar</button></div>
+          <div class="extra-toolbar"><div class="tool-segmented"><button type="button" data-vector-view="original">Original</button><button type="button" data-vector-view="result" class="active">Vector</button></div><span id="vector-document-info">Sin documento</span><button id="vector-undo" type="button" disabled aria-label="Deshacer vectorización">↶</button><button id="vector-redo" type="button" disabled aria-label="Rehacer vectorización">↷</button><label>Zoom <select id="vector-zoom" aria-label="Zoom vectorial"><option value="fit">Ajustar</option><option value="100">100%</option><option value="200">200%</option><option value="400">400%</option><option value="800">800%</option><option value="1600">1600%</option><option value="3200">3200%</option></select></label><label><input id="vector-loupe" type="checkbox"> Lupa 4×</label><label><input id="vector-difference" type="checkbox"> Diferencias</label><label><input id="vector-compare" type="checkbox"> Comparar</label><input id="vector-divider" type="range" min="0" max="100" value="50" aria-label="División original y vector"><button id="vector-fit" type="button" title="Ajustar a la mesa"><i class="fa-solid fa-expand"></i> Ajustar</button></div>
           <div id="vector-viewport" class="extra-viewport checkerboard"><canvas id="vector-canvas" width="900" height="600" aria-label="Vista previa de la vectorización"></canvas><div id="vector-empty" class="extra-empty"><i class="fa-solid fa-bezier-curve"></i><strong>Prepará un SVG para DTF</strong><span>Funciona mejor con logos, tipografías e ilustraciones de colores definidos.</span></div></div>
-          <div class="extra-statusbar"><span id="vector-status" role="status">Subí una imagen para comenzar.</span><strong id="vector-result-info">SVG editable</strong></div>
+          <div class="extra-statusbar"><span id="vector-status" role="status">Subí una imagen para comenzar.</span><strong id="vector-result-info">SVG editable · conservá el original</strong></div>
         </div>
       </div>
     </section>
 
     <section id="calculadora-dtf" class="tool-panel extra-tool-panel" aria-label="Calculadora DTF" hidden>
-      <div class="calc-mode-switch" role="tablist" aria-label="Tipo de cálculo">
-        <button id="calc-equipment-tab" type="button" role="tab" aria-selected="false" aria-controls="calc-team-mode"><i class="fa-solid fa-people-group"></i><span><strong>Equipos</strong><small>Nombres y números por integrante</small></span></button>
-        <button id="calc-team-tab" type="button" class="active" role="tab" aria-selected="true" aria-controls="calc-team-mode"><i class="fa-solid fa-boxes-stacked"></i><span><strong>Pedidos personalizados</strong><small>Logos, textos, fotos y diseños</small></span></button>
-        <button id="calc-sheet-tab" type="button" role="tab" aria-selected="false" aria-controls="calc-sheet-mode"><i class="fa-solid fa-table-cells-large"></i><span><strong>Diseño repetido</strong><small>Calculadora técnica de pliegos</small></span></button>
-      </div>
-
-      <div id="calc-team-mode" class="team-quote" role="tabpanel" aria-labelledby="calc-team-tab">
-        <header class="team-quote-heading">
-          <div><span>PEDIDOS PERSONALIZADOS</span><h2>Armá tu pedido de impresión DTF</h2><p>Agregá cada diseño con su medida y cantidad. La calculadora estima el material y el precio de impresión.</p></div>
-          <span class="team-scope-note"><i class="fa-solid fa-circle-info" aria-hidden="true"></i> Prendas no incluidas</span>
-        </header>
-        <div class="team-quote-grid">
-          <div class="team-order-editor">
-            <section class="team-section" aria-labelledby="team-order-title">
-              <div class="team-section-heading"><span class="team-step">1</span><div><h3 id="team-order-title">Datos del pedido</h3><p>Identificá a quién pertenece esta cotización.</p></div></div>
-              <label class="team-field"><span>Cliente o nombre del pedido <small>Opcional</small></span><input id="team-customer" type="text" maxlength="60" placeholder="Ej. Academia Monimbó"></label>
-            </section>
-            <section class="team-section" aria-labelledby="team-roster-title">
-              <div class="team-section-heading"><span class="team-step">2</span><div><h3 id="team-roster-title">Diseños del pedido</h3><p>Una referencia por diseño y medida. La cantidad indica cuántas copias se imprimen.</p></div></div>
-              <div class="team-template-bar" aria-label="Agregar diseño"><button type="button" data-team-template="equipo" class="team-template-equipo"><i class="fa-solid fa-people-group" aria-hidden="true"></i> Equipo · nombre y número</button><button type="button" data-team-template="logo"><i class="fa-solid fa-certificate" aria-hidden="true"></i> Logo</button><button type="button" data-team-template="texto"><i class="fa-solid fa-font" aria-hidden="true"></i> Texto</button><button type="button" data-team-template="foto"><i class="fa-solid fa-camera" aria-hidden="true"></i> Foto</button><button id="team-add-member" type="button"><i class="fa-solid fa-plus" aria-hidden="true"></i> Otro diseño</button></div>
-              <div id="team-roster-body" class="team-reference-list" aria-label="Referencias del pedido"></div>
-              <div class="team-list-tools"><button id="team-example" type="button"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> Agregar ejemplo</button><span>Las medidas sugeridas se pueden editar.</span></div>
-              <details class="team-paste-list">
-                <summary><i class="fa-solid fa-list-check" aria-hidden="true"></i> Importar varias referencias o un equipo</summary>
-                <label class="team-field"><span>Formato de la lista</span><select id="team-import-format"><option value="designs">Diseños con medidas y cantidades</option><option value="team">Equipo: nombres y números</option></select></label>
-                <p id="team-import-help">Una línea por diseño: detalle; tipo; ancho; alto; cantidad; prenda; talla. Prenda y talla son opcionales.</p>
-                <textarea id="team-paste-input" rows="4" aria-label="Lista de diseños para importar" placeholder="Logo Academia; logo; 10; 10; 12; camiseta; M&#10;Foto familiar; foto; 20; 25; 2; hoodie; L"></textarea>
-                <p id="team-import-error" class="team-roster-error" role="alert" hidden></p>
-                <button id="team-import-list" type="button">Agregar al pedido</button>
-                <small>La importación agrega referencias y conserva las que ya tenés.</small>
-              </details>
-              <p id="team-roster-error" class="team-roster-error" role="alert" hidden></p>
-            </section>
-            <section class="team-section" aria-labelledby="team-production-title">
-              <div class="team-section-heading"><span class="team-step">3</span><div><h3 id="team-production-title">Producción y costos</h3><p>Ajustá el material disponible y tus costos de impresión.</p></div></div>
-              <div class="team-production-fields">
-                <label class="team-field"><span>Ancho del DTF</span><select id="team-roll-width"><option value="57" selected>57 cm</option><option value="30">30 cm</option><option value="60">60 cm</option></select></label>
-                <label class="team-field"><span>Separación <small>cm</small></span><input id="team-gap" type="number" min="0" max="10" step="0.1" value="1"></label>
-                <label class="team-field"><span>Margen exterior <small>cm</small></span><input id="team-margin" type="number" min="0" max="10" step="0.1" value="0.5"></label>
-              </div>
-              <label class="team-check"><input id="team-rotate" type="checkbox" checked><span>Permitir girar las piezas para aprovechar el DTF</span></label>
-              <details class="team-costs" open>
-                <summary>Costos y margen <small>Ingresalos para cotizar</small></summary>
-                <div class="team-cost-grid">
-                  <label class="team-field"><span>DTF por metro <small>C$</small></span><input id="team-meter-cost" type="number" min="0" max="1000000" step="0.01" value="0"></label>
-                  <label class="team-field"><span>Aplicación por estampado <small>C$</small></span><input id="team-press-cost" type="number" min="0" max="1000000" step="0.01" value="0"></label>
-                  <label class="team-field"><span>Preparación del pedido <small>C$</small></span><input id="team-setup-cost" type="number" min="0" max="1000000" step="0.01" value="0"></label>
-                  <label class="team-field"><span>Margen sobre precio final <small>%</small></span><input id="team-profit" type="number" min="0" max="90" step="0.1" value="30"></label>
-                </div>
-                <p>El material se redondea hacia arriba en tramos de 10 cm. El precio sugerido aplica el margen sobre el precio de venta; no es un recargo sobre el costo.</p>
-              </details>
-            </section>
-          </div>
-          <aside class="team-quote-summary" aria-labelledby="team-summary-title">
-            <div class="team-summary-heading"><span>RESUMEN DEL PEDIDO</span><h3 id="team-summary-title">Tu cotización</h3><p id="team-summary-count">Sin referencias todavía</p></div>
-            <div class="team-price"><span>Total de impresión sugerido</span><strong id="team-summary-total">Agregar diseños</strong><small id="team-summary-unit">Prendas y envío no incluidos</small></div>
-            <div class="team-summary-cards"><article><span>DTF facturable</span><strong id="team-summary-length">—</strong><small id="team-summary-raw">Distribución pendiente</small></article><article><span>Estampados</span><strong id="team-summary-pieces">0</strong><small>incluye todas las copias</small></article></div>
-            <dl class="team-cost-breakdown"><div><dt>Material</dt><dd id="team-cost-material">—</dd></div><div><dt>Aplicación</dt><dd id="team-cost-application">—</dd></div><div><dt>Preparación</dt><dd id="team-cost-preparation">—</dd></div><div><dt>Costo de producción</dt><dd id="team-cost-base">—</dd></div></dl>
-            <details class="team-layout-details"><summary>Ver distribución estimada</summary><canvas id="team-roll-preview" width="520" height="300" aria-label="Distribución estimada de piezas sobre el DTF"></canvas><p>Esquema de medidas, sin archivos de arte. La distribución es aproximada y debe revisarse antes de imprimir.</p></details>
-            <p id="team-summary-status" class="team-summary-status" role="status" aria-live="polite">Agregá el detalle, la medida y la cantidad del primer diseño.</p>
-            <div class="team-summary-actions"><button id="team-copy" type="button" disabled><i class="fa-solid fa-copy" aria-hidden="true"></i> Copiar pedido</button><button id="team-whatsapp" type="button" class="primary" disabled><i class="fa-brands fa-whatsapp" aria-hidden="true"></i> Compartir pedido</button></div>
-          </aside>
-        </div>
-      </div>
-
-      <div id="calc-sheet-mode" role="tabpanel" aria-labelledby="calc-sheet-tab" hidden>
+      <div id="calc-sheet-mode" role="group" aria-label="Calculadora técnica de pliegos">
       <div class="extra-studio-grid">
         <aside class="extra-controls" aria-label="Datos para cotizar DTF">
           <div class="extra-inspector-title"><span>PRODUCCIÓN Y COTIZACIÓN</span><h2 id="calculator-title"><i class="fa-solid fa-calculator"></i> Calculadora DTF</h2><p>Calculá capacidad, pliegos, costos y precio sugerido.</p></div>
@@ -536,6 +494,7 @@
       <div><span>Zoom</span><strong id="studio-tech-zoom">Ajustar</strong></div>
       <button id="studio-inspect-output" type="button" disabled><i class="fa-solid fa-magnifying-glass-chart" aria-hidden="true"></i> Diagnóstico DTF</button>
     </footer>
+    <section id="tipografias" class="tool-panel extra-tool-panel typography-panel" aria-label="Estudio de tipografías" hidden><iframe id="typography-frame" title="Mesa de tipografías · Momotus Core" data-src="herramientas/tipografias/?integrado=1"></iframe></section>
   </main>
 
   <section class="border-t border-zinc-800 bg-black py-14">
@@ -552,7 +511,7 @@
       <div id="dtf-preflight-summary" class="dtf-preflight-summary"></div>
       <div class="dtf-export-settings">
         <label><span>Nombre del archivo</span><input id="dtf-export-name" type="text" maxlength="90" autocomplete="off" spellcheck="false"></label>
-        <div class="dtf-export-format"><span>Formato de salida</span><strong><i class="fa-regular fa-file-image" aria-hidden="true"></i> PNG · 300 DPI · transparencia sólida</strong></div>
+        <label id="dtf-export-alpha-control" hidden><span>Transparencia de salida</span><select id="dtf-export-alpha"><option value="binary">Sólida para DTF · alfa 0/255</option><option value="preserve">Conservar alfa del resultado</option></select><small>La salida sólida convierte los bordes suaves mediante tramado. Conservar alfa mantiene las semitransparencias del resultado. El fondo de revisión no se descarga.</small></label><div class="dtf-export-format"><span>Formato de salida</span><strong id="dtf-export-format-label"><i class="fa-regular fa-file-image" aria-hidden="true"></i> PNG · 300 DPI · transparencia sólida</strong></div>
       </div>
       <div class="dtf-export-preview">
         <div class="dtf-export-preview-stage checkerboard"><canvas id="dtf-export-preview-canvas" width="360" height="220" aria-label="Vista previa del archivo que se descargará"></canvas></div>
@@ -571,7 +530,7 @@
   </div>
 
   <div id="cart-modal-placeholder"></div>
-  <script src="herramientas/js/tools-loader.js?v=20261007-precision-1"></script>
+  <script src="herramientas/js/tools-loader.js?v=20261023-catalog-preserved-1"></script>
   <script src="js/performance.js?v=20261006-1" defer></script>
 </body>
 </html>

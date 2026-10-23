@@ -451,6 +451,10 @@
     if (!Array.isArray(changes) || !changes.length) return null;
     if (changes.length > 1) return `${changes.length} ajustes actualizados`;
     const change = changes[0];
+    if(change.id==='__halftoneMaskVersion')return 'Selección y protección de Semitonos actualizadas';
+    if(change.id==='__zoneVersion')return 'Máscara de color por zonas actualizada';
+    if(change.id==='__qualityStudioVersion')return 'Color, detalle o capas de Calidad actualizados';
+    if(change.id==='__qualityLocalVersion')return 'Selección de ajustes locales actualizada';
     const control = byId(change.id);
     const label = cleanLabel(control?.closest('label')?.querySelector('span')?.textContent || change.id.replace(/^(halftone|background|quality)-/, '').replaceAll('-', ' '));
     const format = value => typeof value === 'boolean' ? (value ? 'Sí' : 'No') : String(value);
@@ -536,20 +540,22 @@
 
   const updateTechnicalBar = () => {
     technicalFrame = 0;
+    if(document.hidden)return;
     const extra=document.querySelector('.extra-tool-panel:not([hidden])');
     if(extra){
       let name='Cotización DTF',pixels='Esquema',size='—',dpi='No aplica',alpha='No aplica',zoom='Ajustar',ready=false;
       if(extra.id==='vectorizacion'){
-        name='Vectorización SVG';const c=byId('vector-canvas');ready=!byId('vector-download').disabled;
+        name='Vectorización SVG';const c=window.MomotusVectorAPI?.getDocumentInfo();ready=!!c&&!byId('vector-download').disabled;
         pixels=ready?`${c.width} × ${c.height} px de análisis`:'—';
         const cm=Number(byId('vector-width-cm').value);size=ready?`${cm.toFixed(1)} × ${(cm*c.height/c.width).toFixed(1)} cm`:'—';dpi='SVG escalable';alpha=ready?'Según paleta':'—';zoom=byId('vector-zoom').value==='fit'?'Ajustar':byId('vector-zoom').value+'%';
       }else if(extra.id==='efectos-dtf'){
         name='Efectos DTF';const info=window.MomotusEffectsAPI?.getDocumentInfo();ready=window.MomotusEffectsAPI?.hasDocument();
         pixels=info?`${info.naturalWidth} × ${info.naturalHeight} px`:'—';const cm=Number(byId('effects-width').value);size=info?`${cm.toFixed(1)} × ${(cm*info.naturalHeight/info.naturalWidth).toFixed(1)} cm`:'—';dpi='300 DPI';alpha='Según fondo y zonas';zoom=byId('effects-stage').classList.contains('is-zoom')?'100%':'Ajustar';
-      }else{ready=byId('calc-sheet-mode').hidden?!byId('team-copy')?.disabled:Boolean(byId('calc-sheets').textContent!=='—');size=byId('calc-sheet-mode').hidden?byId('team-summary-length').textContent:byId('calc-layout-label').textContent;}
+      }else if(extra.id==='tipografias'){name='Estudio de tipografías';ready=true;dpi='300 DPI / SVG';}
+      else{ready=Boolean(byId('calc-sheets').textContent!=='—');size=byId('calc-layout-label').textContent;}
       for(const [id,value]of [['studio-tech-document',name],['studio-tech-pixels',pixels],['studio-tech-size',size],['studio-tech-dpi',dpi],['studio-tech-alpha',alpha],['studio-tech-zoom',zoom]])byId(id).textContent=value;
       byId('studio-tech-alpha').classList.remove('warning');byId('studio-tech-alpha').title='';byId('studio-inspect-output').disabled=true;
-      byId('editor-image-info').textContent=name;byId('editor-workspace-state').querySelector('strong').textContent=ready?'Resultado listo':'Listo';
+      if(byId('editor-image-info').textContent!==name)byId('editor-image-info').textContent=name;byId('editor-workspace-state').querySelector('strong').textContent=ready?'Resultado listo':'Listo';
       return;
     }
     activeType = getActiveType();
@@ -657,6 +663,7 @@
       control.addEventListener('change', scheduleTechnicalUpdate);
     });
     byId('studio-inspect-output')?.addEventListener('click', () => byId(toolMeta[getActiveType()].download)?.click());
+    document.addEventListener('visibilitychange', scheduleTechnicalUpdate);
     window.addEventListener('momotus:workspace-update', scheduleTechnicalUpdate);
     window.addEventListener('momotus:result-ready', scheduleTechnicalUpdate);
     window.addEventListener('momotus:extra-tool',scheduleTechnicalUpdate);

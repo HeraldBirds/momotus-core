@@ -1,0 +1,1 @@
+'use strict';importScripts(`tools-calculator-core.js${self.location.search}`);self.onmessage=e=>{try{const result=MomotusCalculator.calculate(e.data.references,e.data.settings,progress=>self.postMessage({progress}));self.postMessage({result});}catch(error){self.postMessage({error:error.message});}};

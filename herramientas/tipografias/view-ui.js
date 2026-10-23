@@ -1,0 +1,28 @@
+/* View-only layout: never mutates geometry, physical dimensions or export settings. */
+window.MomotusTypeViewUI=function(A){
+'use strict';const {C,$}=A,S=A.state,body=document.body,v=$('viewport'),toolbar=document.querySelector('.toolbar>div');let focus=false,parentPanel=null,parentBody=null,follow=false,resizeFrame=0;
+const create=(id,label,title)=>{const b=document.createElement('button');b.id=id;b.type='button';b.textContent=label;b.title=title;toolbar.append(b);return b;};
+const background=$('background').closest('label'),backgroundRow=background.parentElement;document.querySelector('.guide-options').append(background);backgroundRow.remove();
+const art=create('type-fit-art','Ver diseño','Ajustar el diseño visible sin cambiar sus medidas');art.className='primary';
+const expand=create('type-focus-view','Edición amplia','Ocupar toda la pantalla de la página con el editor');expand.setAttribute('aria-pressed','false');
+const text=create('type-open-text','Texto / capas','Abrir panel de texto, fuentes y capas'),inspector=create('type-open-inspector','Ajustes','Abrir medidas, color, letras y exportación');
+for(const [b,side]of [[text,'left'],[inspector,'right']]){b.className='type-drawer-toggle';b.setAttribute('aria-expanded','false');b.setAttribute('aria-controls',side==='left'?'type-left-panel':'type-right-panel');const panel=document.querySelector('aside.'+side);panel.id=b.getAttribute('aria-controls');const close=document.createElement('button');close.type='button';close.className='type-drawer-close';close.textContent='Cerrar panel';panel.prepend(close);close.onclick=()=>{closeDrawers();b.focus();};b.onclick=()=>toggleDrawer(side);}
+function closeDrawers(){body.classList.remove('type-left-open','type-right-open');text.setAttribute('aria-expanded','false');inspector.setAttribute('aria-expanded','false');}
+function toggleDrawer(side){const open=body.classList.contains('type-'+side+'-open');closeDrawers();if(!open){body.classList.add('type-'+side+'-open');(side==='left'?text:inspector).setAttribute('aria-expanded','true');}}
+function centerBox(b){const s=S(),x=s.doc.mirror?s.doc.widthCm*10-(b.x1+b.x2)/2:(b.x1+b.x2)/2,y=(b.y1+b.y2)/2,r=$('view').getBoundingClientRect(),vp=v.getBoundingClientRect();v.scrollLeft+=r.left+x*s.scale-(vp.left+v.clientWidth/2);v.scrollTop+=r.top+y*s.scale-(vp.top+v.clientHeight/2);}
+function fitArt(){if(S().busy||S().drag)return;const boxes=S().layout?.layers.map(q=>q.box).filter(b=>Object.values(b).every(Number.isFinite))||[];if(!boxes.length){A.fit();return;}const b={x1:Math.min(...boxes.map(b=>b.x1)),y1:Math.min(...boxes.map(b=>b.y1)),x2:Math.max(...boxes.map(b=>b.x2)),y2:Math.max(...boxes.map(b=>b.y2))};const scale=Math.min(Math.max(1,v.clientWidth-96)/Math.max(1,b.x2-b.x1),Math.max(1,v.clientHeight-80)/Math.max(1,b.y2-b.y1));A.setZoom(Math.min(1600,Math.max(1,scale*25.4/3)));follow=true;requestAnimationFrame(()=>centerBox(b));}
+art.onclick=fitArt;$('type-center').onclick=fitArt;
+// Keep the familiar document fit separate from fitting the artwork.
+$('fit').textContent='Ver documento';$('fit').title='Ver el lienzo completo con sus márgenes';$('fit').addEventListener('click',()=>{follow=false;});$('native').addEventListener('click',()=>{follow=false;});$('zoom').addEventListener('change',()=>{follow=false;});v.addEventListener('wheel',e=>{if(e.ctrlKey)follow=false;},{passive:true});v.addEventListener('pointerdown',()=>{follow=false;},{capture:true});
+$('wide').onclick=()=>{if(S().busy)return;A.finish();const on=body.classList.toggle('workspace-wide');$('wide').setAttribute('aria-pressed',String(on));$('wide').textContent=on?'Ver paneles':'Solo lienzo';closeDrawers();requestAnimationFrame(fitArt);};$('wide').textContent='Solo lienzo';
+function setFocus(on){if(S().busy&&on)return;A.finish();focus=on;closeDrawers();body.classList.toggle('type-focus',on);expand.setAttribute('aria-pressed',String(on));expand.textContent=on?'Salir de edición amplia':'Edición amplia';if(parentPanel){parentPanel.classList.toggle('typography-expanded-view',on);parentBody.classList.toggle('typography-expanded-view-open',on);}requestAnimationFrame(()=>requestAnimationFrame(fitArt));}
+try{if(window.parent!==window){parentPanel=window.frameElement?.closest('#tipografias');parentBody=parentPanel?window.parent.document.body:null;}}catch{}
+expand.onclick=()=>setFocus(!focus);
+if(parentPanel)new MutationObserver(()=>{if(parentPanel.hidden&&focus)setFocus(false);}).observe(parentPanel,{attributes:true,attributeFilter:['hidden']});
+window.addEventListener('keydown',e=>{if(e.key!=='Escape'||document.querySelector('dialog[open]'))return;if(body.classList.contains('type-left-open')||body.classList.contains('type-right-open')){closeDrawers();e.preventDefault();expand.focus();}else if(focus){setFocus(false);e.preventDefault();expand.focus();}});
+window.addEventListener('pagehide',()=>{parentPanel?.classList.remove('typography-expanded-view');parentBody?.classList.remove('typography-expanded-view-open');});
+// Guided actions and the export shortcut open the relevant drawer in expanded views.
+for(const [id,side]of [['tab-text','left'],['tab-styles','left'],['tab-layers','left'],['tab-document','left'],['tab-geometry','right'],['tab-color','right'],['tab-letters','right'],['tab-export','right'],['export-open','right']])$(id).addEventListener('click',()=>{if(focus||body.classList.contains('workspace-wide')){closeDrawers();body.classList.add('type-'+side+'-open');(side==='left'?text:inspector).setAttribute('aria-expanded','true');}});
+new ResizeObserver(()=>{if(!follow||resizeFrame)return;resizeFrame=requestAnimationFrame(()=>{resizeFrame=0;if(follow)fitArt();});}).observe(v);
+return{fitArt};
+};

@@ -58,18 +58,17 @@ const categoryLabels = {
   fauna: 'Fauna Nica',
   anime: 'Anime',
   urbano: 'Urbano',
-  games: 'Games',
-  unica: 'Únicas'
+  games: 'Games'
 };
 
-Object.assign(categoryLabels,window.MomotusStoreConfig?.categories || {});
+Object.assign(categoryLabels,window.MomotusCatalog?.settings?.categories || {});
+delete categoryLabels.unica;
 
 const categorySearchTerms = {
   fauna: 'fauna nica ave aves pajaro pajaros buho buhos lechuza naturaleza nicaragua',
   anime: 'anime manga japones japonés',
   urbano: 'urbano carro carros musica música terror calle',
-  games: 'games juego juegos videojuego videojuegos gamer',
-  unica: 'unica únicas unicas exclusivo limitada limitado nica nicaragua bandera'
+  games: 'games juego juegos videojuego videojuegos gamer'
 };
 
 const normalizeSearchText = value => String(value || '')
@@ -148,13 +147,25 @@ const getGarmentPlaceholder = garmentKey => {
 document.addEventListener('error', event => {
   const image = event.target;
   if (!(image instanceof HTMLImageElement) || image.dataset.fallbackApplied === 'true') return;
+  const fullSource = image.dataset.fullSrc;
+  if (fullSource && image.dataset.fullFallbackApplied !== 'true' && image.getAttribute('src') !== fullSource) {
+    image.dataset.fullFallbackApplied = 'true';
+    image.removeAttribute('srcset');
+    image.removeAttribute('sizes');
+    image.src = fullSource;
+    return;
+  }
   const variantFallback = image.dataset.fallbackSrc;
   if (variantFallback && image.dataset.variantFallbackApplied !== 'true') {
     image.dataset.variantFallbackApplied = 'true';
+    image.removeAttribute('srcset');
+    image.removeAttribute('sizes');
     image.src = variantFallback;
     return;
   }
   image.dataset.fallbackApplied = 'true';
+  image.removeAttribute('srcset');
+  image.removeAttribute('sizes');
   image.src = getGarmentPlaceholder(image.dataset.garment);
   image.alt = image.alt ? `${image.alt} — imagen no disponible` : 'Imagen no disponible';
 }, true);
@@ -791,9 +802,14 @@ const renderProducts = (filteredProducts, target = document.getElementById('prod
     const card = document.createElement('div');
     card.className = 'product-card bg-zinc-900 rounded-3xl overflow-hidden group relative';
     card.dataset.productId = String(product.id);
+    const preview = window.MomotusPhotoPreviews?.[product.img];
+    // sizes/srcset se asignan antes de src; la vista ampliada sigue usando el original.
+    const imageSource = preview
+      ? `sizes="(max-width: 640px) 46vw, (max-width: 1024px) 30vw, 280px" srcset="${preview} 512w, ${product.img} 1024w" src="${preview}"`
+      : `src="${product.img}"`;
     card.innerHTML = `
       <div class="relative">
-        <img src="${product.img}" data-fallback-src="${product.fallbackImg || ''}" data-garment="${product.garment}" width="320" height="320" loading="lazy" decoding="async" alt="${product.name}" onclick="showQuickView(${product.id})" class="w-full aspect-square object-cover transition group-hover:scale-105 cursor-pointer">
+        <img ${imageSource} data-full-src="${preview ? product.img : ''}" data-fallback-src="${product.fallbackImg || ''}" data-garment="${product.garment}" width="320" height="320" loading="lazy" decoding="async" alt="${product.name}" onclick="showQuickView(${product.id})" class="w-full aspect-square object-cover transition group-hover:scale-105 cursor-pointer">
         <span class="absolute top-4 left-4 bg-black/70 text-white text-xs font-medium px-3 py-1 rounded-full">${product.garmentName}</span>
         <button onclick="event.stopImmediatePropagation(); ${inWishlist ? `removeFromWishlist(${product.id})` : `addToWishlist(${product.id})`}" aria-label="${inWishlist ? 'Quitar' : 'Añadir'} ${product.name} de favoritos" class="absolute top-4 right-4 text-2xl ${inWishlist ? 'text-red-500' : 'text-white/70 hover:text-red-500'} transition">
           <i class="fa-solid fa-heart"></i>
@@ -824,6 +840,7 @@ const filterGarment = garment => {
 };
 
 const filterCategory = (cat) => {
+  if (cat !== 'all' && cat !== 'aguizotes' && !Object.hasOwn(categoryLabels, cat)) cat = 'all';
   currentCategory = cat;
   currentSubcategory = 'all';
   document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.toggle('active', btn.id === `filter-${cat}`));
@@ -991,6 +1008,7 @@ window.onload = () => {
     if (garment === 'all' || garmentOrder.includes(garment)) currentGarment = garment;
     const category = params.get('categoria');
     if (([...Object.keys(categoryLabels),'aguizotes']).includes(category)) currentCategory = category;
+    else if (category === 'unica') { params.delete('categoria'); const nextURL = new URL(location.href); nextURL.search = params.toString(); history.replaceState(null, '', nextURL); }
     const subcategory=params.get('subcategoria');
     if(currentCategory === 'urbano' && Object.hasOwn(urbanSubcategories,subcategory)) currentSubcategory=subcategory;
     currentSearchTerm = (params.get('buscar') || '').toLowerCase().trim();

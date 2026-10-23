@@ -322,6 +322,12 @@
  .production-brand > i { flex-shrink: 0; }
 }
 
+.momotus-studio .tool-preparation-link {
+ display: inline-flex; align-items: center; flex-shrink: 0; min-height: 34px;
+ padding: 7px 10px; border: 1px solid #80724f; border-radius: 8px;
+ background: #37352d; color: #efdaad; font-size: 11px; font-weight: 700;
+}
+.momotus-studio .tool-preparation-link:focus-visible { outline: 2px solid #99c8ff; outline-offset: 2px; }
 /* Fill the desktop viewport without reserving space for the hidden intro. */
 @media (min-width: 1024px) {
  body.momotus-studio {
@@ -343,3 +349,22 @@
  body.momotus-studio.effects-tool-active .tools-editor-grid > nav { grid-row: 1 / -1; }
  body.momotus-studio.effects-tool-active .studio-technical-bar { display: none; }
 }
+
+/* Tipografías comparte la navegación del Studio; su motor mantiene un documento propio. */
+@media(min-width:1024px){
+ body.typography-tool-active main.tools-editor-grid{grid-template-rows:minmax(0,1fr)!important}
+ body.typography-tool-active .tools-editor-grid>.tool-probar,body.typography-tool-active .studio-technical-bar{display:none!important}
+ body.typography-tool-active .tools-editor-grid>nav{grid-row:1/-1!important}
+ body.typography-tool-active #tipografias{grid-row:1!important;min-height:0;overflow:hidden;padding:0;display:block}
+ #typography-frame{display:block;border:0;width:100%;height:100%;min-height:0;background:#151c26}
+}
+
+@media(min-width:1024px){#calculadora-dtf:not([hidden]){display:flex;flex-direction:column;min-height:0;overflow:hidden}#calculadora-dtf #calc-sheet-mode{flex:1 1 auto;min-height:0}#calculadora-dtf #calc-sheet-mode>.extra-studio-grid{height:100%}}
+
+@media(min-width:1024px){.momotus-studio .tool-shortcut[data-extra-tool="tipografias"] i{color:#d7bd91}.momotus-studio .tool-shortcut[data-extra-tool="tipografias"].active{background:#37332b;border-color:#d7bd91;box-shadow:inset 3px 0 #d7bd91}.momotus-studio .tool-shortcut[data-extra-tool="tipografias"].active i{color:#eed8b1}}
+
+@media(min-width:1024px) and (max-height:700px){.momotus-studio .tools-editor-grid>nav{gap:6px}.momotus-studio .tool-shortcut{min-height:64px;padding:7px 5px;gap:5px}}
+/* Expanded typography is contained in its tool; leaving restores the shell. */
+body.typography-expanded-view-open{overflow:hidden!important}
+body.typography-tool-active #tipografias.typography-expanded-view{position:fixed!important;inset:0!important;width:100vw!important;height:100dvh!important;max-width:none!important;max-height:none!important;z-index:10000!important;margin:0!important;padding:0!important;border:0!important;background:#141b24}
+#tipografias.typography-expanded-view #typography-frame{width:100%;height:100%}

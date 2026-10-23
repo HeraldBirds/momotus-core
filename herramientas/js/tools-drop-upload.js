@@ -1,0 +1,28 @@
+/* Native file-input routes share each tool's existing decoder and safeguards. */
+(()=>{
+ 'use strict';if(!window.MOMOTUS_TOOLS_DESKTOP)return;
+ const $=id=>document.getElementById(id),visible=e=>!!(e&&!e.hidden&&e.getClientRects().length),busy=new Set();
+ const routes={semitonos:['halftone-file','Semitonos','halftone'], 'eliminar-fondo':['background-file','Rango de color','background'], 'mejorar-calidad':['quality-file','Calidad y color','quality'],vectorizacion:['vector-file','Vectorizar','vector'],'efectos-dtf':['effects-file','Efectos','effects'],'calculadora-dtf':['q-files','Calculadora DTF','calculator']};
+ const notice=document.createElement('div');notice.id='tools-drop-notice';notice.setAttribute('role','status');notice.setAttribute('aria-live','polite');notice.hidden=true;document.body.append(notice);
+ const hint=document.createElement('div');hint.id='tools-drop-hint';hint.hidden=true;hint.setAttribute('aria-hidden','true');document.body.append(hint);let timer,leaveTimer,highlight=null;
+ const message=text=>{clearTimeout(timer);notice.textContent=text;notice.hidden=false;timer=setTimeout(()=>notice.hidden=true,5000);};
+ for(const type of ['quality','halftone'])window.addEventListener(`momotus:${type}-busy`,e=>{if(e.detail?.busy)busy.add(type);else busy.delete(type);});
+ const isFileDrag=e=>Array.from(e.dataTransfer?.types||[]).includes('Files')||Array.from(e.dataTransfer?.items||[]).some(i=>i.kind==='file');
+ function route(target){
+  const production=$('production-studio');if(visible(production)){const section=production.querySelector('[data-production-panel]:not([hidden])')?.dataset.productionPanel,explicit=target?.closest?.('label')?.querySelector('input[type=file]')?.id,id=['production-file','sheet-files','batch-files'].includes(explicit)?explicit:section==='sheet'?'sheet-files':section==='batch'?'batch-files':'production-file';return {input:$(id),name:id==='sheet-files'?'Plancha de impresión':id==='batch-files'?'Procesamiento por lotes':'Producción DTF',host:production};}
+  const panel=document.querySelector('.tool-panel:not([hidden])');if(!panel)return null;const r=routes[panel.id];if(!r)return {host:panel,name:panel.id==='tipografias'?'Tipografías':'Cotizador',unsupported:true};return {input:$(r[0]),name:r[1],type:r[2],host:panel};
+ }
+ function blocked(r){return !r||r.unsupported||!r.input||r.input.disabled||visible($('production-busy'))||busy.has(r.type)||r.type==='vector'&&window.MomotusVectorAPI?.isBusy()||r.type==='calculator'&&window.MomotusCalculatorAPI?.isBusy()||Array.from(document.querySelectorAll('dialog[open],[role="dialog"]:not([hidden]),[aria-modal="true"]:not([hidden])')).some(e=>visible(e)&&e!==r.host&&!e.contains(r.host));}
+ function clear(){clearTimeout(leaveTimer);highlight?.classList.remove('tools-file-dragging');highlight=null;hint.hidden=true;}
+ for(const event of ['dragenter','dragover'])document.addEventListener(event,e=>{if(!isFileDrag(e))return;e.preventDefault();e.stopImmediatePropagation();clearTimeout(leaveTimer);const r=route(e.target),no=blocked(r);if(e.dataTransfer)e.dataTransfer.dropEffect=no?'none':'copy';if(highlight!==r?.host){highlight?.classList.remove('tools-file-dragging');highlight=r?.host;}if(!no)highlight?.classList.add('tools-file-dragging');else highlight?.classList.remove('tools-file-dragging');hint.textContent=no?r?.unsupported?'Esta herramienta no abre imágenes. Elegí una herramienta de imagen.':'Terminá el proceso o cerrá la ventana abierta antes de cargar otra imagen.':`Soltá ${r.input.multiple?'tus imágenes':'una imagen'} en ${r.name} · PNG, JPG o WebP`;hint.hidden=false;},true);
+ document.addEventListener('dragleave',e=>{if(!isFileDrag(e)&&hint.hidden)return;if(!e.relatedTarget)clear();else{clearTimeout(leaveTimer);leaveTimer=setTimeout(clear,120);}},true);
+ document.addEventListener('drop',e=>{
+  if(!isFileDrag(e))return;e.preventDefault();e.stopImmediatePropagation();clear();const r=route(e.target);if(blocked(r)){message(r?.unsupported?'Esta herramienta trabaja con texto o medidas. Abrí una herramienta de imagen para arrastrar archivos.':'Terminá el proceso o cerrá la ventana abierta antes de cargar otra imagen.');return;}
+  const files=Array.from(e.dataTransfer?.files||[]);if(!files.length)return message('No se recibió un archivo de imagen. Arrastralo desde tu equipo.');
+  if(files.some(f=>!['image/png','image/jpeg','image/jpg','image/webp'].includes(f.type.toLowerCase())&&!/\.(png|jpe?g|webp)$/i.test(f.name)))return message('Solo se admiten imágenes PNG, JPG o WebP.');
+  if(!r.input.multiple&&files.length!==1)return message('Soltá una sola imagen en esta herramienta. Para varios archivos usá Plancha o Lotes.');
+  if(r.input.multiple&&files.length>30)return message('Admitimos hasta 30 imágenes por carga. Dividí los archivos en grupos.');
+  try{const transfer=new DataTransfer();files.forEach(file=>{const ext=file.name.split('.').pop().toLowerCase(),mime=file.type==='image/jpg'?'image/jpeg':!file.type?({png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',webp:'image/webp'}[ext]||file.type):file.type;transfer.items.add(mime===file.type?file:new File([file],file.name,{type:mime,lastModified:file.lastModified}));});r.input.files=transfer.files;r.input.dispatchEvent(new Event('change',{bubbles:true}));message(`${files.length===1?'Imagen recibida':'Imágenes recibidas'} en ${r.name}.`);}catch{message('No se pudo cargar por arrastre. Usá Subir imagen para reintentar.');}
+ },true);
+ window.addEventListener('dragend',clear);window.addEventListener('blur',clear);document.addEventListener('visibilitychange',clear);
+})();

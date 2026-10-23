@@ -1,0 +1,3 @@
+'use strict';
+importScripts('core.js');
+self.onmessage=event=>{const {id,task,payload}=event.data;try{const C=self.DTFPreparation;let result;if(task==='inspect')result=C.analyze(new Uint8ClampedArray(payload.data),payload.width,payload.height,payload.options);else if(task==='extract'){const data=C.extract(new Uint8ClampedArray(payload.data),payload.width,payload.height,payload.options);self.postMessage({id,result:{data:data.buffer,width:payload.options.width,height:payload.options.height}},[data.buffer]);return;}else throw Error('Operación desconocida.');self.postMessage({id,result});}catch(error){self.postMessage({id,error:error.message});}};
