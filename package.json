@@ -4,10 +4,14 @@
   "private": true,
   "scripts": {
     "build:css": "tailwindcss -c tailwind.config.cjs -i css/tailwind.input.css -o css/tailwind.css --minify",
-    "test": "node --test tests/*.test.cjs"
+    "test": "node --test tests/*.test.cjs",
+    "build:offline": "node scripts/build-offline.cjs",
+    "test:browser": "node scripts/verify-browser.cjs",
+    "test:layout": "node scripts/verify-layout.cjs"
   },
   "devDependencies": {
     "fake-indexeddb": "6.2.4",
+    "playwright": "1.62.1",
     "tailwindcss": "3.4.17"
   }
 }

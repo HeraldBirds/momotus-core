@@ -1,6 +1,7 @@
 (function(root,factory){const api=factory(typeof module==='object'&&module.exports?require('./vendor/opentype.min.js'):root.opentype);if(typeof module==='object'&&module.exports)module.exports=api;else root.MomotusTypeCore=api;})(globalThis,OT=>{
 'use strict';
 const E=typeof module==='object'&&module.exports?require('./studio-core.js'):globalThis.MomotusTypeStudioCore;
+const O=typeof module==='object'&&module.exports?require('./objects-core.js'):globalThis.MomotusTypeObjects;
 const MAX_LAYERS=30,MAX_CHARS=2500,MAX_COMMANDS=500000;
 const number=(v,min,max,label='Valor')=>{if(v===null||typeof v==='boolean'||typeof v==='string'&&!v.trim()||!Number.isFinite(Number(v))||Number(v)<min||Number(v)>max)throw Error(`${label}: usá un valor entre ${min} y ${max}.`);return Number(v);};
 const color=v=>{if(typeof v!=='string'||!/^#[0-9a-f]{6}$/i.test(v))throw Error('Color inválido.');return v;};
@@ -24,7 +25,7 @@ function pathBounds(path){let box={x1:Infinity,y1:Infinity,x2:-Infinity,y2:-Infi
 }
 
 function optionalNumber(p,key,min,max){if(p[key]===undefined)return;if(typeof p[key]!=='number')throw Error(`${key}: se requiere un número.`);number(p[key],min,max,key);}
-function validateAdvanced(doc){let segments=0;for(const p of doc.layers){for(const key of ['hollow','banded'])if(p[key]!==undefined&&typeof p[key]!=='boolean')throw Error('Acabado inválido.');
+function validateAdvanced(doc){let segments=0;for(const p of doc.layers){if(p.autoLayout!==undefined&&typeof p.autoLayout!=='boolean')throw Error('Ajuste automático inválido.');if(p.textFit&&(['maxWidth','centerX'].some(k=>typeof p.textFit[k]!=='number'||!Number.isFinite(p.textFit[k]))||p.textFit.maxWidth<=0||p.textFit.maxWidth>3000||Math.abs(p.textFit.centerX)>30000))throw Error('Ajuste de texto inválido.');segments+=O.validate(p,{color});if(segments>MAX_COMMANDS)throw Error('Máximo 500.000 nodos en objetos.');for(const key of ['hollow','banded'])if(p[key]!==undefined&&typeof p[key]!=='boolean')throw Error('Acabado inválido.');
  for(const [key,min,max]of [['textBoxWidth',0,3000],['paragraphGap',0,5],['printScaleX',.01,100],['printScaleY',.01,100],['radius',5,1500],['curveWidth',1,3000],['curveRise1',-1500,1500],['curveRise2',-1500,1500],['waveAmplitude',-300,300],['perspective',-.8,.8],['extrudeX',-100,100],['extrudeY',-100,100],['cutSpacing',.1,100],['cutWidth',.05,30],['cutAngle',-360,360],['cutCount',1,500],['cutSeed',0,2147483647]])optionalNumber(p,key,min,max);
  if(p.shapeMode!==undefined&&!['plain','circle','curve','flag','perspective'].includes(p.shapeMode))throw Error('Composición desconocida.');
  if(p.shadowMode!==undefined&&!['solid','long'].includes(p.shadowMode))throw Error('Sombra desconocida.');if(p.cutMode!==undefined&&!['none','stripes','distress'].includes(p.cutMode))throw Error('Cortes desconocidos.');
@@ -89,6 +90,7 @@ function compose(doc,fontMap){
  validate(doc);const result=[],warnings=[];let commands=0;
  for(const p of doc.layers){
   if(!p.visible||!p.text.trim())continue;
+  if(p.objects){const item=O.compose(p,{matrix,printMatrix,multiply,point,pathBounds,transform,pathData});if(item){commands+=item.paths.reduce((n,q)=>n+q.commands.length,0);if(commands>MAX_COMMANDS)throw Error('Máximo 500.000 segmentos.');if(item.box.x1<doc.marginCm*10||item.box.y1<doc.marginCm*10||item.box.x2>doc.widthCm*10-doc.marginCm*10||item.box.y2>doc.heightCm*10-doc.marginCm*10)warnings.push(p.name+': invade el margen o sale del documento.');result.push(item);}continue;}
   const global=matrix(p),paths=[],mode=p.shapeMode||'plain';
   const append=(source,index,char,fill)=>{
    const path=transform(source,global);commands+=path.commands.length;
@@ -150,6 +152,7 @@ function compose(doc,fontMap){
 function artwork(doc,layout,interactive=false){
  let defs='',body='';
  for(const item of layout.layers){
+  if(item.layer.objects){const a=O.artwork(item.layer,{matrix,point,effectiveMatrix,multiply,pathBounds,pathData,transform,xml},interactive);defs+=a.defs;body+=a.body;continue;}
   const p=item.layer,paths=item.sourcePaths||item.paths,box=item.sourceBox||item.box,id='gradient-'+p.id;
   if(p.gradient){const a=p.gradientAngle*Math.PI/180,cx=(box.x1+box.x2)/2,cy=(box.y1+box.y2)/2,dx=Math.cos(a)*(box.x2-box.x1)/2,dy=Math.sin(a)*(box.y2-box.y1)/2;defs+=`<linearGradient id="${id}" gradientUnits="userSpaceOnUse" x1="${cx-dx}" y1="${cy-dy}" x2="${cx+dx}" y2="${cy+dy}"><stop stop-color="${p.fill}"/>${p.banded?`<stop offset=".78" stop-color="${p.fill}"/><stop offset=".78" stop-color="${p.fill2}"/>`:''}<stop offset="1" stop-color="${p.fill2}"/></linearGradient>`;}
   const attrs=q=>interactive?` data-edit-layer="${p.id}" data-edit-letter="${q.index}"`:'';

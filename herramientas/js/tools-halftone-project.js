@@ -35,5 +35,5 @@ async function open(blob){
 }
 let queue=Promise.resolve();
 function local(mode,blob){const task=()=>new Promise((resolve,reject)=>{if(typeof indexedDB==='undefined')return reject(Error('Guardado local no disponible. Descargá un .semitono.'));const r=indexedDB.open('momotus-halftone-projects',1);r.onupgradeneeded=()=>r.result.createObjectStore('projects');r.onerror=()=>reject(r.error);r.onblocked=()=>reject(Error('Guardado bloqueado por otra pestaña.'));r.onsuccess=()=>{const db=r.result,tx=db.transaction('projects',mode==='save'?'readwrite':'readonly'),q=mode==='save'?tx.objectStore('projects').put(blob,'last'):tx.objectStore('projects').get('last');let result;q.onsuccess=()=>result=q.result;tx.oncomplete=()=>{db.close();resolve(result);};tx.onabort=()=>{db.close();reject(tx.error||Error('Transacción abortada.'));};tx.onerror=()=>{};};});const result=queue.catch(()=>{}).then(task);queue=result;return result;}
-return Object.freeze({schema,PROFILE_KEYS,settings,profile,validateMask,validate,pack,open,local,crc32});
+return Object.freeze({schema,PROFILE_KEYS,settings,profile,validateMask,validate,pack,open,local:globalThis.MomotusRecovery?globalThis.MomotusRecovery.wrap('halftone',local):local,crc32});
 });

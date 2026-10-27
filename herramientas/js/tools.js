@@ -1469,7 +1469,7 @@
   const cancelQualityStudio = () => {qualityRevision++;if(states.quality)setStatus('quality-status','Proceso cancelado. Se conserva el último resultado; los cambios siguen pendientes.');if(qualityStudioJob){const j=qualityStudioJob;qualityStudioJob=null;j.worker.terminate();j.reject(Object.assign(Error('Calidad cancelada. Se conserva el último resultado.'),{name:'AbortError'}));}};
   const runQualityStudio = (payload,revision) => {
     if(typeof Worker!=='function')return window.MomotusQuality.render(payload,nextFrame,()=>revision!==qualityRevision,v=>setProcessingProgress('quality',40+v*.55,'Procesando color, detalle y capas…'));
-    return new Promise((resolve,reject)=>{const worker=new Worker(new URL('herramientas/js/tools-quality-worker.js?v='+encodeURIComponent(window.MOMOTUS_TOOLS_VERSION),document.baseURI));qualityStudioJob={worker,reject};worker.onmessage=e=>{if(e.data.type==='progress'){setProcessingProgress('quality',40+e.data.value*.55,'Procesando color, detalle y capas…');return;}if(qualityStudioJob?.worker===worker)qualityStudioJob=null;worker.terminate();if(e.data.type==='error')reject(Error(e.data.message));else resolve({...e.data.result,data:new Uint8ClampedArray(e.data.result.data)});};worker.onerror=e=>{if(qualityStudioJob?.worker===worker)qualityStudioJob=null;worker.terminate();reject(Error(e.message||'No se pudo procesar Calidad.'));};worker.postMessage(payload);}).catch(error=>{if(error.name==='AbortError')throw error;return window.MomotusQuality.render(payload,nextFrame,()=>revision!==qualityRevision,v=>setProcessingProgress('quality',40+v*.55,'Procesando con el motor local…'));});
+    return new Promise((resolve,reject)=>{const worker=new Worker(new URL('herramientas/js/tools-quality-worker.js?v='+encodeURIComponent(window.MOMOTUS_TOOLS_VERSION),document.baseURI));qualityStudioJob={worker,reject};worker.onmessage=e=>{if(e.data.type==='progress'){setProcessingProgress('quality',40+e.data.value*.55,'Procesando color, detalle y capas…');return;}if(qualityStudioJob?.worker===worker)qualityStudioJob=null;worker.terminate();if(e.data.type==='error')reject(Error(e.data.message));else resolve({...e.data.result,data:new Uint8ClampedArray(e.data.result.data)});};worker.onerror=e=>{if(qualityStudioJob?.worker===worker)qualityStudioJob=null;worker.terminate();reject(Error(e.message||'No se pudo procesar Calidad.'));};try{const message={...payload,data:payload.data.slice(),model:window.MomotusQuality.clone(payload.model)},buffers=[message.data.buffer,...message.model.layers.map(l=>l.mask.data.buffer)];worker.postMessage(message,[...new Set(buffers)]);}catch(error){if(qualityStudioJob?.worker===worker)qualityStudioJob=null;worker.terminate();reject(error);}}).catch(error=>{if(error.name==='AbortError')throw error;return window.MomotusQuality.render(payload,nextFrame,()=>revision!==qualityRevision,v=>setProcessingProgress('quality',40+v*.55,'Procesando con el motor local…'));});
   };
   const updateQualityAssessment = () => {
     const state = states.quality;
@@ -1797,7 +1797,7 @@
   };
 
   const switchTool = target => {
-    document.body.classList.remove('extra-tool-active');
+    document.body.classList.remove('extra-tool-active','typography-tool-active','effects-tool-active');
     document.querySelectorAll('.extra-tool-panel').forEach(panel => { panel.hidden = true; });
     document.querySelectorAll('[data-extra-tool]').forEach(button => {
       button.classList.remove('active');
@@ -1814,6 +1814,7 @@
     });
     updateDocumentInfo(activeTool);
     updateHistoryButtons();
+    window.dispatchEvent(new CustomEvent('momotus:tool-selected',{detail:{target}}));
     const currentStatus = byId(`${activeTool}-status`);
     if (currentStatus) setStatus(`${activeTool}-status`, currentStatus.textContent);
     if (history.replaceState) history.replaceState(null, '', `${location.pathname}${location.search}#${target}`);

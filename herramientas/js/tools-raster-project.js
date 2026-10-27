@@ -28,5 +28,5 @@
  function database(){return new Promise((resolve,reject)=>{if(typeof indexedDB==='undefined')return reject(Error('No hay almacenamiento local. Descargá el proyecto .rango.'));const r=indexedDB.open('momotus-color-range-v1',1);r.onupgradeneeded=()=>r.result.createObjectStore('projects');r.onerror=()=>reject(r.error||Error('No se pudo abrir el guardado.'));r.onblocked=()=>reject(Error('Guardado bloqueado por otra pestaña.'));r.onsuccess=()=>resolve(r.result);});}
  let queue=Promise.resolve();
  function local(mode,value){const task=async()=>{const db=await database();try{return await new Promise((resolve,reject)=>{const tx=db.transaction('projects',mode==='save'?'readwrite':'readonly'),r=mode==='save'?tx.objectStore('projects').put(value,'last'):tx.objectStore('projects').get('last');let result;r.onsuccess=()=>result=r.result;tx.oncomplete=()=>resolve(result);tx.onabort=()=>reject(tx.error||Error('Guardado abortado.'));tx.onerror=()=>{};});}finally{db.close();}};const result=queue.catch(()=>{}).then(task);queue=result;return result;}
- return Object.freeze({validate,pack,open,local,crc32,MAX_BYTES});
+ return Object.freeze({validate,pack,open,local:globalThis.MomotusRecovery?globalThis.MomotusRecovery.wrap('range',local):local,crc32,MAX_BYTES});
 });

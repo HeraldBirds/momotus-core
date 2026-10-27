@@ -216,7 +216,7 @@ test('un fallo opcional de Zonas no bloquea reglas, calidad ni Efectos y admite 
       addEventListener(name, fn) { events[name] = fn; }, getElementById: id => elements.get(id), querySelector: () => null }
   };
   vm.runInNewContext(read('herramientas/js/tools-loader.js'), context);
-  await flush();
+  for(let i=0;i<4;i++)await flush();
   assert.ok(loaded.some(url => url.includes('tools-precision.js')));
   assert.equal(opened, 0);
   zoneButton.click(); await flush();

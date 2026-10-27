@@ -4,27 +4,28 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <base href="../">
+  <link rel="manifest" href="herramientas/manifest.webmanifest">
   <title>Herramientas para DTF | Momotus Core</title>
   <meta name="description" content="Prepará imágenes para DTF con semitonos, eliminación de fondo, vectorización, mejora a 300 DPI y cálculo de cotizaciones.">
   <meta name="theme-color" content="#09090b">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; worker-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self'; connect-src 'self';">
   
   <script>
-    window.MOMOTUS_TOOLS_VERSION = '20261023-catalog-preserved-1';
+    window.MOMOTUS_TOOLS_VERSION = '20261027-layout-1';
     window.MOMOTUS_TOOLS_DESKTOP = window.matchMedia('(min-width: 1024px)').matches;
     if (!window.MOMOTUS_TOOLS_DESKTOP) document.documentElement.classList.add('tools-page-mobile');
   </script>
   <script>
     if (window.MOMOTUS_TOOLS_DESKTOP) {
-      document.write('<link rel="stylesheet" href="vendor/fontawesome/css/site.min.css?v=20261023-catalog-preserved-1" crossorigin="anonymous" referrerpolicy="no-referrer">');
+      document.write('<link rel="stylesheet" href="vendor/fontawesome/css/site.min.css?v=20261027-layout-1" crossorigin="anonymous" referrerpolicy="no-referrer">');
     }
   </script>
   <link rel="stylesheet" href="css/tailwind.css?v=20261006-1" media="(min-width: 1024px)">
-  <link rel="stylesheet" href="css/style.css?v=20261023-catalog-preserved-1">
+  <link rel="stylesheet" href="css/style.css?v=20261027-layout-1">
   <link rel="stylesheet" href="herramientas/css/tools.css?v=20261007-precision-1" media="(min-width: 1024px)">
   <link rel="stylesheet" href="herramientas/css/tools-precision.css?v=20261007-precision-1" media="(min-width: 1024px)">
-  <link rel="stylesheet" href="herramientas/css/tools-drop-upload.css?v=20261023-catalog-preserved-1" media="(min-width: 1024px)">
-  <link rel="stylesheet" href="herramientas/css/studio-refresh.css?v=20261023-catalog-preserved-1" media="(min-width: 1024px)">
+  <link rel="stylesheet" href="herramientas/css/tools-drop-upload.css?v=20261027-layout-1" media="(min-width: 1024px)">
+  <link rel="stylesheet" href="herramientas/css/studio-refresh.css?v=20261027-layout-1" media="(min-width: 1024px)">
 </head>
 <body class="momotus-studio bg-zinc-950 text-white">
   <section class="tools-mobile-gate" aria-labelledby="tools-desktop-title">
@@ -66,7 +67,7 @@
       <div class="tool-history-actions">
         <button id="tool-undo" type="button" disabled title="Deshacer (Ctrl + Z)" aria-label="Deshacer"><i class="fa-solid fa-rotate-left"></i><span>Deshacer</span></button>
         <button id="tool-redo" type="button" disabled title="Rehacer (Ctrl + Shift + Z)" aria-label="Rehacer"><i class="fa-solid fa-rotate-right"></i><span>Rehacer</span></button>
-        <button id="tool-reset-current" type="button" title="Restablecer herramienta"><i class="fa-solid fa-arrow-rotate-left"></i><span>Restablecer</span></button>
+        <button id="tool-reset-current" aria-label="Restablecer herramienta" type="button" title="Restablecer herramienta"><i class="fa-solid fa-arrow-rotate-left"></i><span>Restablecer</span></button>
         <button id="tool-shortcuts-help" type="button" title="Ver atajos del editor" aria-label="Ver atajos del editor"><i class="fa-regular fa-keyboard"></i><span>Atajos</span></button>
       </div>
       <div id="editor-image-info" class="tool-document-info">Sin documento abierto</div>
@@ -530,7 +531,7 @@
   </div>
 
   <div id="cart-modal-placeholder"></div>
-  <script src="herramientas/js/tools-loader.js?v=20261023-catalog-preserved-1"></script>
-  <script src="js/performance.js?v=20261006-1" defer></script>
+  <script src="herramientas/js/tools-loader.js?v=20261027-layout-1"></script>
+  <script src="js/performance.js?v=20261027-layout-1" defer></script>
 </body>
 </html>

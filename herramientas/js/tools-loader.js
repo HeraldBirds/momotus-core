@@ -14,7 +14,8 @@
       const script = document.createElement('script');
       script.src = `${source}?v=${version}`;
       script.defer = true;
-      script.onload = resolve;
+      const now=()=>globalThis.performance?.now?.()||Date.now(),started=now();
+      script.onload = () => { if(typeof CustomEvent==='function')window.dispatchEvent?.(new CustomEvent('momotus:module-loaded',{detail:{source,ms:now()-started}}));resolve(); };
       script.onerror = () => {
         scripts.delete(source);
         script.remove();
@@ -47,16 +48,24 @@
 
   const reportError = error => {
     console.error('No se pudieron cargar las herramientas:', error);
+    window.MomotusToolsAPI?.showToast('No se pudo abrir el módulo. Volvé a pulsar su botón para reintentar.');
     const message = document.getElementById('halftone-result-info');
     if (message) message.textContent = 'No se pudo abrir este módulo. Actualizá la página con Ctrl + F5.';
   };
+
+  let halftoneAdvanced=null,advancedPromise=null;
+  const loadHalftoneAdvanced=()=>halftoneAdvanced||(halftoneAdvanced=Promise.all([loadStyle('herramientas/css/tools-halftone.css'),loadScript('herramientas/js/tools-recovery.js').then(()=>loadScript('herramientas/js/tools-halftone-project.js')),loadScript('herramientas/js/tools-halftone-edit-core.js')]).then(()=>loadScript('herramientas/js/tools-halftone-ui.js')).catch(e=>{halftoneAdvanced=null;throw e;}));
+  const loadAdvanced=()=>advancedPromise||(advancedPromise=loadHalftoneAdvanced().then(()=>Promise.all([loadStyle('herramientas/css/tools-quality-studio.css'),loadScript('herramientas/js/tools-quality-project.js')])).then(()=>loadScript('herramientas/js/tools-quality-ui.js')).then(()=>loadScript('herramientas/js/tools-color-zones-core.js')).then(()=>loadStyle('herramientas/css/tools-refinement.css')).then(()=>loadScript('herramientas/js/tools-refinement.js')).catch(e=>{advancedPromise=null;throw e;}));
+  let refinementPromise=null;const loadRefinement=()=>refinementPromise||(refinementPromise=loadScript('herramientas/js/tools-color-zones-core.js').then(()=>loadStyle('herramientas/css/tools-refinement.css')).then(()=>loadScript('herramientas/js/tools-refinement.js')).catch(e=>{refinementPromise=null;throw e;}));
+  const loadForTool=target=>target==='mejorar-calidad'?loadAdvanced():target==='semitonos'?loadHalftoneAdvanced().then(()=>loadRefinement().catch(e=>console.warn('Las ayudas opcionales pueden reintentarse al abrir la herramienta.',e))):Promise.resolve();
+  window.addEventListener('momotus:tool-selected',e=>loadForTool(e.detail.target).catch(reportError));
 
   let zonesPromise = null, zonesReady = false;
   const loadColorZones = () => {
     if (!zonesPromise) zonesPromise = Promise.all([
       loadStyle('herramientas/css/tools-color-zones.css'),
       loadStyle('herramientas/css/tools-refinement.css'),
-      loadScript('herramientas/js/tools-color-zones-core.js').then(() => loadScript('herramientas/js/tools-raster-project.js')).then(() => loadScript('herramientas/js/tools-color-zones.js'))
+      loadScript('herramientas/js/tools-recovery.js').then(()=>loadScript('herramientas/js/tools-color-zones-core.js')).then(() => loadScript('herramientas/js/tools-raster-project.js')).then(() => loadScript('herramientas/js/tools-color-zones.js'))
     ]).then(() => { zonesReady = true; }).catch(error => { zonesPromise = null; throw error; });
     return zonesPromise;
   };
@@ -113,6 +122,8 @@
     return effectsPromise;
   };
 
+  const installMockupLauncher=()=>{const actions=document.querySelector('.tool-history-actions');if(!actions)return;const b=document.createElement('button');b.type='button';b.className='mockup-loader';b.textContent='Colocar en mockup';b.onclick=async()=>{const request=extraRequest;b.disabled=true;try{await loadMockup();b.remove();if(request===extraRequest)document.getElementById('mockup-transfer-open')?.click();}catch(e){b.disabled=false;reportError(e);}};actions.append(b);};
+
   const installProductionLauncher = () => {
     const actions = document.querySelector('.tool-history-actions');
     if (!actions || actions.querySelector('.production-loader')) return;
@@ -122,12 +133,13 @@
     button.title = 'Abrir preparación avanzada, planchas y proyectos';
     button.innerHTML = '<i class="fa-solid fa-industry" aria-hidden="true"></i><span>Producción DTF</span>';
     button.addEventListener('click', async () => {
+      const request=extraRequest;
       button.disabled = true;
       button.classList.add('is-loading');
       try {
         await loadProduction();
         button.remove();
-        document.querySelector('.production-launch')?.click();
+        if(request===extraRequest)document.querySelector('.production-launch')?.click();
       } catch (error) {
         button.disabled = false;
         button.classList.remove('is-loading');
@@ -139,8 +151,11 @@
 
   document.addEventListener('click', event => {
     const target = event.target instanceof Element ? event.target : null;
+    const navigation=target?.closest('[data-extra-tool], [data-tool-target]');
+    if(navigation)extraRequest++;
     const zonesButton = target?.closest('#background-zones-open');
     if (zonesButton && !zonesReady) {
+      const request=extraRequest;
       event.preventDefault();
       event.stopImmediatePropagation();
       zonesButton.disabled = true;
@@ -148,7 +163,7 @@
       loadColorZones().then(() => {
         zonesButton.disabled = false;
         zonesButton.classList.remove('is-loading');
-        zonesButton.click();
+        if(request===extraRequest)zonesButton.click();
       }).catch(error => {
         zonesButton.disabled = false;
         zonesButton.classList.remove('is-loading');
@@ -160,7 +175,7 @@
     }
     const extraButton = target?.closest('[data-extra-tool]');
     if (extraButton && (!extraReady || extraButton.dataset.extraTool === 'vectorizacion' && !vectorReady)) {
-      const request = ++extraRequest;
+      const request = extraRequest;
       event.preventDefault();
       event.stopImmediatePropagation();
       extraButton.classList.add('is-loading');
@@ -219,9 +234,10 @@
   };
   const openHashTool = async hash => {
     if (!['vectorizacion','calculadora-dtf','efectos-dtf','tipografias'].includes(hash)) return;
+    const request=++extraRequest;
     await loadExtra();
     if (hash === 'vectorizacion') await loadVector();
-    document.querySelector(`[data-extra-tool="${hash}"]`)?.click();
+    if(request===extraRequest)document.querySelector(`[data-extra-tool="${hash}"]`)?.click();
   };
   window.addEventListener('hashchange',()=>openHashTool(location.hash.slice(1)).catch(reportError));
   const startupSources = [
@@ -248,13 +264,9 @@
       await loadScript('herramientas/js/tools-precision-core.js');
       await loadScript('herramientas/js/tools-precision.js');
       installProductionLauncher();
-      Promise.all([loadStyle('herramientas/css/tools-halftone.css'),loadScript('herramientas/js/tools-halftone-project.js'),loadScript('herramientas/js/tools-halftone-edit-core.js')]).then(()=>loadScript('herramientas/js/tools-halftone-ui.js')).catch(reportError);
-      Promise.all([loadStyle('herramientas/css/tools-quality-studio.css'),loadScript('herramientas/js/tools-quality-project.js'),loadScript('herramientas/js/tools-halftone-edit-core.js')]).then(()=>loadScript('herramientas/js/tools-quality-ui.js')).catch(reportError);
-      // Zonas es opcional: una descarga fallida no bloquea los demás editores.
-      const warmZones = () => loadColorZones().catch(error => console.warn('Zonas podrá reintentarse desde su botón.', error));
-      if ('requestIdleCallback' in window) window.requestIdleCallback(warmZones, { timeout: 2500 });
-      else setTimeout(warmZones, 1500);
-      loadScript('herramientas/js/tools-color-zones-core.js').then(()=>loadStyle('herramientas/css/tools-refinement.css')).then(()=>loadScript('herramientas/js/tools-refinement.js')).catch(error=>console.warn('No se pudieron cargar las ayudas locales de Calidad y Semitonos.',error));
+      await loadScript('herramientas/js/tools-recovery.js');
+      await loadScript('herramientas/js/tools-support.js');
+      await loadForTool(['semitonos','mejorar-calidad','eliminar-fondo'].includes(requestedHash)?requestedHash:'semitonos').catch(reportError);
 
       const params = new URLSearchParams(location.search);
       if (params.get('importar') === 'disenador') {
@@ -263,11 +275,7 @@
         }
         await loadMockup();
       }
-      else {
-        const idleLoad = () => loadMockup().catch(reportError);
-        if ('requestIdleCallback' in window) window.requestIdleCallback(idleLoad, { timeout: 4000 });
-        else setTimeout(idleLoad, 2500);
-      }
+      else installMockupLauncher();
 
       await openHashTool(requestedHash);
     } catch (error) {

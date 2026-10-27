@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE_VERSION = 'momotus-runtime-20261023-catalog-preserved-1';
+const CACHE_VERSION = 'momotus-runtime-20261027-layout-1';
 const CACHEABLE_TYPES = new Set(['style', 'script', 'image', 'font', 'worker']);
 const DAY = 86400000;
 const CACHE_POLICY = {
@@ -8,8 +8,10 @@ const CACHE_POLICY = {
   assets: { entries: 96, bytes: 24 * 1024 * 1024, itemBytes: 8 * 1024 * 1024, age: 28 * DAY },
   pages: { entries: 12, bytes: 2 * 1024 * 1024, itemBytes: 512 * 1024, age: 7 * DAY }
 };
+const OFFLINE_CACHE = `${CACHE_VERSION}-offline`, STAGING_CACHE = `${CACHE_VERSION}-offline-pending`;
+const OFFLINE_LIMIT = 80 * 1024 * 1024;
 const META_CACHE = `${CACHE_VERSION}-meta`;
-const activeCaches = new Set([META_CACHE, ...Object.keys(CACHE_POLICY).map(key => `${CACHE_VERSION}-${key}`)]);
+const activeCaches = new Set([OFFLINE_CACHE, META_CACHE, ...Object.keys(CACHE_POLICY).map(key => `${CACHE_VERSION}-${key}`)]);
 let cacheWrites = Promise.resolve();
 const bucketFor = request => request.destination === 'image' ? 'images'
   : request.mode === 'navigate' || request.destination === 'document' ? 'pages' : 'assets';
@@ -95,7 +97,7 @@ async function networkFirst(request, event) {
     event.waitUntil(putCached(request, response));
     return response;
   } catch (error) {
-    const cached = await readCached(request, true);
+    const cached = await readCached(request, true) || await readOffline(request);
     if (cached) return cached;
     throw error;
   }
@@ -108,7 +110,7 @@ async function staleWhileRevalidate(request, event) {
     return response;
   }).catch(() => null);
   event.waitUntil(network.then(() => {}));
-  return cached || (await network) || Response.error();
+  return cached || (await network) || (await readOffline(request)) || Response.error();
 }
 
 self.addEventListener('fetch', event => {
@@ -121,5 +123,51 @@ self.addEventListener('fetch', event => {
       || request.mode === 'navigate' || request.destination === 'document') {
     event.respondWith(networkFirst(request, event));return;
   }
-  if (CACHEABLE_TYPES.has(request.destination)) event.respondWith(staleWhileRevalidate(request, event));
+  if (CACHEABLE_TYPES.has(request.destination) || /\/herramientas\/.*\.(?:json|webmanifest|ttf|otf|woff2?)$/.test(url.pathname)) event.respondWith(staleWhileRevalidate(request, event));
+});
+
+// An explicit user action prepares this bounded bundle. Nothing is precached on install.
+let preparingOffline = false;
+async function readOffline(request) {
+  const cache=await caches.open(OFFLINE_CACHE);
+  return (await cache.match(request,{ignoreSearch:true})) || null;
+}
+async function prepareOffline(port) {
+  if(preparingOffline){port.postMessage({error:'Ya hay una preparación en curso en otra pestaña.'});return;}
+  preparingOffline=true;const abort=new AbortController();let cancelled=false;
+  port.onmessage=e=>{if(e.data?.type==='cancel'){cancelled=true;abort.abort();}};port.start();
+  const base=new URL('./',self.location.href),urlFor=path=>new URL(path,base);
+  try {
+    const response=await fetch(urlFor('herramientas/offline-resources.json'),{cache:'no-store',signal:abort.signal});
+    if(!response.ok)throw Error('No se encontró la lista de recursos. Actualizá los archivos del sitio.');
+    const manifest=await response.json();
+    if(manifest.version!=='20261027-layout-1'||!Array.isArray(manifest.files)||manifest.files.length>400)throw Error('Lista de recursos incompatible. Actualizá la página.');
+    const paths=new Set();let estimate=0;
+    for(const entry of manifest.files){
+      const url=urlFor(entry.url);
+      if(typeof entry.url!=='string'||url.origin!==base.origin||!url.pathname.startsWith(base.pathname)||url.search||url.hash||!Number.isSafeInteger(entry.bytes)||entry.bytes<1||entry.bytes>8*1024*1024||paths.has(url.href))throw Error('Recurso sin conexión inválido.');
+      paths.add(url.href);estimate+=entry.bytes;
+    }
+    if(estimate>OFFLINE_LIMIT)throw Error('La descarga supera el límite de 80 MiB.');
+    await caches.delete(STAGING_CACHE);const staging=await caches.open(STAGING_CACHE);let bytes=0,done=0;
+    for(const entry of manifest.files){
+      if(cancelled)throw Error('Preparación cancelada.');
+      const url=urlFor(entry.url),controller=new AbortController(),timer=setTimeout(()=>controller.abort(),30000),cancel=()=>controller.abort();abort.signal.addEventListener('abort',cancel,{once:true});
+      try{
+        const res=await fetch(url,{cache:'no-store',signal:controller.signal});
+        if(!res.ok||res.type==='opaque'||res.redirected)throw Error('No se pudo descargar '+entry.url+'. Volvé a intentar con conexión.');
+        const size=await measuredBytes(res.clone(),8*1024*1024);
+        if(size===null||bytes+size>OFFLINE_LIMIT)throw Error('La descarga supera el límite permitido.');
+        bytes+=size;await staging.put(url,res);done++;port.postMessage({type:'progress',done,total:manifest.files.length,bytes});
+      }finally{clearTimeout(timer);abort.signal.removeEventListener('abort',cancel);}
+    }
+    if(cancelled)throw Error('Preparación cancelada.');
+    const cache=await caches.open(OFFLINE_CACHE);
+    for(const request of await staging.keys())await cache.put(request,await staging.match(request));
+    port.postMessage({type:'ready',total:done,bytes});
+  }catch(e){port.postMessage({error:cancelled?'Preparación cancelada. Los archivos del proyecto se conservan.':e.message});}
+  finally{await caches.delete(STAGING_CACHE);preparingOffline=false;port.close();}
+}
+self.addEventListener('message',event=>{
+  if(event.data?.type==='MOMOTUS_OFFLINE_PREPARE'&&event.ports?.[0])event.waitUntil(prepareOffline(event.ports[0]));
 });

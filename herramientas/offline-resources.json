@@ -1,0 +1,961 @@
+{
+  "version": "20261027-layout-1",
+  "files": [
+    {
+      "url": "css/style.css",
+      "bytes": 11369
+    },
+    {
+      "url": "css/tailwind.css",
+      "bytes": 26035
+    },
+    {
+      "url": "herramientas/",
+      "bytes": 81276
+    },
+    {
+      "url": "herramientas/css/studio-refresh.css",
+      "bytes": 33793
+    },
+    {
+      "url": "herramientas/css/tools-background-palette.css",
+      "bytes": 4285
+    },
+    {
+      "url": "herramientas/css/tools-calculator.css",
+      "bytes": 4697
+    },
+    {
+      "url": "herramientas/css/tools-color-zones.css",
+      "bytes": 10952
+    },
+    {
+      "url": "herramientas/css/tools-drop-upload.css",
+      "bytes": 579
+    },
+    {
+      "url": "herramientas/css/tools-effects.css",
+      "bytes": 13333
+    },
+    {
+      "url": "herramientas/css/tools-halftone.css",
+      "bytes": 4429
+    },
+    {
+      "url": "herramientas/css/tools-mockup.css",
+      "bytes": 5641
+    },
+    {
+      "url": "herramientas/css/tools-precision.css",
+      "bytes": 4261
+    },
+    {
+      "url": "herramientas/css/tools-production.css",
+      "bytes": 17802
+    },
+    {
+      "url": "herramientas/css/tools-quality-studio.css",
+      "bytes": 3268
+    },
+    {
+      "url": "herramientas/css/tools-refinement.css",
+      "bytes": 2769
+    },
+    {
+      "url": "herramientas/css/tools-team-quote.css",
+      "bytes": 15543
+    },
+    {
+      "url": "herramientas/css/tools-vector-pro.css",
+      "bytes": 5634
+    },
+    {
+      "url": "herramientas/css/tools.css",
+      "bytes": 93386
+    },
+    {
+      "url": "herramientas/icons/app-192.png",
+      "bytes": 1000
+    },
+    {
+      "url": "herramientas/icons/app-512.png",
+      "bytes": 2901
+    },
+    {
+      "url": "herramientas/js/tools-calculator-core.js",
+      "bytes": 11045
+    },
+    {
+      "url": "herramientas/js/tools-calculator-ui.js",
+      "bytes": 42059
+    },
+    {
+      "url": "herramientas/js/tools-calculator-worker.js",
+      "bytes": 301
+    },
+    {
+      "url": "herramientas/js/tools-color-zones-core.js",
+      "bytes": 13939
+    },
+    {
+      "url": "herramientas/js/tools-color-zones-worker.js",
+      "bytes": 1892
+    },
+    {
+      "url": "herramientas/js/tools-color-zones.js",
+      "bytes": 57721
+    },
+    {
+      "url": "herramientas/js/tools-drop-upload.js",
+      "bytes": 5602
+    },
+    {
+      "url": "herramientas/js/tools-effects-core.js",
+      "bytes": 14720
+    },
+    {
+      "url": "herramientas/js/tools-effects-edit-core.js",
+      "bytes": 4515
+    },
+    {
+      "url": "herramientas/js/tools-effects-worker.js",
+      "bytes": 1546
+    },
+    {
+      "url": "herramientas/js/tools-effects.js",
+      "bytes": 78781
+    },
+    {
+      "url": "herramientas/js/tools-extra.js",
+      "bytes": 28914
+    },
+    {
+      "url": "herramientas/js/tools-halftone-core.js",
+      "bytes": 21901
+    },
+    {
+      "url": "herramientas/js/tools-halftone-edit-core.js",
+      "bytes": 2823
+    },
+    {
+      "url": "herramientas/js/tools-halftone-project.js",
+      "bytes": 9379
+    },
+    {
+      "url": "herramientas/js/tools-halftone-ui.js",
+      "bytes": 32036
+    },
+    {
+      "url": "herramientas/js/tools-halftone-worker.js",
+      "bytes": 546
+    },
+    {
+      "url": "herramientas/js/tools-loader.js",
+      "bytes": 16955
+    },
+    {
+      "url": "herramientas/js/tools-mockup.js",
+      "bytes": 11064
+    },
+    {
+      "url": "herramientas/js/tools-precision-core.js",
+      "bytes": 1740
+    },
+    {
+      "url": "herramientas/js/tools-precision.js",
+      "bytes": 20335
+    },
+    {
+      "url": "herramientas/js/tools-production.js",
+      "bytes": 70563
+    },
+    {
+      "url": "herramientas/js/tools-quality-core.js",
+      "bytes": 12027
+    },
+    {
+      "url": "herramientas/js/tools-quality-project.js",
+      "bytes": 5837
+    },
+    {
+      "url": "herramientas/js/tools-quality-ui.js",
+      "bytes": 39804
+    },
+    {
+      "url": "herramientas/js/tools-quality-worker.js",
+      "bytes": 429
+    },
+    {
+      "url": "herramientas/js/tools-raster-project.js",
+      "bytes": 7601
+    },
+    {
+      "url": "herramientas/js/tools-recovery.js",
+      "bytes": 3231
+    },
+    {
+      "url": "herramientas/js/tools-refinement.js",
+      "bytes": 12742
+    },
+    {
+      "url": "herramientas/js/tools-shell.js",
+      "bytes": 3008
+    },
+    {
+      "url": "herramientas/js/tools-studio.js",
+      "bytes": 40387
+    },
+    {
+      "url": "herramientas/js/tools-support.js",
+      "bytes": 8063
+    },
+    {
+      "url": "herramientas/js/tools-team-quote.js",
+      "bytes": 49747
+    },
+    {
+      "url": "herramientas/js/tools-transfer.js",
+      "bytes": 3854
+    },
+    {
+      "url": "herramientas/js/tools-vector-advanced.js",
+      "bytes": 32859
+    },
+    {
+      "url": "herramientas/js/tools-vector-boolean-worker.js",
+      "bytes": 975
+    },
+    {
+      "url": "herramientas/js/tools-vector-core.js",
+      "bytes": 4572
+    },
+    {
+      "url": "herramientas/js/tools-vector-edit-core.js",
+      "bytes": 6174
+    },
+    {
+      "url": "herramientas/js/tools-vector-network.js",
+      "bytes": 4050
+    },
+    {
+      "url": "herramientas/js/tools-vector-pro-core.js",
+      "bytes": 10404
+    },
+    {
+      "url": "herramientas/js/tools-vector-pro-worker.js",
+      "bytes": 6116
+    },
+    {
+      "url": "herramientas/js/tools-vector-pro.js",
+      "bytes": 39544
+    },
+    {
+      "url": "herramientas/js/tools-vector-review-worker.js",
+      "bytes": 4334
+    },
+    {
+      "url": "herramientas/js/tools-vector-worker.js",
+      "bytes": 368
+    },
+    {
+      "url": "herramientas/js/tools-worker.js",
+      "bytes": 8758
+    },
+    {
+      "url": "herramientas/js/tools.js",
+      "bytes": 170430
+    },
+    {
+      "url": "herramientas/manifest.webmanifest",
+      "bytes": 798
+    },
+    {
+      "url": "herramientas/pliegos/",
+      "bytes": 21901
+    },
+    {
+      "url": "herramientas/pliegos/app.js",
+      "bytes": 87123
+    },
+    {
+      "url": "herramientas/pliegos/core.js",
+      "bytes": 18406
+    },
+    {
+      "url": "herramientas/pliegos/diagnostics-core.js",
+      "bytes": 1193
+    },
+    {
+      "url": "herramientas/pliegos/interaction-core.js",
+      "bytes": 7047
+    },
+    {
+      "url": "herramientas/pliegos/style.css",
+      "bytes": 17735
+    },
+    {
+      "url": "herramientas/pliegos/worker.js",
+      "bytes": 1334
+    },
+    {
+      "url": "herramientas/pliegos/workflow-core.js",
+      "bytes": 6680
+    },
+    {
+      "url": "herramientas/preparacion/",
+      "bytes": 10216
+    },
+    {
+      "url": "herramientas/preparacion/app.js",
+      "bytes": 23970
+    },
+    {
+      "url": "herramientas/preparacion/core.js",
+      "bytes": 12125
+    },
+    {
+      "url": "herramientas/preparacion/style.css",
+      "bytes": 6888
+    },
+    {
+      "url": "herramientas/preparacion/worker.js",
+      "bytes": 653
+    },
+    {
+      "url": "herramientas/tipografias/",
+      "bytes": 22749
+    },
+    {
+      "url": "herramientas/tipografias/advanced-ui.js",
+      "bytes": 27546
+    },
+    {
+      "url": "herramientas/tipografias/app.js",
+      "bytes": 47352
+    },
+    {
+      "url": "herramientas/tipografias/catalog-ui.js",
+      "bytes": 18240
+    },
+    {
+      "url": "herramientas/tipografias/composition-core.js",
+      "bytes": 5176
+    },
+    {
+      "url": "herramientas/tipografias/core.js",
+      "bytes": 30165
+    },
+    {
+      "url": "herramientas/tipografias/fonts.js",
+      "bytes": 47531
+    },
+    {
+      "url": "herramientas/tipografias/fonts/abrilfatface/AbrilFatface-Regular.ttf",
+      "bytes": 67364
+    },
+    {
+      "url": "herramientas/tipografias/fonts/alfaslabone/AlfaSlabOne-Regular.ttf",
+      "bytes": 97376
+    },
+    {
+      "url": "herramientas/tipografias/fonts/allertastencil/AllertaStencil-Regular.ttf",
+      "bytes": 20260
+    },
+    {
+      "url": "herramientas/tipografias/fonts/allura/Allura-Regular.ttf",
+      "bytes": 246632
+    },
+    {
+      "url": "herramientas/tipografias/fonts/almendra/Almendra-Bold.ttf",
+      "bytes": 36624
+    },
+    {
+      "url": "herramientas/tipografias/fonts/almendra/Almendra-BoldItalic.ttf",
+      "bytes": 35380
+    },
+    {
+      "url": "herramientas/tipografias/fonts/almendra/Almendra-Italic.ttf",
+      "bytes": 35216
+    },
+    {
+      "url": "herramientas/tipografias/fonts/almendra/Almendra-Regular.ttf",
+      "bytes": 68684
+    },
+    {
+      "url": "herramientas/tipografias/fonts/amaticsc/AmaticSC-Bold.ttf",
+      "bytes": 156180
+    },
+    {
+      "url": "herramientas/tipografias/fonts/amaticsc/AmaticSC-Regular.ttf",
+      "bytes": 151624
+    },
+    {
+      "url": "herramientas/tipografias/fonts/anton/Anton-Regular.ttf",
+      "bytes": 170812
+    },
+    {
+      "url": "herramientas/tipografias/fonts/audiowide/Audiowide-Regular.ttf",
+      "bytes": 69916
+    },
+    {
+      "url": "herramientas/tipografias/fonts/bangers/Bangers-Regular.ttf",
+      "bytes": 93148
+    },
+    {
+      "url": "herramientas/tipografias/fonts/barlow/Barlow-Bold.ttf",
+      "bytes": 108220
+    },
+    {
+      "url": "herramientas/tipografias/fonts/barlow/Barlow-BoldItalic.ttf",
+      "bytes": 111996
+    },
+    {
+      "url": "herramientas/tipografias/fonts/barlow/Barlow-Italic.ttf",
+      "bytes": 109624
+    },
+    {
+      "url": "herramientas/tipografias/fonts/barlow/Barlow-Regular.ttf",
+      "bytes": 104068
+    },
+    {
+      "url": "herramientas/tipografias/fonts/barlowcondensed/BarlowCondensed-Bold.ttf",
+      "bytes": 109912
+    },
+    {
+      "url": "herramientas/tipografias/fonts/barlowcondensed/BarlowCondensed-BoldItalic.ttf",
+      "bytes": 112196
+    },
+    {
+      "url": "herramientas/tipografias/fonts/barlowcondensed/BarlowCondensed-Italic.ttf",
+      "bytes": 109856
+    },
+    {
+      "url": "herramientas/tipografias/fonts/barlowcondensed/BarlowCondensed-Regular.ttf",
+      "bytes": 102480
+    },
+    {
+      "url": "herramientas/tipografias/fonts/bebasneue/BebasNeue-Regular.ttf",
+      "bytes": 61400
+    },
+    {
+      "url": "herramientas/tipografias/fonts/berkshireswash/BerkshireSwash-Regular.ttf",
+      "bytes": 58400
+    },
+    {
+      "url": "herramientas/tipografias/fonts/blackopsone/BlackOpsOne-Regular.ttf",
+      "bytes": 166532
+    },
+    {
+      "url": "herramientas/tipografias/fonts/bungee/Bungee-Regular.ttf",
+      "bytes": 118996
+    },
+    {
+      "url": "herramientas/tipografias/fonts/bungeeinline/BungeeInline-Regular.ttf",
+      "bytes": 152376
+    },
+    {
+      "url": "herramientas/tipografias/fonts/bungeeoutline/BungeeOutline-Regular.ttf",
+      "bytes": 202152
+    },
+    {
+      "url": "herramientas/tipografias/fonts/bungeeshade/BungeeShade-Regular.ttf",
+      "bytes": 304936
+    },
+    {
+      "url": "herramientas/tipografias/fonts/butcherman/Butcherman-Regular.ttf",
+      "bytes": 66100
+    },
+    {
+      "url": "herramientas/tipografias/fonts/cabinsketch/CabinSketch-Bold.ttf",
+      "bytes": 271012
+    },
+    {
+      "url": "herramientas/tipografias/fonts/cabinsketch/CabinSketch-Regular.ttf",
+      "bytes": 156232
+    },
+    {
+      "url": "herramientas/tipografias/fonts/cardo/Cardo-Bold.ttf",
+      "bytes": 348320
+    },
+    {
+      "url": "herramientas/tipografias/fonts/cardo/Cardo-Italic.ttf",
+      "bytes": 262388
+    },
+    {
+      "url": "herramientas/tipografias/fonts/cardo/Cardo-Regular.ttf",
+      "bytes": 400468
+    },
+    {
+      "url": "herramientas/tipografias/fonts/cevicheone/CevicheOne-Regular.ttf",
+      "bytes": 36940
+    },
+    {
+      "url": "herramientas/tipografias/fonts/cinzeldecorative/CinzelDecorative-Black.ttf",
+      "bytes": 62692
+    },
+    {
+      "url": "herramientas/tipografias/fonts/cinzeldecorative/CinzelDecorative-Bold.ttf",
+      "bytes": 62300
+    },
+    {
+      "url": "herramientas/tipografias/fonts/cinzeldecorative/CinzelDecorative-Regular.ttf",
+      "bytes": 60408
+    },
+    {
+      "url": "herramientas/tipografias/fonts/cormorantsc/CormorantSC-Regular.ttf",
+      "bytes": 763624
+    },
+    {
+      "url": "herramientas/tipografias/fonts/coustard/Coustard-Black.ttf",
+      "bytes": 78444
+    },
+    {
+      "url": "herramientas/tipografias/fonts/coustard/Coustard-Regular.ttf",
+      "bytes": 75432
+    },
+    {
+      "url": "herramientas/tipografias/fonts/coveredbyyourgrace/CoveredByYourGrace.ttf",
+      "bytes": 57040
+    },
+    {
+      "url": "herramientas/tipografias/fonts/creepster/Creepster-Regular.ttf",
+      "bytes": 62724
+    },
+    {
+      "url": "herramientas/tipografias/fonts/cutivemono/CutiveMono-Regular.ttf",
+      "bytes": 80004
+    },
+    {
+      "url": "herramientas/tipografias/fonts/dmserifdisplay/DMSerifDisplay-Italic.ttf",
+      "bytes": 71208
+    },
+    {
+      "url": "herramientas/tipografias/fonts/dmserifdisplay/DMSerifDisplay-Regular.ttf",
+      "bytes": 76580
+    },
+    {
+      "url": "herramientas/tipografias/fonts/eater/Eater-Regular.ttf",
+      "bytes": 83928
+    },
+    {
+      "url": "herramientas/tipografias/fonts/ewert/Ewert-Regular.ttf",
+      "bytes": 70752
+    },
+    {
+      "url": "herramientas/tipografias/fonts/fasterone/FasterOne-Regular.ttf",
+      "bytes": 94044
+    },
+    {
+      "url": "herramientas/tipografias/fonts/fjallaone/FjallaOne-Regular.ttf",
+      "bytes": 209052
+    },
+    {
+      "url": "herramientas/tipografias/fonts/frederickathegreat/FrederickatheGreat-Regular.ttf",
+      "bytes": 486016
+    },
+    {
+      "url": "herramientas/tipografias/fonts/frijole/Frijole-Regular.ttf",
+      "bytes": 227860
+    },
+    {
+      "url": "herramientas/tipografias/fonts/germaniaone/GermaniaOne-Regular.ttf",
+      "bytes": 33240
+    },
+    {
+      "url": "herramientas/tipografias/fonts/graduate/Graduate-Regular.ttf",
+      "bytes": 59296
+    },
+    {
+      "url": "herramientas/tipografias/fonts/greatvibes/GreatVibes-Regular.ttf",
+      "bytes": 457588
+    },
+    {
+      "url": "herramientas/tipografias/fonts/jersey10/Jersey10-Regular.ttf",
+      "bytes": 77732
+    },
+    {
+      "url": "herramientas/tipografias/fonts/jersey15/Jersey15-Regular.ttf",
+      "bytes": 104236
+    },
+    {
+      "url": "herramientas/tipografias/fonts/jollylodger/JollyLodger-Regular.ttf",
+      "bytes": 39800
+    },
+    {
+      "url": "herramientas/tipografias/fonts/kaushanscript/KaushanScript-Regular.ttf",
+      "bytes": 210672
+    },
+    {
+      "url": "herramientas/tipografias/fonts/knewave/Knewave-Regular.ttf",
+      "bytes": 32460
+    },
+    {
+      "url": "herramientas/tipografias/fonts/lacquer/Lacquer-Regular.ttf",
+      "bytes": 294060
+    },
+    {
+      "url": "herramientas/tipografias/fonts/lobster/Lobster-Regular.ttf",
+      "bytes": 406076
+    },
+    {
+      "url": "herramientas/tipografias/fonts/lobstertwo/LobsterTwo-Bold.ttf",
+      "bytes": 241104
+    },
+    {
+      "url": "herramientas/tipografias/fonts/lobstertwo/LobsterTwo-BoldItalic.ttf",
+      "bytes": 235632
+    },
+    {
+      "url": "herramientas/tipografias/fonts/lobstertwo/LobsterTwo-Italic.ttf",
+      "bytes": 249896
+    },
+    {
+      "url": "herramientas/tipografias/fonts/lobstertwo/LobsterTwo-Regular.ttf",
+      "bytes": 254332
+    },
+    {
+      "url": "herramientas/tipografias/fonts/medievalsharp/MedievalSharp.ttf",
+      "bytes": 148712
+    },
+    {
+      "url": "herramientas/tipografias/fonts/metalmania/MetalMania-Regular.ttf",
+      "bytes": 254568
+    },
+    {
+      "url": "herramientas/tipografias/fonts/monoton/Monoton-Regular.ttf",
+      "bytes": 51604
+    },
+    {
+      "url": "herramientas/tipografias/fonts/mysteryquest/MysteryQuest-Regular.ttf",
+      "bytes": 42124
+    },
+    {
+      "url": "herramientas/tipografias/fonts/newrocker/NewRocker-Regular.ttf",
+      "bytes": 173224
+    },
+    {
+      "url": "herramientas/tipografias/fonts/nosifer/Nosifer-Regular.ttf",
+      "bytes": 43272
+    },
+    {
+      "url": "herramientas/tipografias/fonts/pacifico/Pacifico-Regular.ttf",
+      "bytes": 329380
+    },
+    {
+      "url": "herramientas/tipografias/fonts/patrickhand/PatrickHand-Regular.ttf",
+      "bytes": 214772
+    },
+    {
+      "url": "herramientas/tipografias/fonts/pirataone/PirataOne-Regular.ttf",
+      "bytes": 56316
+    },
+    {
+      "url": "herramientas/tipografias/fonts/plaster/Plaster-Regular.ttf",
+      "bytes": 32852
+    },
+    {
+      "url": "herramientas/tipografias/fonts/poiretone/PoiretOne-Regular.ttf",
+      "bytes": 130176
+    },
+    {
+      "url": "herramientas/tipografias/fonts/prata/Prata-Regular.ttf",
+      "bytes": 101284
+    },
+    {
+      "url": "herramientas/tipografias/fonts/pressstart2p/PressStart2P-Regular.ttf",
+      "bytes": 118204
+    },
+    {
+      "url": "herramientas/tipografias/fonts/questrial/Questrial-Regular.ttf",
+      "bytes": 184176
+    },
+    {
+      "url": "herramientas/tipografias/fonts/racingsansone/RacingSansOne-Regular.ttf",
+      "bytes": 145796
+    },
+    {
+      "url": "herramientas/tipografias/fonts/righteous/Righteous-Regular.ttf",
+      "bytes": 43104
+    },
+    {
+      "url": "herramientas/tipografias/fonts/rock3d/Rock3D-Regular.ttf",
+      "bytes": 444468
+    },
+    {
+      "url": "herramientas/tipografias/fonts/rubik80sfade/Rubik80sFade-Regular.ttf",
+      "bytes": 3448044
+    },
+    {
+      "url": "herramientas/tipografias/fonts/rubikbeastly/RubikBeastly-Regular.ttf",
+      "bytes": 512684
+    },
+    {
+      "url": "herramientas/tipografias/fonts/rubikburned/RubikBurned-Regular.ttf",
+      "bytes": 605348
+    },
+    {
+      "url": "herramientas/tipografias/fonts/rubikdirt/RubikDirt-Regular.ttf",
+      "bytes": 1492292
+    },
+    {
+      "url": "herramientas/tipografias/fonts/rubikdistressed/RubikDistressed-Regular.ttf",
+      "bytes": 892544
+    },
+    {
+      "url": "herramientas/tipografias/fonts/rubikglitch/RubikGlitch-Regular.ttf",
+      "bytes": 407304
+    },
+    {
+      "url": "herramientas/tipografias/fonts/rubikglitchpop/RubikGlitchPop-Regular.ttf",
+      "bytes": 1976660
+    },
+    {
+      "url": "herramientas/tipografias/fonts/rubikmicrobe/RubikMicrobe-Regular.ttf",
+      "bytes": 1444176
+    },
+    {
+      "url": "herramientas/tipografias/fonts/rubikmonoone/RubikMonoOne-Regular.ttf",
+      "bytes": 141088
+    },
+    {
+      "url": "herramientas/tipografias/fonts/rubikpuddles/RubikPuddles-Regular.ttf",
+      "bytes": 404956
+    },
+    {
+      "url": "herramientas/tipografias/fonts/rubikspraypaint/RubikSprayPaint-Regular.ttf",
+      "bytes": 941576
+    },
+    {
+      "url": "herramientas/tipografias/fonts/rubikstorm/RubikStorm-Regular.ttf",
+      "bytes": 795704
+    },
+    {
+      "url": "herramientas/tipografias/fonts/rubikvinyl/RubikVinyl-Regular.ttf",
+      "bytes": 414752
+    },
+    {
+      "url": "herramientas/tipografias/fonts/rubikwetpaint/RubikWetPaint-Regular.ttf",
+      "bytes": 442628
+    },
+    {
+      "url": "herramientas/tipografias/fonts/russoone/RussoOne-Regular.ttf",
+      "bytes": 39124
+    },
+    {
+      "url": "herramientas/tipografias/fonts/rye/Rye-Regular.ttf",
+      "bytes": 183244
+    },
+    {
+      "url": "herramientas/tipografias/fonts/sancreek/Sancreek-Regular.ttf",
+      "bytes": 93252
+    },
+    {
+      "url": "herramientas/tipografias/fonts/sedgwickavedisplay/SedgwickAveDisplay-Regular.ttf",
+      "bytes": 140148
+    },
+    {
+      "url": "herramientas/tipografias/fonts/sharetechmono/ShareTechMono-Regular.ttf",
+      "bytes": 43272
+    },
+    {
+      "url": "herramientas/tipografias/fonts/shojumaru/Shojumaru-Regular.ttf",
+      "bytes": 71672
+    },
+    {
+      "url": "herramientas/tipografias/fonts/sixcaps/SixCaps.ttf",
+      "bytes": 46388
+    },
+    {
+      "url": "herramientas/tipografias/fonts/sonsieone/SonsieOne-Regular.ttf",
+      "bytes": 75992
+    },
+    {
+      "url": "herramientas/tipografias/fonts/sortsmillgoudy/SortsMillGoudy-Italic.ttf",
+      "bytes": 105684
+    },
+    {
+      "url": "herramientas/tipografias/fonts/sortsmillgoudy/SortsMillGoudy-Regular.ttf",
+      "bytes": 121372
+    },
+    {
+      "url": "herramientas/tipografias/fonts/spacemono/SpaceMono-Bold.ttf",
+      "bytes": 98232
+    },
+    {
+      "url": "herramientas/tipografias/fonts/spacemono/SpaceMono-BoldItalic.ttf",
+      "bytes": 111904
+    },
+    {
+      "url": "herramientas/tipografias/fonts/spacemono/SpaceMono-Italic.ttf",
+      "bytes": 121396
+    },
+    {
+      "url": "herramientas/tipografias/fonts/spacemono/SpaceMono-Regular.ttf",
+      "bytes": 99356
+    },
+    {
+      "url": "herramientas/tipografias/fonts/staatliches/Staatliches-Regular.ttf",
+      "bytes": 63316
+    },
+    {
+      "url": "herramientas/tipografias/fonts/stardosstencil/StardosStencil-Regular.ttf",
+      "bytes": 42624
+    },
+    {
+      "url": "herramientas/tipografias/fonts/tradewinds/TradeWinds-Regular.ttf",
+      "bytes": 85380
+    },
+    {
+      "url": "herramientas/tipografias/fonts/unifrakturcook/UnifrakturCook-Bold.ttf",
+      "bytes": 42688
+    },
+    {
+      "url": "herramientas/tipografias/fonts/unifrakturmaguntia/UnifrakturMaguntia-Book.ttf",
+      "bytes": 88508
+    },
+    {
+      "url": "herramientas/tipografias/fonts/vt323/VT323-Regular.ttf",
+      "bytes": 153116
+    },
+    {
+      "url": "herramientas/tipografias/fonts/wallpoet/Wallpoet-Regular.ttf",
+      "bytes": 39904
+    },
+    {
+      "url": "herramientas/tipografias/interface.js",
+      "bytes": 1456
+    },
+    {
+      "url": "herramientas/tipografias/objects-core.js",
+      "bytes": 12169
+    },
+    {
+      "url": "herramientas/tipografias/objects-ui.js",
+      "bytes": 18729
+    },
+    {
+      "url": "herramientas/tipografias/preset-core.js",
+      "bytes": 7817
+    },
+    {
+      "url": "herramientas/tipografias/references-new/reference-01.png",
+      "bytes": 999573
+    },
+    {
+      "url": "herramientas/tipografias/references-new/reference-02.png",
+      "bytes": 1381075
+    },
+    {
+      "url": "herramientas/tipografias/references-new/reference-03.png",
+      "bytes": 1260351
+    },
+    {
+      "url": "herramientas/tipografias/references-new/reference-04.png",
+      "bytes": 686124
+    },
+    {
+      "url": "herramientas/tipografias/references-new/reference-05.png",
+      "bytes": 901638
+    },
+    {
+      "url": "herramientas/tipografias/references-new/reference-06.png",
+      "bytes": 1122784
+    },
+    {
+      "url": "herramientas/tipografias/references-new/reference-07.png",
+      "bytes": 671900
+    },
+    {
+      "url": "herramientas/tipografias/references-new/reference-08.png",
+      "bytes": 741126
+    },
+    {
+      "url": "herramientas/tipografias/references-new/reference-09.png",
+      "bytes": 391628
+    },
+    {
+      "url": "herramientas/tipografias/references-new/reference-10.png",
+      "bytes": 827080
+    },
+    {
+      "url": "herramientas/tipografias/references-new/reference-11.png",
+      "bytes": 1466029
+    },
+    {
+      "url": "herramientas/tipografias/references-new/reference-12.png",
+      "bytes": 943969
+    },
+    {
+      "url": "herramientas/tipografias/references-new/reference-13.png",
+      "bytes": 1374391
+    },
+    {
+      "url": "herramientas/tipografias/references.js",
+      "bytes": 15697
+    },
+    {
+      "url": "herramientas/tipografias/studio-core.js",
+      "bytes": 7699
+    },
+    {
+      "url": "herramientas/tipografias/studio-ui.js",
+      "bytes": 31662
+    },
+    {
+      "url": "herramientas/tipografias/style.css",
+      "bytes": 26480
+    },
+    {
+      "url": "herramientas/tipografias/templates-ui.js",
+      "bytes": 4591
+    },
+    {
+      "url": "herramientas/tipografias/templates.js",
+      "bytes": 7617
+    },
+    {
+      "url": "herramientas/tipografias/vendor/opentype.min.js",
+      "bytes": 171001
+    },
+    {
+      "url": "herramientas/tipografias/view-ui.js",
+      "bytes": 5691
+    },
+    {
+      "url": "herramientas/vendor/paper/paper-core.min.js",
+      "bytes": 208492
+    },
+    {
+      "url": "js/performance.js",
+      "bytes": 1221
+    },
+    {
+      "url": "js/workflow-bridge.js",
+      "bytes": 6074
+    },
+    {
+      "url": "vendor/fontawesome/css/all.min.css",
+      "bytes": 96518
+    },
+    {
+      "url": "vendor/fontawesome/css/site.min.css",
+      "bytes": 15659
+    },
+    {
+      "url": "vendor/fontawesome/webfonts/fa-brands-400.woff2",
+      "bytes": 118072
+    },
+    {
+      "url": "vendor/fontawesome/webfonts/fa-regular-400.woff2",
+      "bytes": 25464
+    },
+    {
+      "url": "vendor/fontawesome/webfonts/fa-solid-900.woff2",
+      "bytes": 157192
+    },
+    {
+      "url": "vendor/fontawesome/webfonts/fa-v4compatibility.woff2",
+      "bytes": 4800
+    }
+  ]
+}
