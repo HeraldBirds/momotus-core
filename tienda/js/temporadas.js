@@ -66,6 +66,10 @@
   const currency = new Intl.NumberFormat('es-NI', { style: 'currency', currency: 'NIO', maximumFractionDigits: 0 });
   let activeEvent = null;
   let activeFilter = 'all';
+  let selectedSeason = null;
+  let seasonCategorySelected = false;
+  if(typeof location !== 'undefined') { const params=new URLSearchParams(location.search); selectedSeason=params.get('temporada'); activeFilter=params.get('prendaTemporada') || 'all'; }
+  const writeSeasonURL = () => { if(typeof location==='undefined' || typeof history==='undefined')return; const url=new URL(location.href); if(activeEvent)url.searchParams.set('temporada',activeEvent.id); activeFilter==='all'?url.searchParams.delete('prendaTemporada'):url.searchParams.set('prendaTemporada',activeFilter); history.replaceState(null,'',url); };
 
   const escapeHtml = value => String(value).replace(/[&<>'"]/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]);
   const atStartOfDay = date => new Date(date.getFullYear(), date.getMonth(), date.getDate());
@@ -171,7 +175,7 @@
     products.innerHTML = items.map(item => `
       <article class="seasonal-card${item.combo ? ' combo' : ''}" data-season-item="${escapeHtml(item.id)}" data-season-category="${escapeHtml(item.category)}">
         <div class="seasonal-card-media">
-          <div class="seasonal-card-placeholder">${garmentSilhouette(item)}<span>Mockup en preparación · prenda disponible</span></div>
+          <div class="seasonal-card-placeholder">${garmentSilhouette(item)}<span>Vista de la prenda · mockup pendiente</span></div>
           <img data-season-src="${escapeHtml(item.image)}" alt="${escapeHtml(item.name)}" width="640" height="480" loading="lazy" decoding="async">
           <span class="seasonal-card-type">${item.combo ? 'COMBO · ' : ''}${escapeHtml(item.type)}</span>
           <span class="seasonal-card-state">EDICIÓN LIMITADA</span>
@@ -190,8 +194,9 @@
   };
 
   const setFilter = filter => {
-    if (!filters.some(entry => entry.id === filter)) return;
+    if (!activeEvent || !filters.some(entry => entry.id === filter)) return;
     activeFilter = filter;
+    writeSeasonURL();
     renderFilters(activeEvent);
     renderCards();
   };
@@ -206,18 +211,15 @@
       section.hidden = true;
       return;
     }
-    const matches = seasonalEvents
-      .map(event => ({ event, state: eventState(event, now) }))
-      .filter(entry => entry.state.visible)
-      .sort((left, right) => left.state.end - right.state.end);
-    if (!matches.length) {
-      activeEvent = null;
-      section.hidden = true;
-      return;
-    }
-    const { event, state } = matches.find(entry => entry.event.id === 'aguizotes') || matches[0];
+    const enabled = seasonalEvents.filter(event => event.enabled);
+    const event = enabled.find(event => event.id === selectedSeason) || enabled.find(event => eventState(event,now).visible) || enabled[0];
+    if(!event){activeEvent=null;section.hidden=true;return;}
+    const state = eventState(event,now);
     activeEvent = event;
-    activeFilter = 'all';
+    selectedSeason = event.id;
+    if(!filters.some(filter=>filter.id===activeFilter))activeFilter='all';
+    const categories = document.getElementById('seasonal-categories');
+    if(categories) categories.innerHTML=enabled.map(entry=>`<button type="button" data-season-category="${entry.id}" aria-pressed="${entry.id===event.id}" class="${entry.id===event.id?'active':''}"><i class="fa-solid ${entry.icon}" aria-hidden="true"></i> ${entry.id==='aguizotes'?'Agüizotes':'Navidad'}</button>`).join('');
     section.style.setProperty('--season-accent', event.theme.accent);
     section.style.setProperty('--season-accent-2', event.theme.accent2);
     section.style.setProperty('--season-bg', event.theme.background);
@@ -230,13 +232,16 @@
     document.getElementById('seasonal-title').textContent = event.title;
     document.getElementById('seasonal-description').textContent = event.description;
     document.getElementById('seasonal-date-label').textContent = event.availabilityLabel;
-    document.getElementById('seasonal-countdown-value').textContent = state.daysRemaining > 1 ? `${state.daysRemaining} días disponibles` : 'Último día disponible';
+    document.getElementById('seasonal-countdown-value').textContent = state.visible ? (state.daysRemaining > 1 ? `${state.daysRemaining} días disponibles` : 'Último día disponible') : (now < state.start ? 'Próximamente' : 'Fuera de temporada');
     document.getElementById('seasonal-progress-fill').style.width = `${state.progress.toFixed(1)}%`;
     renderBadges(event);
     renderFilters(event);
     renderCards();
-    section.hidden = true;
+    section.hidden = !seasonCategorySelected;
   };
+
+  const selectSeason = id => { if(!seasonalEvents.some(event=>event.id===id&&event.enabled))return; selectedSeason=id; renderSeason(); writeSeasonURL(); };
+  document.getElementById('seasonal-categories')?.addEventListener('click',event=>{const button=event.target.closest('[data-season-category]');if(button)selectSeason(button.dataset.seasonCategory);});
 
   document.getElementById('seasonal-filters')?.addEventListener('click', event => {
     const button = event.target.closest('[data-season-filter]');
@@ -272,17 +277,20 @@
     catalog.focus({ preventScroll: true });
   });
 
+  const hiddenElements = new WeakMap();
   const syncCategory = category => {
-    const selected = category === 'aguizotes';
+    const selected = category === 'temporadas' || category === 'aguizotes';
+    seasonCategorySelected = selected;
     const section = document.getElementById('seasonal-event');
-    section.hidden = !selected || activeEvent?.id !== 'aguizotes';
-    const button = document.getElementById('filter-aguizotes');
-    if (button) { button.hidden = activeEvent?.id !== 'aguizotes'; button.setAttribute('aria-pressed',String(selected)); }
-    for (const selector of ['#store-garment-filters','.store-secondary-filters','#featured-products-section','#catalog-grid-title','#products-grid','#results-count','#store-search','#sort-select']) {
-      const element=document.querySelector(selector); if(element) element.hidden=selected;
+    if(!section)return;
+    section.hidden = !selected || !activeEvent;
+    const button = document.getElementById('filter-temporadas');
+    if (button) { button.hidden = !seasonalEvents.some(event=>event.enabled); button.setAttribute('aria-pressed',String(selected)); }
+    for (const selector of ['#catalog-results','#urban-design-spaces','#store-garment-filters','.store-secondary-filters','#featured-products-section','#catalog-grid-title','#products-grid','#results-count','#store-search','#sort-select']) {
+      const element=document.querySelector(selector); if(element) { if(selected) { if(!hiddenElements.has(element))hiddenElements.set(element,element.hidden); element.hidden=true; } else if(hiddenElements.has(element)) {element.hidden=hiddenElements.get(element);hiddenElements.delete(element);} }
     }
   };
-  globalThis.MomotusSeasonal = Object.freeze({ events: seasonalEvents, eventState, validate, render: renderSeason, syncCategory });
+  globalThis.MomotusSeasonal = Object.freeze({ events: seasonalEvents, eventState, validate, render: renderSeason, selectSeason, setFilter, syncCategory });
   renderSeason();
   syncCategory(typeof currentCategory === 'string' ? currentCategory : 'all');
 })();

@@ -137,3 +137,9 @@
   .seasonal-card-media img,
   .seasonal-progress span { transition: none; }
 }
+
+/* Navegación permanente; cada tema usa sus propios colores y adornos. */
+.seasonal-categories {margin-bottom:2rem;display:flex;flex-wrap:wrap;gap:.75rem;}
+.seasonal-event[data-season="navidad"] {border-color:#22c55e;}
+.seasonal-event[data-season="navidad"] .seasonal-atmosphere span {border-radius:0;transform:rotate(45deg);border-style:dashed;}
+.seasonal-event[data-season="navidad"] .seasonal-card-state {background:#14532d;color:#fff;}

@@ -104,6 +104,11 @@
       baseProducts.push({id,name:`${urbanSubcategories[topic].label} · diseño ${slot+8}`,category:'urbano',subcategory:topic,price:450,img:`img/products/urbano/${topic}/urbano-${id}.webp`,sizes:['S','M','L'],stock:{S:0,M:0,L:0},published:true});
     }
   });
+  const editorialNames = {"musica": ["Ritmo Rebelde", "Ecos del Rock", "Metal Nocturno", "Distorsión", "Riff Eterno", "Frecuencia Libre", "Último Acorde", "Escenario Oscuro", "Pulso Eléctrico", "Resonancia", "Volumen Máximo", "Noche de Concierto"], "motor": ["Ruta Salvaje", "Asfalto Libre", "Pistón de Acero", "Curva Cerrada", "Motor de Medianoche", "A Toda Marcha", "Espíritu Racing", "Yamaha YZ250 · Vida del Motocross", "Dodge Charger", "Línea de Salida", "Kilómetro Cero", "Sin Frenos"], "cine-terror": ["Sombras del Cine", "Noche de Espantos", "Última Función", "Miedo en la Niebla", "Pantalla Oscura", "Silencio Mortal", "El Umbral", "Ecos de Terror", "Pesadilla Urbana", "Tras la Máscara", "Medianoche", "La Última Escena"], "streetwear": ["Distrito Libre", "Código Callejero", "Neón Urbano", "Ruta Alterna", "Sin Etiquetas", "Pulso de Ciudad", "Fuera del Molde", "Dominate · Dragón", "Identidad Urbana", "Concreto Vivo", "Nueva Frecuencia", "Espíritu Libre"], "arte-tipografia": ["Tinta Viva", "Trazo Libre", "Letras en Fuego", "Geometría Rebelde", "Manifiesto", "Caos Creativo", "Entre Líneas", "Lost in Space", "Órbita Interior", "Fragmentos", "Alma Gráfica", "Universo de Tinta"], "deportes": ["Movimiento Libre", "Más Allá del Límite", "Pulso Atlético", "Meta en la Mira", "Fuerza Interior", "Instinto de Juego", "Reto Diario", "Victoria Urbana", "Sin Límites", "Energía en Acción", "Espíritu de Equipo", "Último Minuto"]};
+  Object.keys(urbanSubcategories).forEach((topic,index)=>{
+    const ids=[37+index*2,38+index*2,...Array.from({length:5},(_,slot)=>49+index*5+slot),...Array.from({length:5},(_,slot)=>79+index*5+slot)];
+    ids.forEach((id,slot)=>{baseProducts.find(product=>product.id===id).name=editorialNames[topic][slot];});
+  });
   // Nombres confirmados por las fotografías, conservando los IDs existentes.
   const namedDesigns = Object.freeze({26:'Jaguar Neón',27:'Panther',84:'Yamaha YZ250 · Vida del Motocross',85:'Dodge Charger',94:'Dominate · Dragón',99:'Lost in Space'});
   baseProducts.forEach(product => { if (namedDesigns[product.id]) product.name = namedDesigns[product.id]; });
@@ -169,7 +174,7 @@
   const getGarmentImage = (product, garmentKey) => garmentKey === 'camiseta'
     ? product.img
     : `${imagePaths.folder(product)}/variants/${product.id}-${garmentKey}.webp`;
-  const getProductDisplayName = (product, garmentKey) => (product.category === 'fauna' || namedDesigns[product.id])
+  const getProductDisplayName = (product, garmentKey) => (product.category === 'fauna' || namedDesigns[product.id] || product.id >= 37)
     ? product.name
     : garmentProductNames[garmentKey]?.[product.id] || (product.id >= 37 && garmentKey !== 'camiseta' ? product.name.replace('diseño', garmentDefinitions[garmentKey].name) : product.name);
 
@@ -220,7 +225,7 @@
     baseProducts.forEach(baseProduct => {
       const names = new Set(catalog.filter(product => product.baseDesignId === baseProduct.id).map(product => product.baseName));
       if (baseProduct.category === 'fauna' && names.size !== 1) throw new Error(`Fauna Nica debe conservar el mismo nombre en el diseño ${baseProduct.id}`);
-      if (baseProduct.category !== 'fauna' && !namedDesigns[baseProduct.id] && names.size !== garmentOrder.length) throw new Error(`Los nombres deben ser independientes en el diseño ${baseProduct.id}`);
+      if (baseProduct.category !== 'fauna' && !namedDesigns[baseProduct.id] && baseProduct.id < 37 && names.size !== garmentOrder.length) throw new Error(`Los nombres deben ser independientes en el diseño ${baseProduct.id}`);
     });
     return true;
   };

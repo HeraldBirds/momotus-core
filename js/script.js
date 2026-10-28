@@ -840,8 +840,8 @@ const filterGarment = garment => {
 };
 
 const filterCategory = (cat) => {
-  if (cat !== 'all' && cat !== 'aguizotes' && !Object.hasOwn(categoryLabels, cat)) cat = 'all';
-  currentCategory = cat;
+  if (cat !== 'all' && cat !== 'aguizotes' && cat !== 'temporadas' && !Object.hasOwn(categoryLabels, cat)) cat = 'all';
+  currentCategory = cat === 'aguizotes' ? 'temporadas' : cat;
   currentSubcategory = 'all';
   document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.toggle('active', btn.id === `filter-${cat}`));
   updateStoreURL();
@@ -930,15 +930,15 @@ const syncUrbanDesignSpaces = () => {
   slots.forEach((product,index)=>{
     const card=document.createElement('article');card.className='urban-design-space';card.dataset.designId=product.baseDesignId;
     const icon=document.createElement('i');icon.className=`fa-solid ${urbanSubcategories[currentSubcategory].icon}`;icon.setAttribute('aria-hidden','true');
-    const title=document.createElement('h4');title.textContent=`Nuevo diseño ${index+1}`;
+    const title=document.createElement('h4');title.textContent=product.baseName;
     const note=document.createElement('p');note.textContent='Próximamente';
     card.append(icon,title,note);grid.append(card);
   });
 };
 
 const filterProducts = () => {
+  if (!['temporadas','aguizotes'].includes(currentCategory)) window.MomotusSeasonal?.syncCategory(currentCategory);
   syncUrbanSubcategories();
-  if (window.MomotusSeasonal?.syncCategory) window.MomotusSeasonal.syncCategory(currentCategory);
   const filtered = getFilteredProducts();
   const showFeatured = updateFeaturedProductsVisibility();
   const overview = showFeatured ? renderFeaturedCategories(filtered) : [];
@@ -950,6 +950,7 @@ const filterProducts = () => {
   const countEl = document.getElementById('count-number');
   if (countEl) countEl.textContent = showFeatured ? overview.length : filtered.length;
   const countLabel=document.getElementById('results-count-label');if(countLabel)countLabel.textContent=showFeatured?'destacados':'productos';
+  if (window.MomotusSeasonal?.syncCategory) window.MomotusSeasonal.syncCategory(currentCategory);
 };
 
 const sortProducts = () => {
@@ -1007,7 +1008,7 @@ window.onload = () => {
     const garment = params.get('prenda');
     if (garment === 'all' || garmentOrder.includes(garment)) currentGarment = garment;
     const category = params.get('categoria');
-    if (([...Object.keys(categoryLabels),'aguizotes']).includes(category)) currentCategory = category;
+    if (([...Object.keys(categoryLabels),'aguizotes','temporadas']).includes(category)) currentCategory = category === 'aguizotes' ? 'temporadas' : category;
     else if (category === 'unica') { params.delete('categoria'); const nextURL = new URL(location.href); nextURL.search = params.toString(); history.replaceState(null, '', nextURL); }
     const subcategory=params.get('subcategoria');
     if(currentCategory === 'urbano' && Object.hasOwn(urbanSubcategories,subcategory)) currentSubcategory=subcategory;
