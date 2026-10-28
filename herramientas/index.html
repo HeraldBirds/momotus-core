@@ -11,21 +11,22 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; worker-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self'; connect-src 'self';">
   
   <script>
-    window.MOMOTUS_TOOLS_VERSION = '20261027-layout-1';
+    window.MOMOTUS_TOOLS_VERSION = '20261028-usability-1';
     window.MOMOTUS_TOOLS_DESKTOP = window.matchMedia('(min-width: 1024px)').matches;
     if (!window.MOMOTUS_TOOLS_DESKTOP) document.documentElement.classList.add('tools-page-mobile');
   </script>
   <script>
     if (window.MOMOTUS_TOOLS_DESKTOP) {
-      document.write('<link rel="stylesheet" href="vendor/fontawesome/css/site.min.css?v=20261027-layout-1" crossorigin="anonymous" referrerpolicy="no-referrer">');
+      document.write('<link rel="stylesheet" href="vendor/fontawesome/css/site.min.css?v=20261028-usability-1" crossorigin="anonymous" referrerpolicy="no-referrer">');
     }
   </script>
   <link rel="stylesheet" href="css/tailwind.css?v=20261006-1" media="(min-width: 1024px)">
-  <link rel="stylesheet" href="css/style.css?v=20261027-layout-1">
+  <link rel="stylesheet" href="css/style.css?v=20261028-usability-1">
   <link rel="stylesheet" href="herramientas/css/tools.css?v=20261007-precision-1" media="(min-width: 1024px)">
   <link rel="stylesheet" href="herramientas/css/tools-precision.css?v=20261007-precision-1" media="(min-width: 1024px)">
-  <link rel="stylesheet" href="herramientas/css/tools-drop-upload.css?v=20261027-layout-1" media="(min-width: 1024px)">
-  <link rel="stylesheet" href="herramientas/css/studio-refresh.css?v=20261027-layout-1" media="(min-width: 1024px)">
+  <link rel="stylesheet" href="herramientas/css/tools-drop-upload.css?v=20261028-usability-1" media="(min-width: 1024px)">
+  <link rel="stylesheet" href="herramientas/css/editor-interactions.css?v=20261028-usability-1" media="(min-width: 1024px)">
+  <link rel="stylesheet" href="herramientas/css/studio-refresh.css?v=20261028-usability-1" media="(min-width: 1024px)">
 </head>
 <body class="momotus-studio bg-zinc-950 text-white">
   <section class="tools-mobile-gate" aria-labelledby="tools-desktop-title">
@@ -125,6 +126,8 @@
             <div class="tool-control-content">
             <label class="tool-field-row"><span>Zona tonal</span><select id="halftone-range"><option value="transitions">Sombras y transiciones</option><option value="shadows">Sombras</option><option value="midtones">Medios tonos</option><option value="highlights">Luces</option><option value="all">Toda la imagen</option></select></label>
             <label class="tool-field-row"><span>Rango de color</span><select id="halftone-hue-range"><option value="all">Todos los colores</option><option value="dominant">Color dominante</option><option value="vivid">Colores vivos</option><option value="neutral">Grises y neutros</option><option value="reds">Rojos</option><option value="oranges">Naranjas</option><option value="yellows">Amarillos</option><option value="greens">Verdes</option><option value="cyans">Cian y turquesa</option><option value="blues">Azules</option><option value="purples">Morados y magentas</option></select></label>
+            <input id="halftone-color-selection" type="hidden" value='{"enabled":false,"include":[],"exclude":[],"tolerance":30}'>
+            <div id="ht-design-colors"></div>
             <label class="tool-field">Cantidad de trama <span id="halftone-amount-value">55%</span><input id="halftone-amount" type="range" min="10" max="100" value="55"></label>
             <label class="tool-field">Proteger colores sólidos <span id="halftone-solid-protection-value">75%</span><input id="halftone-solid-protection" type="range" min="0" max="100" value="75"></label>
             <label class="tool-field">Proteger detalle fino <span id="halftone-edge-protection-value">45%</span><input id="halftone-edge-protection" type="range" min="0" max="100" value="45"></label>
@@ -228,7 +231,7 @@
                   <p><i class="fa-solid fa-circle-info" aria-hidden="true"></i> Para quitar negro de un diseño destinado a una prenda clara, empezá con tolerancia baja. Usá “solo fondo conectado” si querés proteger detalles negros interiores.</p>
                 </div>
               </div>
-              <p id="background-zones-note" class="tool-field-help" hidden>Este resultado usa la máscara del editor por zonas. Los ajustes globales de color y bordes no se aplican a esa máscara.</p><button id="background-corner" type="button" class="tool-secondary" disabled><i class="fa-solid fa-eye-dropper"></i> Tomar color de la esquina</button>
+              <p id="background-zones-note" class="tool-field-help" hidden>Este resultado usa la máscara del editor por zonas. Los ajustes globales de color y bordes no se aplican a esa máscara.</p><button id="background-eyedropper" type="button" class="tool-secondary mc-active-tool" aria-pressed="false" disabled>Cuentagotas</button><button id="background-corner" type="button" class="tool-secondary" disabled><i class="fa-solid fa-eye-dropper"></i> Tomar color de la esquina</button>
               <button id="background-apply-connected" type="button" class="tool-secondary" disabled><i class="fa-solid fa-object-ungroup"></i> Quitar solo el fondo exterior</button>
               <button id="background-apply-global" type="button" class="tool-download" disabled><i class="fa-solid fa-eraser"></i> Eliminar este color en toda la imagen</button>
             </div>
@@ -531,7 +534,8 @@
   </div>
 
   <div id="cart-modal-placeholder"></div>
-  <script src="herramientas/js/tools-loader.js?v=20261027-layout-1"></script>
-  <script src="js/performance.js?v=20261027-layout-1" defer></script>
+  <script src="herramientas/js/image-inputs.js?v=20261028-usability-1"></script>
+  <script src="herramientas/js/tools-loader.js?v=20261028-usability-1"></script>
+  <script src="js/performance.js?v=20261028-usability-1" defer></script>
 </body>
 </html>

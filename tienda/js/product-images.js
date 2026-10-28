@@ -3,7 +3,7 @@
 'use strict';
 const topics=['musica','motor','cine-terror','streetwear','arte-tipografia','deportes'];
 function design(id){
- if([1,2,3,32,33,34,35,36].includes(id))return {category:'fauna'};
+ if([1,2,3,32,33,34,35,36,109,110].includes(id))return {category:'fauna'};
  if(id===4||(id>=26&&id<=31))return {category:'unica'};
  if(id>=5&&id<=14)return {category:'anime'};
  if(id>=20&&id<=25)return {category:'games'};

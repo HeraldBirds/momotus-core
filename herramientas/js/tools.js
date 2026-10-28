@@ -33,6 +33,7 @@
   let halftoneJob = null;
   let halftoneBusy = false;
   const H = window.MomotusHalftone;
+  const DEFAULT_HALFTONE_COLORS=JSON.stringify({enabled:false,include:[],exclude:[],tolerance:30});
   let qualityRevision = 0;
   let halftoneRenderRevision = 0;
   let backgroundRenderRevision = 0;
@@ -40,6 +41,7 @@
 
   const byId = id => document.getElementById(id);
   const setWorkspaceState = (label, tone = 'idle') => {
+    if(document.querySelector('.extra-tool-panel:not([hidden])'))return;
     const state = byId('editor-workspace-state');
     if (!state) return;
     state.classList.remove('idle', 'processing', 'ready', 'warning');
@@ -92,7 +94,7 @@
         if (heading && busy) heading.textContent = message.replace(/…+$/, '…');
         if (busy && wasHidden) setProcessingProgress(type, 0, message);
       }
-      if (type === activeTool) {
+      if (type === activeTool && !document.querySelector('.extra-tool-panel:not([hidden])')) {
         if (busy) setWorkspaceState('Procesando', 'processing');
         else if (warning) setWorkspaceState('Revisar', 'warning');
         else if (dirtyStates[type]) setWorkspaceState('Cambios pendientes', 'warning');
@@ -531,6 +533,7 @@
   };
 
   const drawHistogram = (type, renderedCanvas = null) => {
+    if(type!==activeTool||document.querySelector('.extra-tool-panel:not([hidden])'))return;
     const state = states[type];
     const canvas = byId('editor-histogram');
     if (!canvas) return;
@@ -569,6 +572,7 @@
   };
 
   const updateDocumentInfo = type => {
+    if(type!==activeTool||document.querySelector('.extra-tool-panel:not([hidden])'))return;
     const state = states[type];
     const element = byId('editor-image-info');
     if (!element) return;
@@ -1039,6 +1043,7 @@
   };
 
   const applyHalftonePreset = (preset, button) => {
+    if(['dominant','vivid','neutral'].includes(button?.dataset.halftoneAuto)){const colors=JSON.parse(byId('halftone-color-selection').value);colors.enabled=false;byId('halftone-color-selection').value=JSON.stringify(colors);}
     byId('halftone-range').value = preset.range;
     byId('halftone-hue-range').value = preset.hueRange || 'all';
     byId('halftone-amount').value = preset.amount;
@@ -1118,7 +1123,7 @@
     const inkColor = byId('halftone-color').value;
     const backgroundColor = byId('halftone-background-color').value;
     const basis=byId('halftone-basis').value,holeMm=Number(byId('halftone-hole').value),curve=['light','mid','dark'].map(k=>Number(byId('halftone-curve-'+k).value));
-    return {frequency,maximumDotMm,minimumDotMm,dotGain,angleDegrees,contrast,invert,transparent,shape,colorMode,maskMode,maskTolerance,tonalRange,hueRange,amount,solidProtection,edgeProtection,keepSolids,inkColor,backgroundColor,basis,holeMm,curve};
+    return {colorSelection:JSON.parse(byId('halftone-color-selection').value),frequency,maximumDotMm,minimumDotMm,dotGain,angleDegrees,contrast,invert,transparent,shape,colorMode,maskMode,maskTolerance,tonalRange,hueRange,amount,solidProtection,edgeProtection,keepSolids,inkColor,backgroundColor,basis,holeMm,curve};
   };
   const cancelHalftone = () => {
     halftoneRenderRevision++;halftoneBusy=false;
@@ -1328,17 +1333,21 @@
 
   const renderActiveBackground = () => renderBackground(previewViews.background === 'mask');
 
-  const pickBackgroundColor = (clientX = null, clientY = null, saveHistory = false) => {
+  let backgroundPicking=false;
+  const setBackgroundPicking=active=>{backgroundPicking=active;const button=byId('background-eyedropper');button?.setAttribute('aria-pressed',String(active));if(button)button.textContent=active?'Cuentagotas activo':'Cuentagotas';for(const id of ['background-canvas','background-original'])window.MomotusInteraction.cursor(byId(id),active?'pick':null);};
+  const pickBackgroundColor = (clientX = null, clientY = null, saveHistory = false, element = null) => {
     const state = states.background;
     if (!state) return;
     let x = 0, y = 0;
     if (clientX !== null && clientY !== null) {
-      const rect = byId('background-canvas').getBoundingClientRect();
+      const rect = (element||byId('background-canvas')).getBoundingClientRect();
+      if(!rect.width||!rect.height)return;
       x = Math.max(0, Math.min(state.width - 1, Math.floor((clientX - rect.left) * state.width / rect.width)));
       y = Math.max(0, Math.min(state.height - 1, Math.floor((clientY - rect.top) * state.height / rect.height)));
     }
     const index = (y * state.width + x) * 4;
     const data = state.imageData.data;
+    if(!data[index+3]){showToast('Ese píxel es transparente. Elegí una zona con color.');return;}
     byId('background-color').value = rgbToHex(data[index], data[index + 1], data[index + 2]);
     syncBackgroundPalette();
     renderActiveBackground();
@@ -1609,7 +1618,7 @@
   };
 
   const settingIds = {
-    halftone: ['halftone-basis','halftone-hole','halftone-curve-light','halftone-curve-mid','halftone-curve-dark','halftone-range', 'halftone-hue-range', 'halftone-amount', 'halftone-solid-protection', 'halftone-edge-protection', 'halftone-keep-solids', 'halftone-width-cm', 'halftone-frequency', 'halftone-dot-size', 'halftone-min-dot', 'halftone-dot-gain', 'halftone-mode', 'halftone-mask-mode', 'halftone-mask-tolerance', 'halftone-angle', 'halftone-contrast', 'halftone-shape', 'halftone-color', 'halftone-background-color', 'halftone-transparent', 'halftone-invert'],
+    halftone: ['halftone-color-selection','halftone-basis','halftone-hole','halftone-curve-light','halftone-curve-mid','halftone-curve-dark','halftone-range', 'halftone-hue-range', 'halftone-amount', 'halftone-solid-protection', 'halftone-edge-protection', 'halftone-keep-solids', 'halftone-width-cm', 'halftone-frequency', 'halftone-dot-size', 'halftone-min-dot', 'halftone-dot-gain', 'halftone-mode', 'halftone-mask-mode', 'halftone-mask-tolerance', 'halftone-angle', 'halftone-contrast', 'halftone-shape', 'halftone-color', 'halftone-background-color', 'halftone-transparent', 'halftone-invert'],
     background: ['background-mode', 'background-scope', 'background-color', 'background-tolerance', 'background-softness', 'background-edge-shift', 'background-decontaminate', 'background-trim'],
     quality: ['quality-width-cm', 'quality-smoothing', 'quality-brightness', 'quality-contrast', 'quality-saturation', 'quality-clarity', 'quality-sharpness', 'quality-denoise', 'quality-recovery']
   };
@@ -1700,6 +1709,7 @@
   };
 
   const applySettings = (type, snapshot) => {
+    if(type==='halftone'&&!Object.hasOwn(snapshot,'halftone-color-selection'))byId('halftone-color-selection').value=DEFAULT_HALFTONE_COLORS;
     Object.entries(snapshot).forEach(([id, value]) => {
       if(id==='__halftoneMaskVersion'){if(states.halftone)states.halftone.halftoneMaskVersion=value;return;}
       if(id==='__zoneVersion'){if(states.background)states.background.zoneVersion=value;return;}
@@ -1798,6 +1808,7 @@
 
   const switchTool = target => {
     document.body.classList.remove('extra-tool-active','typography-tool-active','effects-tool-active');
+    if(target!=='eliminar-fondo')setBackgroundPicking(false);
     document.querySelectorAll('.extra-tool-panel').forEach(panel => { panel.hidden = true; });
     document.querySelectorAll('[data-extra-tool]').forEach(button => {
       button.classList.remove('active');
@@ -1847,7 +1858,8 @@
       updatePreviewButtons(type);
       if (type === 'halftone') {
         const prepared = drawSource(source);
-        cancelHalftone();states.halftone = { ...source, imageData: prepared.imageData,halftoneMaskVersion:0,nextHalftoneMaskVersion:1,halftoneMasks:new Map([[0,null]]) };
+        byId('halftone-color-selection').value=DEFAULT_HALFTONE_COLORS;
+        cancelHalftone();states.halftone = { ...source,colorDocumentId:uploadTokens.halftone, imageData: prepared.imageData,halftoneMaskVersion:0,nextHalftoneMaskVersion:1,halftoneMasks:new Map([[0,null]]) };
         histories.halftone.entries=[];histories.halftone.index=-1;recordHistory('halftone');
         accepted = true;
         byId('halftone-download').disabled = false;
@@ -1858,7 +1870,7 @@
         histories.background.entries=[];histories.background.index=-1;if(byId('background-scope').value==='zones')byId('background-scope').value='connected';syncBackgroundMode();recordHistory('background');
         accepted = true;
         byId('background-download').disabled = false;
-        byId('background-corner').disabled = false;
+        byId('background-corner').disabled = false;byId('background-eyedropper').disabled=false;setBackgroundPicking(false);
         byId('background-reset').disabled = false;
         byId('background-apply-connected').disabled = false;
         byId('background-apply-global').disabled = false;
@@ -2191,7 +2203,12 @@
     byId('background-apply-connected').addEventListener('click', () => applyBackgroundRemoval('connected'));
     byId('background-apply-global').addEventListener('click', () => applyBackgroundRemoval('global'));
     byId('background-reset').addEventListener('click', () => { resetBackground(); recordHistory('background'); });
-    byId('background-canvas').addEventListener('click', event => {if(byId('background-scope').value==='zones')return;pickBackgroundColor(event.clientX,event.clientY,true);});
+    byId('background-eyedropper').addEventListener('click',()=>setBackgroundPicking(!backgroundPicking));
+    for(const id of ['background-canvas','background-original']){
+      const element=byId(id);element.addEventListener('click',event=>{if(!backgroundPicking||byId('background-scope').value==='zones')return;pickBackgroundColor(event.clientX,event.clientY,true,element);});
+      window.MomotusInteraction.sampler({surface:element,enabled:()=>backgroundPicking&&!byId('background-preview').classList.contains('space-pan')&&!byId('background-preview').classList.contains('is-panning'),sample:(u,v)=>{const state=states.background;if(!state||u<0||v<0||u>1||v>1)return null;const x=Math.min(state.width-1,Math.floor(u*state.width)),y=Math.min(state.height-1,Math.floor(v*state.height)),i=(y*state.width+x)*4,d=state.imageData.data;return d[i+3]?rgbToHex(d[i],d[i+1],d[i+2]):null;}});
+    }
+    document.addEventListener('keydown',e=>{if(e.key==='Escape'&&backgroundPicking&&!byId('background-preview').classList.contains('is-panning')&&!document.querySelector('dialog[open]')){e.preventDefault();e.stopImmediatePropagation();setBackgroundPicking(false);}},true);
     byId('background-download').addEventListener('click', async () => {
       if (!states.background) return;
       const rendered = await renderBackground(false, true);
@@ -2396,9 +2413,12 @@
       let pan = null;
       let moved = false;
       preview.addEventListener('pointerdown', event => {
-        if (event.button !== 0 || !preview.classList.contains('is-pannable')) return;
-        moved = false;
-        pan = { x: event.clientX, y: event.clientY, left: preview.scrollLeft, top: preview.scrollTop };
+        if(event.button!==0&&event.button!==1||window.MomotusInteraction.editable(event.target))return;
+        const temporary=event.button===1||preview.classList.contains('space-pan');
+        if(!temporary&&(!preview.classList.contains('is-pannable')||preview.id==='background-preview'&&backgroundPicking))return;
+        event.preventDefault();preview.focus({preventScroll:true});
+        moved=temporary;
+        pan = { id:event.pointerId,x: event.clientX, y: event.clientY, left: preview.scrollLeft, top: preview.scrollTop };
         preview.setPointerCapture(event.pointerId);
         preview.classList.add('is-panning');
       });
@@ -2417,7 +2437,9 @@
         preview.classList.remove('is-panning');
       };
       preview.addEventListener('pointerup', stopPanning);
-      preview.addEventListener('pointercancel', stopPanning);
+      preview.addEventListener('pointercancel', stopPanning);preview.addEventListener('lostpointercapture',stopPanning);
+      preview.addEventListener('keydown',e=>{if(e.key==='Escape'&&pan){e.preventDefault();e.stopImmediatePropagation();preview.scrollLeft=pan.left;preview.scrollTop=pan.top;moved=true;stopPanning({pointerId:pan.id});}},true);
+      window.addEventListener('blur',()=>{if(pan)stopPanning({pointerId:pan.id});});
       preview.addEventListener('click', event => {
         if (!moved) return;
         event.preventDefault();
@@ -2511,6 +2533,7 @@
   };
 
   window.MomotusToolsAPI = Object.freeze({
+    getSelectionSource:type=>{const s=states[type];return s?{image:s.image,width:s.naturalWidth,height:s.naturalHeight,documentId:uploadTokens[type],filename:s.filename}:null;},
     getColorZoneDocument: () => {
       const state=states.background;if(!state)return null;const version=state.zoneVersion||0,alpha=state.zoneVersions.get(version),recipe=state.zoneRecipes.get(version);
       return {sourceFile:state.sourceFile,recipe:recipe?{...recipe,settings:structuredClone(recipe.settings),protections:(recipe.protections||[]).map(p=>({name:p.name,mask:p.mask.slice()})),protect:recipe.protect?.slice()||null,allowed:recipe.allowed?.slice()||null}:null,documentId:uploadTokens.background,width:state.width,height:state.height,filename:state.filename,data:state.imageData.data.slice(),rgba:state.zoneColors?.get(version)?.slice()||null,alpha:alpha?alpha.slice():Uint8Array.from({length:state.width*state.height},(_,i)=>state.imageData.data[i*4+3])};
@@ -2551,14 +2574,17 @@
       const version=state.nextQualityLocalVersion++;state.qualityLocalVersions.set(version,mask?{mask:mask.slice(),width,height}:null);state.qualityLocalVersion=version;recordHistory('quality');invalidateQualityResult();window.dispatchEvent(new CustomEvent('momotus:quality-local',{detail:{active:!!mask}}));return true;
     },
     halftoneIsBusy:()=>halftoneProofBusy||halftoneBusy,
+    getHalftoneColorSource:()=>{const s=states.halftone;return s?{documentId:s.colorDocumentId,blob:s.sourceFile,url:s.sourceUrl,width:s.naturalWidth,height:s.naturalHeight}:null;},
+    getHalftonePaletteTile:(id,y)=>{const s=states.halftone;if(!s||id!==s.colorDocumentId||!Number.isInteger(y)||y<0||y>=s.naturalHeight)throw Error('El original del análisis cambió.');const width=s.naturalWidth,height=Math.min(s.naturalHeight-y,Math.max(1,Math.floor(1048576/width))),c=document.createElement('canvas');c.width=width;c.height=height;const ctx=c.getContext('2d',{willReadFrequently:true});ctx.drawImage(s.image,0,y,width,height,0,0,width,height);const data=ctx.getImageData(0,0,width,height).data;c.width=c.height=1;return{width,height,y,data};},
+    sampleHalftoneColor:(id,u,v)=>{const s=states.halftone;if(!s||id!==s.colorDocumentId||![u,v].every(n=>Number.isFinite(n)&&n>=0&&n<=1))throw Error('El documento cambió o el punto no es válido.');const x=Math.min(s.naturalWidth-1,Math.floor(u*s.naturalWidth)),y=Math.min(s.naturalHeight-1,Math.floor(v*s.naturalHeight)),c=document.createElement('canvas');c.width=c.height=1;const ctx=c.getContext('2d',{willReadFrequently:true});ctx.drawImage(s.image,x,y,1,1,0,0,1,1);const p=ctx.getImageData(0,0,1,1).data;if(!p[3])throw Error('Ese píxel es transparente. Elegí una zona con color.');return '#'+[p[0],p[1],p[2]].map(n=>n.toString(16).padStart(2,'0')).join('');},
     getHalftoneSettings:()=>captureSettings('halftone'),
     getHalftoneOptions:()=>halftoneOptions(),
     setHalftoneSettings:settings=>{if(halftoneProofBusy)throw Error('Esperá a que termine la muestra.');const P=window.MomotusHalftoneProject;if(!P)throw Error('El editor todavía está cargando.');const previous=captureSettings('halftone'),clean={...previous};delete clean.__halftoneMaskVersion;P.settings(settings,true);P.settings({...clean,...settings});for(const [id,value]of Object.entries(settings)){const input=byId(id);if(input.type==='range'){const step=Number(input.step)||1,units=(Number(value)-Number(input.min))/step;if(Math.abs(units-Math.round(units))>1e-7)throw Error('El ajuste no coincide con el paso de '+id);}}for(const [id,value]of Object.entries(settings)){const e=byId(id);if(e.type==='checkbox')e.checked=value;else e.value=value;}if(Object.keys(settings).length)document.querySelectorAll('[data-halftone-preset], [data-halftone-auto]').forEach(b=>b.classList.remove('active'));syncSettingLabels('halftone');markToolDirty('halftone');recordHistory('halftone');scheduleRender('halftone',renderHalftone,0);},
     getHalftoneProject:()=>{const s=states.halftone;if(!s)return null;const settings=captureSettings('halftone');delete settings.__halftoneMaskVersion;return {sourceFile:s.sourceFile,width:s.naturalWidth,height:s.naturalHeight,filename:s.filename,settings,manual:s.halftoneMasks.get(s.halftoneMaskVersion||0)||null};},
-    restoreHalftoneProject:async p=>{if(halftoneProofBusy)throw Error('Esperá a que termine la muestra.');window.MomotusHalftoneProject.validate(p);const file=new File([p.sourceFile],p.sourceName||p.filename+'.png',{type:p.sourceFile.type});const source=await loadImageFile(file,4500,true);if(source.naturalWidth!==p.width||source.naturalHeight!==p.height){URL.revokeObjectURL(source.sourceUrl);throw Error('Las dimensiones no coinciden con el original.');}const prepared=drawSource(source),old=states.halftone;cancelHalftone();uploadTokens.halftone++;states.halftone={...source,filename:p.filename,imageData:prepared.imageData,halftoneMaskVersion:1,nextHalftoneMaskVersion:2,halftoneMasks:new Map([[0,null],[1,p.manual]])};byId('halftone-original').src=source.sourceUrl;histories.halftone.entries=[];histories.halftone.index=-1;applySettings('halftone',p.settings);clearTimeout(renderTimers.halftone);recordHistory('halftone');if(old?.sourceUrl)URL.revokeObjectURL(old.sourceUrl);byId('halftone-download').disabled=false;switchTool('semitonos');await renderHalftone(false);},
+    restoreHalftoneProject:async p=>{if(halftoneProofBusy)throw Error('Esperá a que termine la muestra.');window.MomotusHalftoneProject.validate(p);const file=new File([p.sourceFile],p.sourceName||p.filename+'.png',{type:p.sourceFile.type});const source=await loadImageFile(file,4500,true);if(source.naturalWidth!==p.width||source.naturalHeight!==p.height){URL.revokeObjectURL(source.sourceUrl);throw Error('Las dimensiones no coinciden con el original.');}const prepared=drawSource(source),old=states.halftone;cancelHalftone();uploadTokens.halftone++;states.halftone={...source,colorDocumentId:uploadTokens.halftone,filename:p.filename,imageData:prepared.imageData,halftoneMaskVersion:1,nextHalftoneMaskVersion:2,halftoneMasks:new Map([[0,null],[1,p.manual]])};byId('halftone-original').src=source.sourceUrl;histories.halftone.entries=[];histories.halftone.index=-1;applySettings('halftone',p.settings);clearTimeout(renderTimers.halftone);recordHistory('halftone');if(old?.sourceUrl)URL.revokeObjectURL(old.sourceUrl);byId('halftone-download').disabled=false;switchTool('semitonos');await renderHalftone(false);},
     getHalftoneMaskDocument:(options={})=>{const s=states.halftone;if(!s)return null;const m=s.halftoneMasks.get(s.halftoneMaskVersion||0),ratio=Math.min(1,1600/s.naturalWidth,1600/s.naturalHeight),print=window.MomotusToolsAPI.getPrintDimensions('halftone');let width=m?.width||Math.max(1,Math.round(s.naturalWidth*ratio)),height=m?.height||Math.max(1,Math.round(s.naturalHeight*ratio));if(options.resolution==='output'){width=print.pixelWidth;height=print.pixelHeight;}const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;canvas.getContext('2d').drawImage(s.image,0,0,width,height);const plane=(key,fill)=>!m?new Uint8Array(width*height).fill(fill):m.width===width&&m.height===height?m[key].slice():window.MomotusHalftoneEdit.resample(m[key],m.width,m.height,width,height);return {documentId:uploadTokens.halftone,width,height,canvas,print,apply:plane('apply',255),protect:plane('protect',0)};},
-    commitHalftoneMasks:(id,m)=>{const s=states.halftone;if(!s||id!==uploadTokens.halftone||halftoneProofBusy)throw Error('El documento cambió o está ocupado.');window.MomotusHalftoneProject.validateMask(s.naturalWidth,s.naturalHeight,m);const version=s.nextHalftoneMaskVersion++;s.halftoneMaskVersion=version;s.halftoneMasks.set(version,m?{width:m.width,height:m.height,apply:m.apply.slice(),protect:m.protect.slice()}:null);markToolDirty('halftone');recordHistory('halftone');scheduleRender('halftone',renderHalftone,0);},
-    getHalftoneEditPreviewPayload:(id,m)=>{const s=states.halftone;if(!s||id!==uploadTokens.halftone||halftoneProofBusy)throw Error('El documento cambió o está ocupado.');window.MomotusHalftoneProject.validateMask(s.naturalWidth,s.naturalHeight,m);const dims=window.MomotusToolsAPI.getPrintDimensions('halftone'),state=prepareHalftoneOutput(s,dims.widthCm,false);return {width:state.width,height:state.height,data:state.imageData.data.slice(),dpi:state.effectiveDpi,options:halftoneOptions(),stats:analyzeHalftoneColors(s),manual:m};},
+    commitHalftoneMasks:(id,m,colors)=>{const s=states.halftone;if(!s||id!==uploadTokens.halftone||halftoneProofBusy)throw Error('El documento cambió o está ocupado.');window.MomotusHalftoneProject.validateMask(s.naturalWidth,s.naturalHeight,m);if(colors!==undefined)window.MomotusHalftone.validateColorSelection(colors);const next=m?{width:m.width,height:m.height,apply:m.apply.slice(),protect:m.protect.slice()}:null,colorJSON=colors===undefined?null:JSON.stringify(colors),version=s.nextHalftoneMaskVersion++;s.halftoneMaskVersion=version;s.halftoneMasks.set(version,next);if(colorJSON!==null){byId('halftone-color-selection').value=colorJSON;document.querySelectorAll('[data-halftone-preset], [data-halftone-auto]').forEach(b=>b.classList.remove('active'));syncSettingLabels('halftone');}markToolDirty('halftone');recordHistory('halftone');scheduleRender('halftone',renderHalftone,0);},
+    getHalftoneEditPreviewPayload:(id,m)=>{const s=states.halftone;if(!s||!Number.isInteger(id)||id!==uploadTokens.halftone&&id!==s.colorDocumentId||halftoneProofBusy)throw Error('El documento cambió o está ocupado.');window.MomotusHalftoneProject.validateMask(s.naturalWidth,s.naturalHeight,m);const dims=window.MomotusToolsAPI.getPrintDimensions('halftone'),state=prepareHalftoneOutput(s,dims.widthCm,false);return {width:state.width,height:state.height,data:state.imageData.data.slice(),dpi:state.effectiveDpi,options:halftoneOptions(),stats:analyzeHalftoneColors(s),manual:m};},
     renderHalftoneFinal:()=>renderHalftone(true),
     cancelHalftone,
     createHalftoneSamples: async ({frequencies,sizeCm=4,x=.5,y=.5,signal,parameter='frequency',values=null}) => {

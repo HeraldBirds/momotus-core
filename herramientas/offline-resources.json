@@ -1,5 +1,5 @@
 {
-  "version": "20261027-layout-1",
+  "version": "20261028-usability-1",
   "files": [
     {
       "url": "css/style.css",
@@ -11,7 +11,11 @@
     },
     {
       "url": "herramientas/",
-      "bytes": 81276
+      "bytes": 81817
+    },
+    {
+      "url": "herramientas/css/editor-interactions.css",
+      "bytes": 1646
     },
     {
       "url": "herramientas/css/studio-refresh.css",
@@ -39,7 +43,7 @@
     },
     {
       "url": "herramientas/css/tools-halftone.css",
-      "bytes": 4429
+      "bytes": 8405
     },
     {
       "url": "herramientas/css/tools-mockup.css",
@@ -70,8 +74,20 @@
       "bytes": 5634
     },
     {
+      "url": "herramientas/css/tools-workbench.css",
+      "bytes": 4541
+    },
+    {
       "url": "herramientas/css/tools.css",
       "bytes": 93386
+    },
+    {
+      "url": "herramientas/cursors/eraser.svg",
+      "bytes": 354
+    },
+    {
+      "url": "herramientas/cursors/eyedropper.svg",
+      "bytes": 405
     },
     {
       "url": "herramientas/icons/app-192.png",
@@ -82,12 +98,32 @@
       "bytes": 2901
     },
     {
+      "url": "herramientas/js/editor-interactions.js",
+      "bytes": 7666
+    },
+    {
+      "url": "herramientas/js/image-inputs.js",
+      "bytes": 3787
+    },
+    {
+      "url": "herramientas/js/selection-core.js",
+      "bytes": 3473
+    },
+    {
+      "url": "herramientas/js/selection-studio.js",
+      "bytes": 18747
+    },
+    {
+      "url": "herramientas/js/selection-worker.js",
+      "bytes": 397
+    },
+    {
       "url": "herramientas/js/tools-calculator-core.js",
       "bytes": 11045
     },
     {
       "url": "herramientas/js/tools-calculator-ui.js",
-      "bytes": 42059
+      "bytes": 42485
     },
     {
       "url": "herramientas/js/tools-calculator-worker.js",
@@ -103,11 +139,11 @@
     },
     {
       "url": "herramientas/js/tools-color-zones.js",
-      "bytes": 57721
+      "bytes": 58162
     },
     {
       "url": "herramientas/js/tools-drop-upload.js",
-      "bytes": 5602
+      "bytes": 5625
     },
     {
       "url": "herramientas/js/tools-effects-core.js",
@@ -123,15 +159,19 @@
     },
     {
       "url": "herramientas/js/tools-effects.js",
-      "bytes": 78781
+      "bytes": 80491
     },
     {
       "url": "herramientas/js/tools-extra.js",
       "bytes": 28914
     },
     {
+      "url": "herramientas/js/tools-halftone-colors-ui.js",
+      "bytes": 16661
+    },
+    {
       "url": "herramientas/js/tools-halftone-core.js",
-      "bytes": 21901
+      "bytes": 25580
     },
     {
       "url": "herramientas/js/tools-halftone-edit-core.js",
@@ -139,19 +179,19 @@
     },
     {
       "url": "herramientas/js/tools-halftone-project.js",
-      "bytes": 9379
+      "bytes": 9672
     },
     {
       "url": "herramientas/js/tools-halftone-ui.js",
-      "bytes": 32036
+      "bytes": 37973
     },
     {
       "url": "herramientas/js/tools-halftone-worker.js",
-      "bytes": 546
+      "bytes": 1927
     },
     {
       "url": "herramientas/js/tools-loader.js",
-      "bytes": 16955
+      "bytes": 17738
     },
     {
       "url": "herramientas/js/tools-mockup.js",
@@ -167,7 +207,7 @@
     },
     {
       "url": "herramientas/js/tools-production.js",
-      "bytes": 70563
+      "bytes": 71919
     },
     {
       "url": "herramientas/js/tools-quality-core.js",
@@ -179,7 +219,7 @@
     },
     {
       "url": "herramientas/js/tools-quality-ui.js",
-      "bytes": 39804
+      "bytes": 41123
     },
     {
       "url": "herramientas/js/tools-quality-worker.js",
@@ -195,7 +235,7 @@
     },
     {
       "url": "herramientas/js/tools-refinement.js",
-      "bytes": 12742
+      "bytes": 13407
     },
     {
       "url": "herramientas/js/tools-shell.js",
@@ -203,7 +243,7 @@
     },
     {
       "url": "herramientas/js/tools-studio.js",
-      "bytes": 40387
+      "bytes": 41051
     },
     {
       "url": "herramientas/js/tools-support.js",
@@ -219,7 +259,7 @@
     },
     {
       "url": "herramientas/js/tools-vector-advanced.js",
-      "bytes": 32859
+      "bytes": 33545
     },
     {
       "url": "herramientas/js/tools-vector-boolean-worker.js",
@@ -247,7 +287,7 @@
     },
     {
       "url": "herramientas/js/tools-vector-pro.js",
-      "bytes": 39544
+      "bytes": 39719
     },
     {
       "url": "herramientas/js/tools-vector-review-worker.js",
@@ -258,12 +298,16 @@
       "bytes": 368
     },
     {
+      "url": "herramientas/js/tools-workbench.js",
+      "bytes": 10506
+    },
+    {
       "url": "herramientas/js/tools-worker.js",
       "bytes": 8758
     },
     {
       "url": "herramientas/js/tools.js",
-      "bytes": 170430
+      "bytes": 175836
     },
     {
       "url": "herramientas/manifest.webmanifest",
@@ -271,11 +315,11 @@
     },
     {
       "url": "herramientas/pliegos/",
-      "bytes": 21901
+      "bytes": 22138
     },
     {
       "url": "herramientas/pliegos/app.js",
-      "bytes": 87123
+      "bytes": 87115
     },
     {
       "url": "herramientas/pliegos/core.js",
@@ -303,11 +347,11 @@
     },
     {
       "url": "herramientas/preparacion/",
-      "bytes": 10216
+      "bytes": 10457
     },
     {
       "url": "herramientas/preparacion/app.js",
-      "bytes": 23970
+      "bytes": 24667
     },
     {
       "url": "herramientas/preparacion/core.js",
@@ -323,7 +367,7 @@
     },
     {
       "url": "herramientas/tipografias/",
-      "bytes": 22749
+      "bytes": 23033
     },
     {
       "url": "herramientas/tipografias/advanced-ui.js",
@@ -899,7 +943,7 @@
     },
     {
       "url": "herramientas/tipografias/studio-ui.js",
-      "bytes": 31662
+      "bytes": 32144
     },
     {
       "url": "herramientas/tipografias/style.css",

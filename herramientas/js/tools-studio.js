@@ -347,26 +347,12 @@
       if (!preview || !select) return;
 
       preview.addEventListener('wheel', event => {
-        if (!event.ctrlKey) return;
-        event.preventDefault();
-        const rect = preview.getBoundingClientRect();
-        const offsetX = event.clientX - rect.left;
-        const offsetY = event.clientY - rect.top;
-        const oldWidth = Math.max(1, preview.scrollWidth);
-        const oldHeight = Math.max(1, preview.scrollHeight);
-        const anchorX = (preview.scrollLeft + offsetX) / oldWidth;
-        const anchorY = (preview.scrollTop + offsetY) / oldHeight;
-        const current = Number(select.value);
-        let index = Number.isFinite(current) ? zoomNumbers.findIndex(value => value >= current) : 3;
-        if (index < 0) index = 3;
-        index = Math.max(0, Math.min(zoomNumbers.length - 1, index + (event.deltaY < 0 ? 1 : -1)));
-        select.value = String(zoomNumbers[index]);
-        select.dispatchEvent(new Event('change', { bubbles: true }));
-        requestAnimationFrame(() => {
-          preview.scrollLeft = anchorX * preview.scrollWidth - offsetX;
-          preview.scrollTop = anchorY * preview.scrollHeight - offsetY;
-          updateMinimap(type);
-        });
+        if(!window.MomotusToolsAPI?.hasDocument(type)||window.MomotusInteraction.editable(event.target))return;
+        event.preventDefault();if(event.shiftKey){preview.scrollLeft+=event.deltaY+event.deltaX;return;}
+        const surface=byId(`${type}-canvas`)?.hidden?byId(`${type}-original`):byId(`${type}-canvas`);
+        if(!surface?.getBoundingClientRect().width)return;
+        const current=surface.getBoundingClientRect().width/(surface.naturalWidth||surface.width)*100,next=Math.max(10,Math.min(1600,current*window.MomotusInteraction.factor(event))),value=String(next);
+        window.MomotusInteraction.zoomAt(preview,surface,()=>{select.querySelector('[data-wheel-zoom]')?.remove();if(![...select.options].some(o=>o.value===value)){const option=new Option(Math.round(next)+' %',value);option.dataset.wheelZoom='true';select.add(option);}select.value=value;select.dispatchEvent(new Event('change',{bubbles:true}));},event.clientX,event.clientY);
       }, { passive: false });
       preview.addEventListener('scroll', () => updateMinimap(type), { passive: true });
       minimap?.addEventListener('pointerdown', event => {
@@ -543,6 +529,7 @@
     if(document.hidden)return;
     const extra=document.querySelector('.extra-tool-panel:not([hidden])');
     if(extra){
+      const histogram=byId('editor-histogram')?.closest('.tool-histogram-wrap');if(histogram)histogram.hidden=true;
       let name='Cotización DTF',pixels='Esquema',size='—',dpi='No aplica',alpha='No aplica',zoom='Ajustar',ready=false;
       if(extra.id==='vectorizacion'){
         name='Vectorización SVG';const c=window.MomotusVectorAPI?.getDocumentInfo();ready=!!c&&!byId('vector-download').disabled;
@@ -552,10 +539,10 @@
         name='Efectos DTF';const info=window.MomotusEffectsAPI?.getDocumentInfo();ready=window.MomotusEffectsAPI?.hasDocument();
         pixels=info?`${info.naturalWidth} × ${info.naturalHeight} px`:'—';const cm=Number(byId('effects-width').value);size=info?`${cm.toFixed(1)} × ${(cm*info.naturalHeight/info.naturalWidth).toFixed(1)} cm`:'—';dpi='300 DPI';alpha='Según fondo y zonas';zoom=byId('effects-stage').classList.contains('is-zoom')?'100%':'Ajustar';
       }else if(extra.id==='tipografias'){name='Estudio de tipografías';ready=true;dpi='300 DPI / SVG';}
-      else{ready=Boolean(byId('calc-sheets').textContent!=='—');size=byId('calc-layout-label').textContent;}
+      else{const result=window.MomotusCalculatorAPI?.getResult();ready=!!result&&!window.MomotusCalculatorAPI?.isBusy();name='Calculadora DTF';const width=Number(byId('q-width')?.value),height=Number(byId('q-height')?.value);size=width?`${width.toFixed(1)} cm de ancho${byId('q-mode')?.value==='roll'?' · rollo':height?' × '+height.toFixed(1)+' cm':''}`:'—';pixels=ready?'Distribución calculada':'Sin calcular';}
       for(const [id,value]of [['studio-tech-document',name],['studio-tech-pixels',pixels],['studio-tech-size',size],['studio-tech-dpi',dpi],['studio-tech-alpha',alpha],['studio-tech-zoom',zoom]])byId(id).textContent=value;
       byId('studio-tech-alpha').classList.remove('warning');byId('studio-tech-alpha').title='';byId('studio-inspect-output').disabled=true;
-      if(byId('editor-image-info').textContent!==name)byId('editor-image-info').textContent=name;byId('editor-workspace-state').querySelector('strong').textContent=ready?'Resultado listo':'Listo';
+      if(byId('editor-image-info').textContent!==name)byId('editor-image-info').textContent=name;const processing=extra.id==='vectorizacion'?window.MomotusVectorAPI?.isBusy():extra.id==='efectos-dtf'?window.MomotusEffectsAPI?.isBusy():extra.id==='calculadora-dtf'?window.MomotusCalculatorAPI?.isBusy():false;byId('editor-workspace-state').className='tool-workspace-state '+(processing?'processing':'ready');byId('editor-workspace-state').querySelector('strong').textContent=processing?'Procesando':ready?(extra.id==='calculadora-dtf'?'Distribución lista':'Resultado listo'):'Listo';
       return;
     }
     activeType = getActiveType();

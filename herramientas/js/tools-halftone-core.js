@@ -207,10 +207,34 @@ function point(shape,cell,coverage,minDiameter,maxDiameter,hole=0,gx=0,gy=0){
  return {diameter,coverage:coefficient*diameter*diameter/(cell*cell)};
 }
 function dimensions(w,h){if(!Number.isInteger(w)||!Number.isInteger(h)||w<1||h<1||w>6000||h>6000||w*h>18000000)throw Error('La salida admite hasta 18 MP y 6000 px por lado.');}
+function validateColorSelection(s){
+ if(s==null)return true;
+ if(!s||typeof s!=='object'||Array.isArray(s)||Object.keys(s).some(k=>!['enabled','include','exclude','tolerance'].includes(k))||typeof s.enabled!=='boolean'||!Number.isFinite(s.tolerance)||s.tolerance<0||s.tolerance>150||!['include','exclude'].every(k=>Array.isArray(s[k])&&s[k].length<=16&&s[k].every(v=>typeof v==='string'&&/^#[\da-f]{6}$/i.test(v))))throw Error('Selección de colores inválida. Máximo 16 muestras por lista.');
+ return true;
+}
+function colorMatcher(s){
+ validateColorSelection(s);if(!s?.enabled)return()=>1;
+ const rgb=hex=>({r:parseInt(hex.slice(1,3),16),g:parseInt(hex.slice(3,5),16),b:parseInt(hex.slice(5,7),16)}),include=s.include.map(rgb),exclude=s.exclude.map(rgb),limit=s.tolerance;
+ const limitSquared=limit*limit*2.25,near=(r,g,b,t)=>{const m=(r+t.r)/2;return(2+m/256)*(r-t.r)**2+4*(g-t.g)**2+(2+(255-m)/256)*(b-t.b)**2<=limitSquared;};
+ return(r,g,b)=>{let found=false;for(const t of include)if(near(r,g,b,t)){found=true;break;}if(!found)return 0;for(const t of exclude)if(near(r,g,b,t))return 0;return 1;};
+}
+function paletteHistogram(){return{weight:new Float64Array(32768),color:new Uint32Array(32768),total:0};}
+function paletteAccumulate(hist,data){
+ if(!(data instanceof Uint8ClampedArray)||data.length%4)throw Error('Píxeles de paleta inválidos.');
+ for(let i=0;i<data.length;i+=4){const a=data[i+3];if(!a)continue;const key=(data[i]>>3)*1024+(data[i+1]>>3)*32+(data[i+2]>>3);if(!hist.weight[key])hist.color[key]=(data[i]<<16)|(data[i+1]<<8)|data[i+2];hist.weight[key]+=a;hist.total+=a;}return hist;
+}
+function paletteFromHistogram(hist,detail=16){
+ if(![8,16,32].includes(detail))throw Error('Detalle de paleta inválido.');
+ const rows=[];for(let k=0;k<hist.weight.length;k++)if(hist.weight[k])rows.push({key:k,weight:hist.weight[k],color:hist.color[k]});rows.sort((a,b)=>b.weight-a.weight||a.key-b.key);
+ const colors=[],distance={8:70,16:38,32:18}[detail];
+ for(const row of rows){const r=row.color>>16,g=(row.color>>8)&255,b=row.color&255;let nearest=-1,min=Infinity;for(let i=0;i<colors.length;i++){const d=perceptualColorDistance(r,g,b,colors[i]);if(d<min){nearest=i;min=d;}}if(nearest<0||min>distance&&colors.length<detail)colors.push({r,g,b,hex:'#'+row.color.toString(16).padStart(6,'0'),weight:row.weight});else colors[nearest].weight+=row.weight;}
+ return colors.sort((a,b)=>b.weight-a.weight||a.hex.localeCompare(b.hex)).map(c=>({hex:c.hex,percent:hist.total?c.weight/hist.total*100:0}));
+}
+
 function validateOptions(o){
  const range=(n,a,b)=>Number.isFinite(n)&&n>=a&&n<=b;
  if(!o||!range(o.frequency,45,70)||!range(o.maximumDotMm,.3,.6)||!range(o.minimumDotMm,.05,.3)||o.minimumDotMm>o.maximumDotMm||!range(o.dotGain,-.2,.2)||!range(o.angleDegrees,-90,90)||!range(o.contrast,-80,100)||!range(o.holeMm,0,.3)||!['tone','alpha'].includes(o.basis)||!['original','mono'].includes(o.colorMode)||!['edge','alpha','none'].includes(o.maskMode)||!range(o.maskTolerance,5,120)||!['transitions','shadows','midtones','highlights','all'].includes(o.tonalRange)||!['all','dominant','vivid','neutral','reds','oranges','yellows','greens','cyans','blues','purples'].includes(o.hueRange)||[o.amount,o.solidProtection,o.edgeProtection].some(v=>!range(v,0,1))||[o.invert,o.transparent,o.keepSolids].some(v=>typeof v!=='boolean')||![o.inkColor,o.backgroundColor].every(v=>/^#[\da-f]{6}$/i.test(v)))throw Error('Revisá los ajustes de Semitonos.');
- geometry(o.shape,1);curve(.5,o.curve);
+ validateColorSelection(o.colorSelection);geometry(o.shape,1);curve(.5,o.curve);
 }
 function diagnostics(o,dpi=300){
  validateOptions(o);const pitch=25.4/o.frequency,max=Math.min(o.maximumDotMm,Math.max(0,pitch-o.holeMm)),g=geometry(o.shape,o.minimumDotMm),warnings=[];
@@ -266,7 +290,8 @@ async function render(p,createCanvas,yieldFrame=nextFrame,isCancelled=()=>false,
  cancelled();
  const maskAt=(mask,x,y)=>mask?mask[Math.min(manual.height-1,Math.max(0,Math.floor(y/h*manual.height)))*manual.width+Math.min(manual.width-1,Math.max(0,Math.floor(x/w*manual.width)))]:255;
  const state={width:w,height:h,imageData:{data}},cell=dpi/o.frequency,angle=o.angleDegrees*Math.PI/180,G=grid(w,h,cell,angle),{cos,sin}=G,factor=259*(o.contrast+255)/(255*(259-o.contrast));
- const output=(o.keepSolids||o.basis==='alpha')?data.slice():new Uint8ClampedArray(data.length);
+ const selective=!!o.colorSelection?.enabled,match=selective?colorMatcher(o.colorSelection):null,affected=selective?new Uint8Array(w*h):null,selectionOnly=p.selectionOnly===true;
+ const output=selectionOnly?new Uint8ClampedArray(data.length):(selective||o.keepSolids||o.basis==='alpha')?data.slice():new Uint8ClampedArray(data.length);
  const bg=await getHalftoneBackgroundMask(state,cell,o.maskTolerance,o.maskMode,isCancelled);cancelled();
  const precision={selectedPixels:0,requestedArea:0,geometricArea:0,rasterArea:0,limitedCells:0,processedCells:0,clippedCells:0};
  let residual=0,visited=0;
@@ -279,21 +304,22 @@ async function render(p,createCanvas,yieldFrame=nextFrame,isCancelled=()=>false,
     const dx=xx+.5-x,dy=yy+.5-y,lx=dx*cos+dy*sin,ly=-dx*sin+dy*cos;
     // Scale-aware epsilon only resolves floating point error at exact grid edges.
     if(Math.floor(((xx+.5)*cos+(yy+.5)*sin)/cell+1e-12)!==col||Math.floor((-(xx+.5)*sin+(yy+.5)*cos)/cell+1e-12)!==row)continue;
-    const index=(yy*w+xx)*4,a=data[index+3]/255;pixels.push({index,lx,ly,xx,yy});alpha+=a;red+=data[index]*a;green+=data[index+1]*a;blue+=data[index+2]*a;squares+=(data[index]**2+data[index+1]**2+data[index+2]**2)*a;
+    const index=(yy*w+xx)*4,a=data[index+3]/255;if(selective&&(!a||!match(data[index],data[index+1],data[index+2])||manual&&(manual.protect&&maskAt(manual.protect,xx+.5,yy+.5)>0||maskAt(manual.apply,xx+.5,yy+.5)/255<halftoneGridThreshold(xx,yy))))continue;pixels.push({index,lx,ly,xx,yy});alpha+=a;red+=data[index]*a;green+=data[index+1]*a;blue+=data[index+2]*a;squares+=(data[index]**2+data[index+1]**2+data[index+2]**2)*a;
    }
    if(!pixels.length)continue;
-   const clear=()=>{for(const q of pixels)output.fill(0,q.index,q.index+4);};
+   const clear=()=>{for(const q of pixels){output.fill(0,q.index,q.index+4);if(affected)affected[q.index/4]=1;}};
    const bx=Math.max(0,Math.min(w-1,x)),by=Math.max(0,Math.min(h-1,y));
-   if(bg&&bg.background[Math.min(bg.rows-1,Math.floor(by/cell))*bg.columns+Math.min(bg.columns-1,Math.floor(bx/cell))]){clear();continue;}
+   if(bg&&bg.background[Math.min(bg.rows-1,Math.floor(by/cell))*bg.columns+Math.min(bg.columns-1,Math.floor(bx/cell))]){if(!selectionOnly)clear();continue;}
    if(!alpha)continue;
    const s={r:red/alpha,g:green/alpha,b:blue/alpha,a:alpha/pixels.length};
    s.variation=Math.sqrt(Math.max(0,(squares/alpha-s.r*s.r-s.g*s.g-s.b*s.b)/3));
    if(o.basis==='alpha'&&s.a>=1-1e-12)continue;
    const r=Math.max(0,Math.min(255,factor*(s.r-128)+128)),g=Math.max(0,Math.min(255,factor*(s.g-128)+128)),b=Math.max(0,Math.min(255,factor*(s.b-128)+128)),luma=.2126*r+.7152*g+.0722*b;
-   const color=halftoneColorStrength(o.hueRange,s.r,s.g,s.b,p.stats||{dominantHue:15});
+   const color=selective?1:halftoneColorStrength(o.hueRange,s.r,s.g,s.b,p.stats||{dominantHue:15});
    // Manual masks are applied per output pixel below, never twice per cell.
    const strength=o.basis==='alpha'?o.amount*color:halftoneSelectionStrength(o.tonalRange,luma,s.variation,o.solidProtection,o.edgeProtection,o.amount,color);
    if(strength<selectionThreshold(col,row))continue;
+   if(selectionOnly){for(const q of pixels){output[q.index]=output[q.index+1]=output[q.index+2]=255;output[q.index+3]=255;}continue;}
    let tone=o.basis==='alpha'?s.a:1-luma/255;if(o.invert)tone=1-tone;
    const coverage=clampUnit(curve(tone,o.curve)+o.dotGain)*(o.basis==='tone'?s.a:1);
    const dot=point(o.shape,cell,coverage,o.minimumDotMm/25.4*dpi,o.maximumDotMm/25.4*dpi,o.holeMm/25.4*dpi,col,row),shapeGeometry=geometry(o.shape,dot.diameter);
@@ -302,7 +328,7 @@ async function render(p,createCanvas,yieldFrame=nextFrame,isCancelled=()=>false,
    if(coverage>geometry(o.shape,cap).area/(cell*cell)+1e-12||cap<o.minimumDotMm/25.4*dpi)precision.limitedCells++;
    const candidates=[];let integrated=0;
    for(const q of pixels){q.area=pixelArea(o.shape,q.lx,q.ly,shapeGeometry,cos,sin);if(q.area>0){integrated+=q.area;q.rank=(2*q.lx/(shapeGeometry.width||1))**2+(2*q.ly/(shapeGeometry.height||1))**2;candidates.push(q);}}
-   const full=x-extent>=0&&x+extent<=w&&y-extent>=0&&y+extent<=h;
+   const full=!selective&&x-extent>=0&&x+extent<=w&&y-extent>=0&&y+extent<=h;
    if(!full)precision.clippedCells++;
    // Full dots use analytic area. Cropped edge cells use integrated visible area.
    const area=full?shapeGeometry.area:integrated;
@@ -310,18 +336,19 @@ async function render(p,createCanvas,yieldFrame=nextFrame,isCancelled=()=>false,
    precision.geometricArea+=area;precision.rasterArea+=desired;
    candidates.sort((a,b)=>b.area-a.area||a.rank-b.rank||a.index-b.index);
    const rgb=o.colorMode==='original'?[Math.round(s.r),Math.round(s.g),Math.round(s.b)]:rgbInk;
-   for(let k=0;k<desired;k++){const i=candidates[k].index;output[i]=rgb[0];output[i+1]=rgb[1];output[i+2]=rgb[2];output[i+3]=255;}
+   for(let k=0;k<desired;k++){const i=candidates[k].index;output[i]=selective&&o.colorMode==='original'?data[i]:rgb[0];output[i+1]=selective&&o.colorMode==='original'?data[i+1]:rgb[1];output[i+2]=selective&&o.colorMode==='original'?data[i+2]:rgb[2];output[i+3]=255;}
    if(++visited%512===0){await yieldFrame();cancelled();}
   }
   if((row-G.minY)%8===0){progress(Math.min(95,10+(row-G.minY)/Math.max(1,G.maxY-G.minY)*85));await yieldFrame();cancelled();}
  }
- if(manual)for(let y=0;y<h;y++){for(let x=0;x<w;x++){const i=(y*w+x)*4,protectedPixel=manual.protect&&maskAt(manual.protect,x,y)>0,allowed=maskAt(manual.apply,x,y);if(protectedPixel||allowed/255<halftoneGridThreshold(x,y))for(let c=0;c<4;c++)output[i+c]=data[i+c];}if(y%256===0){await yieldFrame();cancelled();}}
+ if(manual&&!selective)for(let y=0;y<h;y++){for(let x=0;x<w;x++){const i=(y*w+x)*4,protectedPixel=manual.protect&&maskAt(manual.protect,x,y)>0,allowed=maskAt(manual.apply,x,y);if(protectedPixel||allowed/255<halftoneGridThreshold(x,y))for(let c=0;c<4;c++)output[i+c]=selectionOnly?0:data[i+c];}if(y%256===0){await yieldFrame();cancelled();}}
  // Solid alpha before compositing prevents generated gray edge fringes.
  binary(output,w,h);
- if(!o.transparent){const rgb=[1,3,5].map(i=>parseInt(o.backgroundColor.slice(i,i+2),16));for(let i=0;i<w*h;i++){const j=i*4;if(!output[j+3]){for(let c=0;c<3;c++)output[j+c]=rgb[c];output[j+3]=255;}}}
+ if(affected&&!selectionOnly)for(let i=0;i<w*h;i++)if(!affected[i])for(let c=0;c<4;c++)output[i*4+c]=data[i*4+c];
+ if(!o.transparent&&!selectionOnly){const rgb=[1,3,5].map(i=>parseInt(o.backgroundColor.slice(i,i+2),16));for(let i=0;i<w*h;i++){const j=i*4;if(!output[j+3]){for(let c=0;c<3;c++)output[j+c]=rgb[c];output[j+3]=255;}}}
  precision.errorPixels=precision.rasterArea-precision.geometricArea;
- precision.beforeManualMasks=!!manual;precision.pixelMm=25.4/dpi;
+ precision.beforeManualMasks=!!manual&&!selective;precision.colorSelection=selective;precision.selectionOnly=selectionOnly;precision.pixelMm=25.4/dpi;
  cancelled();progress(100);return {data:output,metrics:{...rasterStats(output,w,h,dpi,o.minimumDotMm,o.holeMm),precision},diagnostics:diagnostics(o,dpi)};
 }
-return Object.freeze({geometry,curve,point,dimensions,validateOptions,diagnostics,binary,rasterStats,grid,pixelArea,draw,render});
+return Object.freeze({validateColorSelection,colorMatcher,paletteHistogram,paletteAccumulate,paletteFromHistogram,geometry,curve,point,dimensions,validateOptions,diagnostics,binary,rasterStats,grid,pixelArea,draw,render});
 });

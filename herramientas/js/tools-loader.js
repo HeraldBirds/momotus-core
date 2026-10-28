@@ -54,10 +54,11 @@
   };
 
   let halftoneAdvanced=null,advancedPromise=null;
-  const loadHalftoneAdvanced=()=>halftoneAdvanced||(halftoneAdvanced=Promise.all([loadStyle('herramientas/css/tools-halftone.css'),loadScript('herramientas/js/tools-recovery.js').then(()=>loadScript('herramientas/js/tools-halftone-project.js')),loadScript('herramientas/js/tools-halftone-edit-core.js')]).then(()=>loadScript('herramientas/js/tools-halftone-ui.js')).catch(e=>{halftoneAdvanced=null;throw e;}));
+  const loadHalftoneAdvanced=()=>halftoneAdvanced||(halftoneAdvanced=Promise.all([loadStyle('herramientas/css/tools-halftone.css'),loadScript('herramientas/js/tools-recovery.js').then(()=>loadScript('herramientas/js/tools-halftone-project.js')),loadScript('herramientas/js/tools-halftone-edit-core.js')]).then(()=>loadScript('herramientas/js/tools-halftone-ui.js')).then(()=>loadScript('herramientas/js/tools-halftone-colors-ui.js')).catch(e=>{halftoneAdvanced=null;throw e;}));
   const loadAdvanced=()=>advancedPromise||(advancedPromise=loadHalftoneAdvanced().then(()=>Promise.all([loadStyle('herramientas/css/tools-quality-studio.css'),loadScript('herramientas/js/tools-quality-project.js')])).then(()=>loadScript('herramientas/js/tools-quality-ui.js')).then(()=>loadScript('herramientas/js/tools-color-zones-core.js')).then(()=>loadStyle('herramientas/css/tools-refinement.css')).then(()=>loadScript('herramientas/js/tools-refinement.js')).catch(e=>{advancedPromise=null;throw e;}));
   let refinementPromise=null;const loadRefinement=()=>refinementPromise||(refinementPromise=loadScript('herramientas/js/tools-color-zones-core.js').then(()=>loadStyle('herramientas/css/tools-refinement.css')).then(()=>loadScript('herramientas/js/tools-refinement.js')).catch(e=>{refinementPromise=null;throw e;}));
   const loadForTool=target=>target==='mejorar-calidad'?loadAdvanced():target==='semitonos'?loadHalftoneAdvanced().then(()=>loadRefinement().catch(e=>console.warn('Las ayudas opcionales pueden reintentarse al abrir la herramienta.',e))):Promise.resolve();
+  window.MomotusEnsureTool=loadForTool;
   window.addEventListener('momotus:tool-selected',e=>loadForTool(e.detail.target).catch(reportError));
 
   let zonesPromise = null, zonesReady = false;
@@ -258,6 +259,7 @@
       await loadScript('herramientas/js/tools-transfer.js');
       await loadScript('herramientas/js/tools-halftone-core.js').catch(error=>console.warn('Semitonos podrá reintentarse al recargar.',error));
       await loadScript('herramientas/js/tools-quality-core.js').catch(error=>console.warn('Calidad podrá reintentarse al recargar.',error));
+      await loadScript('herramientas/js/editor-interactions.js');
       await loadScript('herramientas/js/tools.js');
       await loadScript('herramientas/js/tools-drop-upload.js').catch(error => console.warn('No se activó la carga por arrastre.', error));
       await loadScript('herramientas/js/tools-studio.js');
@@ -266,6 +268,16 @@
       installProductionLauncher();
       await loadScript('herramientas/js/tools-recovery.js');
       await loadScript('herramientas/js/tools-support.js');
+      try {
+        await loadScript('herramientas/js/selection-core.js');
+        await loadStyle('herramientas/css/tools-workbench.css');
+        await loadScript('herramientas/js/selection-studio.js');
+        if(!window.MomotusSelectionStudio)throw Error('La selección compartida no inició.');
+        await loadScript('herramientas/js/tools-workbench.js');
+      } catch(error) {
+        console.warn('Las ayudas de manejo no se cargaron; los editores siguen disponibles.',error);
+        window.MomotusToolsAPI?.showToast('Las ayudas de selección no se cargaron. Recargá para reintentar.');
+      }
       await loadForTool(['semitonos','mejorar-calidad','eliminar-fondo'].includes(requestedHash)?requestedHash:'semitonos').catch(reportError);
 
       const params = new URLSearchParams(location.search);

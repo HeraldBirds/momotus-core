@@ -104,6 +104,13 @@
       baseProducts.push({id,name:`${urbanSubcategories[topic].label} · diseño ${slot+8}`,category:'urbano',subcategory:topic,price:450,img:`img/products/urbano/${topic}/urbano-${id}.webp`,sizes:['S','M','L'],stock:{S:0,M:0,L:0},published:true});
     }
   });
+  // Nombres confirmados por las fotografías, conservando los IDs existentes.
+  const namedDesigns = Object.freeze({26:'Jaguar Neón',27:'Panther',84:'Yamaha YZ250 · Vida del Motocross',85:'Dodge Charger',94:'Dominate · Dragón',99:'Lost in Space'});
+  baseProducts.forEach(product => { if (namedDesigns[product.id]) product.name = namedDesigns[product.id]; });
+  baseProducts.push(
+    {id:109,name:'Falco rufigularis',category:'fauna',price:550,img:'img/products/fauna/falco-rufigularis.webp',sizes:['S','M','L'],stock:{S:0,M:0,L:0}},
+    {id:110,name:'Amazilia tzacatl',category:'fauna',price:550,img:'img/products/fauna/amazilia-tzacatl.webp',sizes:['S','M','L'],stock:{S:0,M:0,L:0}}
+  );
   baseProducts.forEach(product=>{product.img=imagePaths.legacy(product.img);});
 
   const garmentProductNames = Object.freeze({
@@ -162,7 +169,7 @@
   const getGarmentImage = (product, garmentKey) => garmentKey === 'camiseta'
     ? product.img
     : `${imagePaths.folder(product)}/variants/${product.id}-${garmentKey}.webp`;
-  const getProductDisplayName = (product, garmentKey) => product.category === 'fauna'
+  const getProductDisplayName = (product, garmentKey) => (product.category === 'fauna' || namedDesigns[product.id])
     ? product.name
     : garmentProductNames[garmentKey]?.[product.id] || (product.id >= 37 && garmentKey !== 'camiseta' ? product.name.replace('diseño', garmentDefinitions[garmentKey].name) : product.name);
 
@@ -183,7 +190,7 @@
       fallbackImg: '',
       sizes: [...product.sizes],
       stock: copyStock(product),
-      ...(typeof product.published === 'boolean' ? { published: product.published } : {}),
+      ...((product.id >= 109 && garmentKey !== 'camiseta') ? {published:false} : typeof product.published === 'boolean' ? { published: product.published } : {}),
       ...(product.featured === true ? { featured: true } : {})
     };
   }));
@@ -213,7 +220,7 @@
     baseProducts.forEach(baseProduct => {
       const names = new Set(catalog.filter(product => product.baseDesignId === baseProduct.id).map(product => product.baseName));
       if (baseProduct.category === 'fauna' && names.size !== 1) throw new Error(`Fauna Nica debe conservar el mismo nombre en el diseño ${baseProduct.id}`);
-      if (baseProduct.category !== 'fauna' && names.size !== garmentOrder.length) throw new Error(`Los nombres deben ser independientes en el diseño ${baseProduct.id}`);
+      if (baseProduct.category !== 'fauna' && !namedDesigns[baseProduct.id] && names.size !== garmentOrder.length) throw new Error(`Los nombres deben ser independientes en el diseño ${baseProduct.id}`);
     });
     return true;
   };
@@ -221,7 +228,6 @@
   let settings = globalThis.MomotusStoreConfig || {version:1,products:{}};
   let configured = products;
   try { if(globalThis.MomotusStoreConfigCore) configured=globalThis.MomotusStoreConfigCore.apply(products,settings); } catch(error) { console.warn('Configuración inválida; se conserva el catálogo original.',error.message); settings=globalThis.MomotusStoreConfigCore.blank(); }
-  configured=configured.map(product=>product.category==='unica'?{...product,published:false}:product);
   validate(products);
   const catalog = Object.freeze({ urbanSubcategories, products: Object.freeze(configured), originalProducts: Object.freeze(products), settings, validate, garmentOrder: Object.freeze([...garmentOrder]) });
   globalThis.MomotusCatalog = catalog;

@@ -77,4 +77,7 @@
  $('extract-download').onclick=()=>operation(async()=>{const o=state.output;if(!o)return;const blob=await C.png(o.width,o.height,async(y,rows)=>{if(cancelled)throw Error('Exportación cancelada.');await pause();return o.data.subarray(y*o.width*4,(y+rows)*o.width*4);},p=>say(`Exportando extracción: ${p} % · 300 DPI`));download(blob,cleanName(state.extract.name)+'-extraido-300dpi.png');say('PNG exportado con transparencia y metadatos de 300 DPI.');});
  window.addEventListener('beforeunload',event=>{if(busy||state.items.length||state.extract||state.inspect){event.preventDefault();event.returnValue='';}});
  sync();
+
+ for(const id of ['inspect-preview','pack-preview','extract-preview','extract-output']){const canvas=$(id),view=canvas.parentElement;window.MomotusInteraction.cssView({view,surface:canvas,scope:canvas.closest('section')||document.body,ready:()=>!!canvas.width&&!!canvas.height&&(id==='inspect-preview'?!!state.inspect:id==='pack-preview'?!!state.layout:id==='extract-preview'?!!state.extract:!!state.output),busy:()=>busy||drag>=0,getCursor:()=>id==='extract-preview'?(state.picking?'pick':'crosshair'):null,onEscape:()=>{if(id!=='extract-preview'||!state.picking)return false;state.picking=false;$('extract-mode').textContent='4 esquinas';return true;},controls:view.previousElementSibling});}
+
 })();

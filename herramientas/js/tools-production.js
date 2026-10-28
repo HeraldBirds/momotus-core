@@ -68,6 +68,7 @@
   });
 
   const fileToCanvas = async file => {
+    if(file&&globalThis.MomotusImages)file=await globalThis.MomotusImages.normalize(file);
     if (!file || !['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) return Promise.reject(new Error('Usá una imagen PNG, JPG o WebP.'));
     if (file.size > 24 * 1024 * 1024) return Promise.reject(new Error('La imagen debe pesar 24 MB o menos.'));
     const source = await blobToCanvas(file);
@@ -163,7 +164,7 @@
     const value = state.zoom === 'fit' ? fit : Number(state.zoom) / 100;
     canvas.style.width = `${Math.max(1, state.canvas.width * value)}px`;
     canvas.style.height = `${Math.max(1, state.canvas.height * value)}px`;
-    byId('production-zoom-label').textContent = state.zoom === 'fit' ? `${Math.round(fit * 100)}%` : `${state.zoom}%`;
+    byId('production-zoom-label').textContent = state.zoom === 'fit' ? `${Math.round(fit * 100)}%` : `${Number(Number(state.zoom).toFixed(1))}%`;
   };
 
   const scheduleAutosave = () => {
@@ -1065,10 +1066,14 @@
     }));
     [['production-brush-size', 'production-brush-size-value', ' px'], ['production-brush-hardness', 'production-brush-hardness-value', '%']].forEach(([input, output, suffix]) => byId(input).addEventListener('input', () => { byId(output).textContent = `${byId(input).value}${suffix}`; }));
     const canvas = getDisplayCanvas();
-    canvas.addEventListener('pointerdown', event => { if (!state.canvas || event.button !== 0) return; state.drawing = true; state.changedDuringStroke = false; state.lastBrushPoint = null; canvas.setPointerCapture(event.pointerId); paintBrush(event); });
+    canvas.addEventListener('pointerdown', event => { if (!state.canvas || !byId('production-busy').hidden || event.button !== 0) return; state.drawing = true; state.changedDuringStroke = false; state.lastBrushPoint = null; canvas.setPointerCapture(event.pointerId); paintBrush(event); });
     canvas.addEventListener('pointermove', paintBrush);
     const finishStroke = event => { if (!state.drawing) return; state.drawing = false; state.lastBrushPoint = null; if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId); if (state.changedDuringStroke) { analyzeCurrent(); pushHistory(state.brushMode === 'erase' ? 'Máscara borrada' : 'Detalle recuperado'); } };
-    canvas.addEventListener('pointerup', finishStroke); canvas.addEventListener('pointercancel', finishStroke);
+    const cancelStroke=()=>{if(!state.drawing)return;state.drawing=false;state.lastBrushPoint=null;state.changedDuringStroke=false;restoreHistory(state.historyIndex);};
+    canvas.addEventListener('pointerup',finishStroke);canvas.addEventListener('pointercancel',cancelStroke);canvas.addEventListener('lostpointercapture',cancelStroke);window.addEventListener('blur',cancelStroke);
+    byId('production-studio').addEventListener('keydown',e=>{if(e.key==='Escape'&&state.drawing){e.preventDefault();e.stopImmediatePropagation();cancelStroke();}},true);
+    window.MomotusInteraction.bind({view:byId('production-viewport'),surface:canvas,scope:byId('production-studio'),ready:()=>!!state.canvas,busy:()=>state.drawing||!byId('production-busy').hidden,getCursor:()=>state.brushMode==='erase'?'erase':'brush',zoom:(e,f)=>{if(state.drawing)return;window.MomotusInteraction.zoomAt(byId('production-viewport'),canvas,()=>{state.zoom=String(Math.max(2.5,Math.min(1600,canvas.getBoundingClientRect().width/state.canvas.width*100*f)));applyZoom();},e.clientX,e.clientY);}});
+    window.MomotusInteraction.cssView({view:byId('sheet-preview').parentElement,surface:byId('sheet-preview'),scope:byId('production-studio'),ready:()=>state.sheetItems.length>0,controls:byId('sheet-preview').parentElement.previousElementSibling});
     document.querySelectorAll('[data-transform]').forEach(button => button.addEventListener('click', () => applyTransform(button.dataset.transform)));
     byId('production-resize').addEventListener('click', resizePhysical);
     byId('production-separate').addEventListener('click', quantizeColors);
@@ -1150,6 +1155,7 @@
       finally { setBusy(false); }
     });
     window.addEventListener('resize', applyZoom);
+
     document.addEventListener('keydown', event => {
       if (byId('production-studio').hidden) return;
       if (event.key === 'Escape') closeProduction();
