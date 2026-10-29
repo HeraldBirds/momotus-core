@@ -283,6 +283,15 @@
     const shell = preview?.closest('.tool-preview-shell');
     if (!preview || !shell || shell.clientWidth === 0 || shell.clientHeight === 0) return;
 
+    // En escritorio, la fila del grid ya reserva barras y controles dinámicos.
+    // Los píxeles calculados antes de cargar esos controles pueden cubrirlos.
+    if (window.matchMedia('(min-width: 1024px)').matches) {
+      preview.style.setProperty('--preview-ratio', `${intrinsicWidth} / ${intrinsicHeight}`);
+      preview.style.width = '100%';
+      preview.style.height = '100%';
+      return;
+    }
+
     const shellStyles = getComputedStyle(shell);
     const horizontalPadding = parseFloat(shellStyles.paddingLeft) + parseFloat(shellStyles.paddingRight);
     const verticalPadding = parseFloat(shellStyles.paddingTop) + parseFloat(shellStyles.paddingBottom);
@@ -2010,15 +2019,15 @@
       const previewResizeObserver = new ResizeObserver(entries => {
         const visibleTypes = entries
           .filter(entry => entry.target.clientWidth > 0 && entry.target.clientHeight > 0)
-          .map(entry => entry.target.querySelector('.tool-preview')?.id.replace('-preview', ''))
-          .filter(type => type && states[type]);
+          .map(entry => (entry.target.classList.contains('tool-preview') ? entry.target : entry.target.querySelector('.tool-preview'))?.id.replace('-preview', ''))
+          .filter(type => type);
         if (!visibleTypes.length) return;
         cancelAnimationFrame(resizeFrame);
         resizeFrame = requestAnimationFrame(() => {
           [...new Set(visibleTypes)].forEach(type => applyPreviewZoom(type));
         });
       });
-      document.querySelectorAll('.tool-preview-shell').forEach(shell => previewResizeObserver.observe(shell));
+      document.querySelectorAll('.tool-preview-shell').forEach(shell => { previewResizeObserver.observe(shell); const preview=shell.querySelector('.tool-preview'); if(preview)previewResizeObserver.observe(preview); });
     }
 
     ['halftone', 'background', 'quality'].forEach(setupDropUpload);

@@ -1,5 +1,5 @@
 {
-  "version": "20261028-usability-1",
+  "version": "20261028-shop-fix-1",
   "files": [
     {
       "url": "css/style.css",
@@ -11,7 +11,7 @@
     },
     {
       "url": "herramientas/",
-      "bytes": 81817
+      "bytes": 81975
     },
     {
       "url": "herramientas/css/editor-interactions.css",
@@ -75,7 +75,7 @@
     },
     {
       "url": "herramientas/css/tools-workbench.css",
-      "bytes": 4541
+      "bytes": 5980
     },
     {
       "url": "herramientas/css/tools.css",
@@ -103,7 +103,11 @@
     },
     {
       "url": "herramientas/js/image-inputs.js",
-      "bytes": 3787
+      "bytes": 3874
+    },
+    {
+      "url": "herramientas/js/runtime-compat.js",
+      "bytes": 691
     },
     {
       "url": "herramientas/js/selection-core.js",
@@ -191,7 +195,7 @@
     },
     {
       "url": "herramientas/js/tools-loader.js",
-      "bytes": 17738
+      "bytes": 17878
     },
     {
       "url": "herramientas/js/tools-mockup.js",
@@ -243,7 +247,7 @@
     },
     {
       "url": "herramientas/js/tools-studio.js",
-      "bytes": 41051
+      "bytes": 41236
     },
     {
       "url": "herramientas/js/tools-support.js",
@@ -303,11 +307,11 @@
     },
     {
       "url": "herramientas/js/tools-worker.js",
-      "bytes": 8758
+      "bytes": 9072
     },
     {
       "url": "herramientas/js/tools.js",
-      "bytes": 175836
+      "bytes": 176404
     },
     {
       "url": "herramientas/manifest.webmanifest",
@@ -315,7 +319,7 @@
     },
     {
       "url": "herramientas/pliegos/",
-      "bytes": 22138
+      "bytes": 22203
     },
     {
       "url": "herramientas/pliegos/app.js",
@@ -347,7 +351,7 @@
     },
     {
       "url": "herramientas/preparacion/",
-      "bytes": 10457
+      "bytes": 10522
     },
     {
       "url": "herramientas/preparacion/app.js",
@@ -367,7 +371,7 @@
     },
     {
       "url": "herramientas/tipografias/",
-      "bytes": 23033
+      "bytes": 23084
     },
     {
       "url": "herramientas/tipografias/advanced-ui.js",
@@ -983,7 +987,7 @@
     },
     {
       "url": "vendor/fontawesome/css/site.min.css",
-      "bytes": 15659
+      "bytes": 15724
     },
     {
       "url": "vendor/fontawesome/webfonts/fa-brands-400.woff2",

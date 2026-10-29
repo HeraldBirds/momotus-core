@@ -305,14 +305,14 @@ const applyDesignSource = (src, side, message = '') => {
   if (uploadedImage.complete) updateImageQuality(uploadedImage, side);
   else uploadedImage.addEventListener('load', () => updateImageQuality(uploadedImage, side), { once: true });
   if (message) showToast(message);
-  // Guardar una nueva imagen de inmediato; los ajustes continuos siguen agrupados.
-  flushScheduledDesignSave();
+  saveCurrentDesign();
   return true;
 };
 
 const handleDesignUpload = (e, side) => {
   const file = e.target.files[0];
   if (!file) return;
+  e.target.value = '';
   if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) return showToast('Usá una imagen PNG, JPG o WebP');
   if (file.size > 5 * 1024 * 1024) return showToast("❌ Máximo 5 MB");
 
@@ -326,6 +326,7 @@ const handleDesignUpload = (e, side) => {
     );
   };
   reader.onerror = () => showToast('❌ No se pudo leer la imagen');
+  reader.onerror = () => showToast('No se pudo leer el archivo. Podés elegirlo otra vez.');
   reader.readAsDataURL(file);
 };
 
@@ -632,6 +633,7 @@ const procesarDisenoAutomatico = async tool => {
     const result = await window.MomotusDesignerAutoTools.process(source, tool, progress => {
       setDesignerAutoToolState(tool, true, progress);
     });
+    if ((side === 0 ? designFront : designBack) !== source) throw new Error('El diseño cambió durante el proceso. Se conservó la imagen nueva.');
     if (!result?.dataUrl || !applyDesignSource(result.dataUrl, side)) {
       throw new Error('No se pudo colocar el resultado en el mockup.');
     }

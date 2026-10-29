@@ -1,6 +1,7 @@
 (() => {
   'use strict';
 
+  let reportProgress = () => {};
   const clampChannel = value => Math.max(0, Math.min(255, Math.round(value)));
   const colorDistance = (red, green, blue, target) => {
     const redDifference = red - target.r;
@@ -45,7 +46,7 @@
       if (x + 1 < width) enqueue(pixel + 1);
       if (pixel >= width) enqueue(pixel - width);
       if (pixel + width < total) enqueue(pixel + width);
-      if (head % 250000 === 0) self.postMessage({ type: 'progress', value: Math.min(35, 5 + head / Math.max(1, total) * 30) });
+      if (head % 250000 === 0) reportProgress(Math.min(35, 5 + head / Math.max(1, total) * 30));
     }
     return selected;
   };
@@ -100,7 +101,7 @@
         data[index + 2] = clampChannel((data[index + 2] - (1 - coverage) * target.b) / coverage);
       }
       if (data[index + 3] < originalAlpha) affected++;
-      if (pixel > 0 && pixel % 250000 === 0) self.postMessage({ type: 'progress', value: 35 + pixel / pixels * (maskPreview ? 48 : 62) });
+      if (pixel > 0 && pixel % 250000 === 0) reportProgress(35 + pixel / pixels * (maskPreview ? 48 : 62));
     }
     adjustAlphaEdge(data, width, height, edgeShift);
     if (maskPreview) {
@@ -111,7 +112,7 @@
         data[index + 1] = value;
         data[index + 2] = value;
         data[index + 3] = 255;
-        if (pixel > 0 && pixel % 300000 === 0) self.postMessage({ type: 'progress', value: 83 + pixel / pixels * 14 });
+        if (pixel > 0 && pixel % 300000 === 0) reportProgress(83 + pixel / pixels * 14);
       }
     }
     return { buffer: data.buffer, affected };
@@ -157,20 +158,30 @@
           output[index + channel] = clampChannel(cleaned + fineDetail * sharpAmount + localContrast * clarityAmount);
         }
       }
-      if (y % 48 === 0) self.postMessage({ type: 'progress', value: y / Math.max(1, height - 1) * 100 });
+      if (y % 48 === 0) reportProgress(y / Math.max(1, height - 1) * 100);
     }
     return { buffer: output.buffer };
   };
 
-  self.onmessage = event => {
-    const { kind, payload } = event.data || {};
+  const run = (kind, payload, onProgress) => {
+    const previous = reportProgress;
+    reportProgress = typeof onProgress === 'function' ? onProgress : () => {};
     try {
       const result = kind === 'background' ? removeBackground(payload) : kind === 'enhance' ? enhance(payload) : null;
       if (!result) throw new Error('Tarea no reconocida.');
-      self.postMessage({ type: 'progress', value: 100 });
-      self.postMessage({ type: 'result', result }, [result.buffer]);
-    } catch (error) {
-      self.postMessage({ type: 'error', message: error.message || 'Error de procesamiento.' });
-    }
+      reportProgress(100);
+      return result;
+    } finally { reportProgress = previous; }
+  };
+  if (typeof document !== 'undefined') {
+    globalThis.MomotusRasterProcessing = Object.freeze({run});
+    return;
+  }
+  self.onmessage = event => {
+    const {kind, payload} = event.data || {};
+    try {
+      const result = run(kind, payload, value => self.postMessage({type:'progress',value}));
+      self.postMessage({type:'result', result}, [result.buffer]);
+    } catch(error) { self.postMessage({type:'error',message:error.message || 'Error de procesamiento.'}); }
   };
 })();

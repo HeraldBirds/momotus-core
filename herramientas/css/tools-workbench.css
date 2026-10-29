@@ -4,3 +4,27 @@
 #mc-workbench{position:relative;left:auto;right:auto;bottom:auto;flex:0 0 auto;margin-left:92px;box-sizing:border-box;min-height:38px}body.momotus-studio{padding-bottom:0}body.mc-has-document-tabs{box-sizing:border-box}#mc-documents{box-sizing:border-box}body:has(#production-studio:not([hidden])) #mc-workbench{visibility:hidden}
 
 #efectos-dtf:not(.effects-wide) .effects-layout,#dtfq .q-layout{grid-template-columns:var(--mc-panel-width,340px) minmax(0,1fr)}#mc-s-quick{position:fixed;z-index:10;background:#203247;border:1px solid #bca35c;padding:7px;border-radius:8px;display:flex;gap:5px}#mc-s-quick[hidden]{display:none}
+
+/* Estados claros y controles auxiliares que respetan el espacio disponible. */
+#mc-workbench button:disabled {opacity:.45;cursor:not-allowed;}
+#mc-preferences>div {max-width:calc(100vw - 120px);box-sizing:border-box;}
+#vector-viewport:has(#vector-empty:not([hidden])) {overflow:hidden;}
+#vector-viewport {scrollbar-color:#657286 #202631;scrollbar-width:thin;}
+@media(min-width:1024px) {
+ .momotus-studio .tool-preview-shell {grid-template-rows:auto auto minmax(0,1fr);}
+ .momotus-studio .tool-preview-shell>.tool-preview {align-self:stretch;justify-self:stretch;}
+ .momotus-studio .tool-preview-shell>.ht-review-toolbar,
+ .momotus-studio .tool-preview-shell>.qs-review {grid-column:1;grid-row:4;min-width:0;flex-wrap:wrap;}
+}
+
+#typography-loading {position:absolute;inset:18% 10% auto;text-align:center;padding:20px;color:#d8e2ef;background:#203044;border:1px solid #62768c;border-radius:8px;z-index:2;}
+#typography-loading[hidden] {display:none;}
+.momotus-studio .studio-pipeline button.active b {color:#171c24;}
+.tool-shortcut.is-loading {position:relative;cursor:progress;}
+.tool-shortcut.is-loading::after {content:'…';position:absolute;right:5px;bottom:4px;color:#f1cf76;}
+@media(min-width:1024px) {
+ .momotus-studio .tool-preview-shell>.studio-minimap {
+  position:relative;grid-column:1;grid-row:3;align-self:end;justify-self:end;
+  inset:auto;margin:0 12px 12px 0;max-width:calc(100% - 24px);max-height:calc(100% - 24px);
+ }
+}

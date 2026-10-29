@@ -163,6 +163,15 @@ document.addEventListener('error', event => {
     image.src = variantFallback;
     return;
   }
+  // Compatibilidad con instalaciones que conservan las fotos en sus rutas anteriores.
+  let failed=[];try{failed=JSON.parse(image.dataset.failedSources||'[]');}catch{}
+  if(!Array.isArray(failed))failed=[];
+  const current=image.getAttribute('src');
+  if(current && !failed.includes(current))failed.push(current);
+  image.dataset.failedSources=JSON.stringify(failed);
+  const candidates=globalThis.MomotusProductImages?.alternatives(current)||[];
+  const alternative=candidates.find(path=>!failed.includes(path));
+  if(alternative){image.removeAttribute('srcset');image.removeAttribute('sizes');image.src=alternative;return;}
   image.dataset.fallbackApplied = 'true';
   image.removeAttribute('srcset');
   image.removeAttribute('sizes');
@@ -609,7 +618,7 @@ const showQuickView = (id, updateURL = true) => {
           <button onclick="closeQuickView()" aria-label="Cerrar vista del producto" class="text-4xl text-zinc-400 hover:text-white">×</button>
         </div>
         <div class="p-8 flex flex-col md:flex-row gap-8">
-          <img id="quickview-product-image" src="${product.img}" data-fallback-src="${product.fallbackImg || ''}" data-garment="${product.garment}" width="400" height="400" decoding="async" class="w-full md:w-1/2 aspect-square object-cover rounded-3xl" alt="${product.name}">
+          <img id="quickview-product-image" src="${product.img}" data-fallback-src="${product.fallbackImg || ''}" data-garment="${product.garment}" width="400" height="400" decoding="async" class="w-full md:w-1/2 aspect-square object-contain bg-black rounded-3xl" alt="${product.name}">
           <div class="flex-1">
             <p id="quickview-product-price" class="text-4xl font-bold text-yellow-400 mb-2">C$ ${product.price}</p>
             <div class="flex flex-wrap gap-2 mb-6">

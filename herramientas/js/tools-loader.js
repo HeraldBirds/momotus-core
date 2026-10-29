@@ -198,7 +198,7 @@
     if(event.detail?.target==='calculadora-dtf')loadCalculator().catch(reportError);
     if (event.detail?.target === 'tipografias') {
       const frame=document.getElementById('typography-frame');
-      if(!frame.hasAttribute('src')) frame.src=frame.dataset.src;
+      if(!frame.hasAttribute('src')) {frame.addEventListener('load',()=>{const notice=document.getElementById('typography-loading');if(notice)notice.hidden=true;},{once:true});frame.src=frame.dataset.src;}
     }
     if (event.detail?.target === 'efectos-dtf') loadEffects().catch(error => {
       const status = document.getElementById('effects-status');

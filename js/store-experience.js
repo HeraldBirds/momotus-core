@@ -15,7 +15,13 @@ function enhanceProduct(product){
  const gallery=node('div',undefined,'product-gallery');image.before(gallery);gallery.append(image);image.className='product-main-photo';
  const photos=[product.img,...(product.images||[])];let current=product.img;
  const tools=node('div',undefined,'product-photo-actions');tools.append(button('Acercar estampado',()=>{const {body}=dialog(product.name);const zoom=node('div',undefined,'product-zoom');const img=node('img');img.src=image.src;img.alt=product.name;zoom.append(img);body.append(node('p','Desplazá la imagen para revisar los detalles. Esta es una foto de muestra, no el archivo de impresión.'),zoom);}));
- if(photos.length>1)photos.forEach((src,i)=>tools.append(button(`Foto ${i+1}`,()=>{current=src;image.src=src;})));gallery.append(tools);
+ if(photos.length>1)photos.forEach((src,i)=>tools.append(button(`Foto ${i+1}`,()=>{current=src;for(const key of ['fallbackApplied','fullFallbackApplied','variantFallbackApplied','failedSources'])delete image.dataset[key];image.alt=product.name;image.src=src;})));gallery.append(tools);
+ const reference=window.MomotusCatalog.products.find(p=>p.baseDesignId===product.baseDesignId&&p.garment==='camiseta'&&window.MomotusPhotoPreviews?.[p.img]);
+ if(product.garment!=='camiseta'&&reference){
+  const note=node('p','Si falta la foto de esta prenda, podés consultar el diseño de referencia en camiseta.','store-note');
+  const referenceButton=button('Ver diseño de referencia en camiseta',()=>{const {body}=dialog(reference.baseName);body.append(node('p',`Referencia del diseño en camiseta. No es una foto de ${product.garmentName.toLowerCase()}.`,'store-note'));const photo=node('img');photo.src=reference.img;photo.alt=reference.name;photo.className='product-reference-photo';photo.dataset.garment='camiseta';body.append(photo);});gallery.append(note,referenceButton);
+ }
+
  const details=node('div',undefined,'product-extra');const description=node('p',product.description||'Estampado DTF. Revisamos el diseño, la prenda y la talla antes de confirmar tu pedido.');
  const stock=Object.values(product.stock).reduce((n,v)=>n+v,0);details.append(description,node('p',stock>0?'Tallas disponibles para solicitar: '+product.sizes.filter(s=>product.stock[s]>0).join(', '):'Sin disponibilidad en las tallas publicadas.','stock-status'),node('p','Plazo: '+(product.leadTime||config.leadTime||'se confirma al revisar el pedido.'),'store-note'),button('Ver guía de tallas',()=>sizeGuide(product)));
  const variants=window.MomotusCatalog.products.filter(p=>p.baseDesignId===product.baseDesignId&&p.published!==false);if(variants.length>1){const choices=node('div',undefined,'product-variants');choices.append(node('p','Este diseño en otras prendas'));variants.forEach(p=>{const b=button(p.garmentName,()=>showQuickView(p.id));b.setAttribute('aria-pressed',String(p.id===product.id));choices.append(b);});details.append(choices);}

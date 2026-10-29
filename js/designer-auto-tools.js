@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const WORKER_PATH = 'herramientas/js/tools-worker.js?v=20261006-1';
+  const WORKER_PATH = new URL('herramientas/js/tools-worker.js?v=20261028-shop-fix-1', document.baseURI).href;
   const MAX_OUTPUT_PIXELS = 8_000_000;
   const MAX_OUTPUT_SIDE = 3600;
   const QUALITY_MIN_SIDE = 1600;
@@ -23,28 +23,44 @@
     return canvas;
   };
 
-  const runWorker = (kind, payload, onProgress) => new Promise((resolve, reject) => {
-    let worker;
+  let fallbackLoader;
+  const localProcessor = () => {
+    if (window.MomotusRasterProcessing) return Promise.resolve(window.MomotusRasterProcessing);
+    if (!fallbackLoader) fallbackLoader = new Promise((resolve, reject) => {
+      const script = document.createElement('script');script.src = WORKER_PATH;
+      script.onload = () => window.MomotusRasterProcessing ? resolve(window.MomotusRasterProcessing) : reject(new Error('No se pudo iniciar el procesador local.'));
+      script.onerror = () => {script.remove();reject(new Error('No se pudo cargar el procesador. Conservá el original y abrí el editor de fondo.'));};
+      document.head.append(script);
+    }).catch(error => {fallbackLoader = null;throw error;});
+    return fallbackLoader;
+  };
+  const runWorker = (kind, payload, onProgress, recoverBuffer) => new Promise((resolve, reject) => {
+    let worker, settled=false, timer;
+    const finish = (callback, value) => {if(settled)return;settled=true;clearTimeout(timer);worker?.terminate();callback(value);};
+    const fallback = async () => {
+      if(settled)return;
+      settled=true;clearTimeout(timer);worker?.terminate();
+      try {
+        const local=await localProcessor();
+        const buffer=payload.buffer.byteLength ? payload.buffer : recoverBuffer();
+        await new Promise(done=>setTimeout(done,0));
+        resolve(local.run(kind,{...payload,buffer},onProgress));
+      } catch(error) {reject(error instanceof Error ? error : new Error('No se pudo procesar. El diseño original se conserva.'));}
+    };
+    const arm=()=>{clearTimeout(timer);timer=setTimeout(fallback,45000);};
     try {
-      worker = new Worker(WORKER_PATH);
-    } catch (error) {
-      reject(new Error('El navegador no pudo iniciar el procesamiento local.'));
-      return;
-    }
-    const finish = callback => value => {
-      worker.terminate();
-      callback(value);
-    };
-    worker.onmessage = event => {
-      if (event.data?.type === 'progress') {
-        onProgress?.(clamp(Math.round(Number(event.data.value) || 0), 0, 100));
-        return;
-      }
-      if (event.data?.type === 'result') finish(resolve)(event.data.result);
-      if (event.data?.type === 'error') finish(reject)(new Error(event.data.message || 'No se pudo procesar la imagen.'));
-    };
-    worker.onerror = finish(reject);
-    worker.postMessage({ kind, payload }, [payload.buffer]);
+      worker=new Worker(WORKER_PATH);
+      worker.onmessage=event=>{
+        if(settled)return;
+        const message=event.data;
+        if(message?.type==='progress'){arm();onProgress?.(clamp(Math.round(Number(message.value)||0),0,100));}
+        else if(message?.type==='result')finish(resolve,message.result);
+        else if(message?.type==='error')finish(reject,new Error(message.message || 'No se pudo procesar la imagen.'));
+      };
+      worker.onerror=event=>{event.preventDefault?.();fallback();};
+      worker.onmessageerror=fallback;
+      arm();worker.postMessage({kind,payload},[payload.buffer]);
+    } catch {fallback();}
   });
 
   const sampleBackground = imageData => {
@@ -121,7 +137,7 @@
     const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
     const analysis = sampleBackground(imageData);
     if (analysis.alreadyTransparent) {
-      throw new Error('Este diseño ya tiene el fondo transparente.');
+      return {dataUrl:source,width:canvas.width,height:canvas.height,message:'El diseño ya tiene fondo transparente; se conservó sin cambios',unchanged:true};
     }
     onProgress?.(12);
     const result = await runWorker('background', {
@@ -136,7 +152,7 @@
       decontaminate: true,
       maskPreview: false,
       edgeShift: 0
-    }, progress => onProgress?.(12 + Math.round(progress * 0.82)));
+    }, progress => onProgress?.(12 + Math.round(progress * 0.82)), () => context.getImageData(0,0,canvas.width,canvas.height).data.buffer);
     const affectedShare = Number(result.affected || 0) / Math.max(1, canvas.width * canvas.height);
     if (affectedShare < 0.003) throw new Error('No se detectó un fondo que se pueda eliminar automáticamente.');
     if (affectedShare > 0.96) throw new Error('La detección abarcaría casi toda la imagen y se canceló para proteger el diseño.');
@@ -178,7 +194,7 @@
       clarity: 24,
       denoise: 12,
       recovery: 24
-    }, progress => onProgress?.(18 + Math.round(progress * 0.76)));
+    }, progress => onProgress?.(18 + Math.round(progress * 0.76)), () => context.getImageData(0,0,canvas.width,canvas.height).data.buffer);
     context.putImageData(new ImageData(new Uint8ClampedArray(result.buffer), canvas.width, canvas.height), 0, 0);
     onProgress?.(100);
     return {

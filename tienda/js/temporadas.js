@@ -158,7 +158,7 @@
   const hydrateImages = container => {
     container.querySelectorAll('img[data-season-src]').forEach(image => {
       const card = image.closest('.seasonal-card');
-      image.addEventListener('load', () => card?.classList.add('has-image'), { once: true });
+      image.addEventListener('load', () => {card?.classList.add('has-image');const placeholder=card?.querySelector('.seasonal-card-placeholder');if(placeholder)placeholder.hidden=true;}, { once: true });
       image.addEventListener('error', () => {
         image.hidden = true;
         card?.classList.add('image-missing');
@@ -177,13 +177,15 @@
         <div class="seasonal-card-media">
           <div class="seasonal-card-placeholder">${garmentSilhouette(item)}<span>Vista de la prenda · mockup pendiente</span></div>
           <img data-season-src="${escapeHtml(item.image)}" alt="${escapeHtml(item.name)}" width="640" height="480" loading="lazy" decoding="async">
+          <button type="button" class="seasonal-open-media" data-season-detail="${escapeHtml(item.id)}" aria-label="Ver detalles de ${escapeHtml(item.name)}"></button>
           <span class="seasonal-card-type">${item.combo ? 'COMBO · ' : ''}${escapeHtml(item.type)}</span>
-          <span class="seasonal-card-state">EDICIÓN LIMITADA</span>
+          <span class="seasonal-card-state">EDICIÓN DE TEMPORADA</span>
         </div>
         <div class="seasonal-card-content">
-          <h3>${escapeHtml(item.name)}</h3>
+          <h3><button type="button" class="seasonal-open-title" data-season-detail="${escapeHtml(item.id)}">${escapeHtml(item.name)}</button></h3>
           <p>${escapeHtml(item.description)}</p>
           ${item.includes ? `<div class="seasonal-card-includes">${item.includes.map(included => `<span><i class="fa-solid fa-check" aria-hidden="true"></i> ${escapeHtml(included)}</span>`).join('')}</div>` : ''}
+          <button type="button" class="seasonal-view-details" data-season-detail="${escapeHtml(item.id)}">Ver detalles <i class="fa-solid fa-expand" aria-hidden="true"></i></button>
           <div class="seasonal-card-meta"><span class="seasonal-card-price"><small>Desde</small><strong>${currency.format(item.price)}</strong></span><button type="button" data-season-order="${escapeHtml(item.id)}"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i> Consultar</button></div>
         </div>
       </article>`).join('');
@@ -191,6 +193,11 @@
     const empty = document.getElementById('seasonal-empty');
     empty.hidden = items.length > 0;
     document.getElementById('seasonal-results').textContent = `${items.length} diseño${items.length === 1 ? '' : 's'}`;
+    const total = publishedItems(activeEvent).length;
+    document.getElementById('seasonal-date-label').textContent = activeEvent.id === 'aguizotes' ? 'Colección Agüizotes' : 'Colección Navidad';
+    document.getElementById('seasonal-countdown-value').textContent = `${items.length} de ${total} diseños`;
+    document.getElementById('seasonal-progress-fill').style.width = `${total ? items.length / total * 100 : 0}%`;
+
   };
 
   const setFilter = filter => {
@@ -214,7 +221,6 @@
     const enabled = seasonalEvents.filter(event => event.enabled);
     const event = enabled.find(event => event.id === selectedSeason) || enabled.find(event => eventState(event,now).visible) || enabled[0];
     if(!event){activeEvent=null;section.hidden=true;return;}
-    const state = eventState(event,now);
     activeEvent = event;
     selectedSeason = event.id;
     if(!filters.some(filter=>filter.id===activeFilter))activeFilter='all';
@@ -231,23 +237,41 @@
     document.getElementById('seasonal-kicker').textContent = event.kicker;
     document.getElementById('seasonal-title').textContent = event.title;
     document.getElementById('seasonal-description').textContent = event.description;
-    document.getElementById('seasonal-date-label').textContent = event.availabilityLabel;
-    document.getElementById('seasonal-countdown-value').textContent = state.visible ? (state.daysRemaining > 1 ? `${state.daysRemaining} días disponibles` : 'Último día disponible') : (now < state.start ? 'Próximamente' : 'Fuera de temporada');
-    document.getElementById('seasonal-progress-fill').style.width = `${state.progress.toFixed(1)}%`;
     renderBadges(event);
     renderFilters(event);
     renderCards();
     section.hidden = !seasonCategorySelected;
   };
 
-  const selectSeason = id => { if(!seasonalEvents.some(event=>event.id===id&&event.enabled))return; selectedSeason=id; renderSeason(); writeSeasonURL(); };
+  const closeDetail = () => { const dialog = document.getElementById('seasonal-detail'); if(dialog?.open)dialog.close(); };
+  const openDetail = id => {
+    const item = activeEvent?.items.find(entry => entry.id === id && entry.enabled);
+    const dialog = document.getElementById('seasonal-detail');
+    const content = document.getElementById('seasonal-detail-content');
+    if(!item || !dialog || !content)return false;
+    content.innerHTML = `<div class="seasonal-detail-layout"><div><div class="seasonal-detail-image" id="seasonal-detail-image"><div class="seasonal-detail-placeholder">${garmentSilhouette(item)}<p>Mockup pendiente · ${escapeHtml(item.type)}</p></div><img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.name)} · ${escapeHtml(item.type)}" decoding="async"></div><button type="button" class="seasonal-detail-zoom" aria-pressed="false">Ampliar imagen</button></div><div class="seasonal-detail-info"><p>${escapeHtml(activeEvent.id==='aguizotes'?'Agüizotes':'Navidad')} · ${escapeHtml(item.type)}</p><h2 id="seasonal-detail-title">${escapeHtml(item.name)}</h2><p>${escapeHtml(item.description)}</p>${item.includes?`<p>Incluye: ${item.includes.map(escapeHtml).join(' + ')}</p>`:''}<strong class="seasonal-detail-price">Desde ${currency.format(item.price)}</strong><p>Consultá tallas, colores y disponibilidad antes de preparar tu pedido.</p><button type="button" class="seasonal-detail-order" data-season-order="${escapeHtml(item.id)}"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i> Consultar este diseño</button></div></div>`;
+    const image = content.querySelector('img');
+    if(image){const ready=()=>{content.querySelector('.seasonal-detail-placeholder').hidden=true;};const failed=()=>{image.hidden=true;const zoom=content.querySelector('.seasonal-detail-zoom');if(zoom)zoom.hidden=true;};image.addEventListener('load',ready,{once:true});image.addEventListener('error',failed,{once:true});if(image.complete){image.naturalWidth?ready():failed();}}
+    if(!dialog.open)dialog.showModal();
+    return true;
+  };
+  document.getElementById('seasonal-detail-close')?.addEventListener('click',closeDetail);
+  document.getElementById('seasonal-detail')?.addEventListener('click',event=>{
+    if(event.target===event.currentTarget){const rect=event.currentTarget.getBoundingClientRect();if(event.clientX<rect.left||event.clientX>rect.right||event.clientY<rect.top||event.clientY>rect.bottom)closeDetail();}
+    const zoom=event.target.closest('.seasonal-detail-zoom');
+    if(zoom){const image=document.getElementById('seasonal-detail-image');const enlarged=image.classList.toggle('is-enlarged');zoom.setAttribute('aria-pressed',String(enlarged));zoom.textContent=enlarged?'Ajustar imagen':'Ampliar imagen';}
+  });
+  document.getElementById('seasonal-explore')?.addEventListener('click',()=>{setFilter('all');document.querySelector('#seasonal-filters button')?.focus();document.getElementById('seasonal-products')?.scrollIntoView({behavior:'smooth',block:'nearest'});});
+  document.getElementById('seasonal-products')?.addEventListener('click',event=>{const button=event.target.closest('[data-season-detail]');if(button)openDetail(button.dataset.seasonDetail);});
+
+  const selectSeason = id => { if(!seasonalEvents.some(event=>event.id===id&&event.enabled))return; closeDetail(); selectedSeason=id; renderSeason(); writeSeasonURL(); };
   document.getElementById('seasonal-categories')?.addEventListener('click',event=>{const button=event.target.closest('[data-season-category]');if(button)selectSeason(button.dataset.seasonCategory);});
 
   document.getElementById('seasonal-filters')?.addEventListener('click', event => {
     const button = event.target.closest('[data-season-filter]');
     if (button) setFilter(button.dataset.seasonFilter);
   });
-  document.getElementById('seasonal-products')?.addEventListener('click', event => {
+  const handleOrder = event => {
     const button = event.target.closest('[data-season-order]');
     if (!button || !activeEvent) return;
     const item = activeEvent.items.find(entry => entry.id === button.dataset.seasonOrder && entry.enabled);
@@ -261,7 +285,9 @@
       'Quiero confirmar tallas, colores y disponibilidad.'
     ].join('\n');
     window.open(`https://wa.me/50555010044?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
-  });
+  };
+  document.getElementById('seasonal-products')?.addEventListener('click',handleOrder);
+  document.getElementById('seasonal-detail')?.addEventListener('click',handleOrder);
   const scrollProducts = distance => {
     const products = document.getElementById('seasonal-products');
     if (typeof products.scrollBy === 'function') products.scrollBy({ left: distance, behavior: 'smooth' });
@@ -281,6 +307,7 @@
   const syncCategory = category => {
     const selected = category === 'temporadas' || category === 'aguizotes';
     seasonCategorySelected = selected;
+    if(!selected)closeDetail();
     const section = document.getElementById('seasonal-event');
     if(!section)return;
     section.hidden = !selected || !activeEvent;
@@ -290,7 +317,7 @@
       const element=document.querySelector(selector); if(element) { if(selected) { if(!hiddenElements.has(element))hiddenElements.set(element,element.hidden); element.hidden=true; } else if(hiddenElements.has(element)) {element.hidden=hiddenElements.get(element);hiddenElements.delete(element);} }
     }
   };
-  globalThis.MomotusSeasonal = Object.freeze({ events: seasonalEvents, eventState, validate, render: renderSeason, selectSeason, setFilter, syncCategory });
+  globalThis.MomotusSeasonal = Object.freeze({ events: seasonalEvents, eventState, validate, render: renderSeason, selectSeason, setFilter, openDetail, closeDetail, syncCategory });
   renderSeason();
   syncCategory(typeof currentCategory === 'string' ? currentCategory : 'all');
 })();

@@ -12,3 +12,5 @@
 @media(min-width:1024px){.mockup-wrapper{position:sticky;top:90px;}.designer-layout{gap:48px;}.designer-controls .designer-center button{padding-left:12px;padding-right:12px;}}
 @media(max-width:1023px){.designer-types>div{gap:10px;}.designer-tool-actions{order:7;}.designer-center{order:8;}.designer-edit-actions{order:9;}.designer-reset{order:10;}.designer-quote{order:11;}.designer-tool-actions button{min-width:0;padding-left:12px;padding-right:12px;}.designer-quote>div>input{font-size:16px;}}
 @media(max-width:420px){.designer-tool-actions>div{grid-template-columns:1fr;}.designer-quote>div.grid{grid-template-columns:1fr;}.designer-layout{column-gap:0;}}
+
+.product-reference-photo{display:block;width:100%;max-height:75vh;object-fit:contain;background:#09090b;border-radius:12px;}

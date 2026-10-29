@@ -110,7 +110,7 @@
     ids.forEach((id,slot)=>{baseProducts.find(product=>product.id===id).name=editorialNames[topic][slot];});
   });
   // Nombres confirmados por las fotografías, conservando los IDs existentes.
-  const namedDesigns = Object.freeze({26:'Jaguar Neón',27:'Panther',84:'Yamaha YZ250 · Vida del Motocross',85:'Dodge Charger',94:'Dominate · Dragón',99:'Lost in Space'});
+  const namedDesigns = Object.freeze({5:'Kurama',26:'Jaguar Neón',27:'Panther',79:'Dio',80:'Malón · Espíritu combativo',86:'Choppers',89:'Brand · Ojo oscuro',95:'Libertad en las sombras',96:'Tierra del Güegüense',97:'No Gods · Just Stars',100:'Tiempo y memoria',101:'Psychologist',102:'Pensador lunar',84:'Yamaha YZ250 · Vida del Motocross',85:'Dodge Charger',94:'Dominate · Dragón',99:'Lost in Space'});
   baseProducts.forEach(product => { if (namedDesigns[product.id]) product.name = namedDesigns[product.id]; });
   baseProducts.push(
     {id:109,name:'Falco rufigularis',category:'fauna',price:550,img:'img/products/fauna/falco-rufigularis.webp',sizes:['S','M','L'],stock:{S:0,M:0,L:0}},

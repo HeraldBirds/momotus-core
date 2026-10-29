@@ -20,5 +20,12 @@ function legacy(path){
  if(photo){const n=Number(photo[3]),id=photo[2]==='nica'?n:photo[2]==='anime'?n+4:photo[2]==='game'?n+19:photo[2]==='unica'?n+25:photo[2]==='urbano'&&n<=5?n+14:n,product=design(id);return product?`${folder(product)}/${photo[1]?'previews/':''}${photo[2]}-${n}.webp`:path;}
  return path.replace(/^img\/products\/seasonal\//,'img/products/aguizotes/').replace('img/products/aguizotes/navidad-2026/','img/products/navidad/navidad-2026/');
 }
-return Object.freeze({folder,legacy,design});
+function alternatives(path){
+ if(typeof path!=='string')return [];
+ const canonical=legacy(path),match=canonical.match(/^img\/products\/(?:fauna|anime|games|unica|urbano\/(?:musica|motor|cine-terror|streetwear|arte-tipografia|deportes))\/((?:previews\/)?(?:variants\/)?[a-z0-9-]+\.webp)$/i);
+ if(!match)return [];
+ const historical='img/products/'+match[1];
+ return [...new Set([canonical,historical])].filter(value=>value!==path);
+}
+return Object.freeze({folder,legacy,design,alternatives});
 });

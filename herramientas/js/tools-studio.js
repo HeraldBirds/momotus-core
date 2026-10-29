@@ -142,11 +142,11 @@
     pipeline.className = 'studio-pipeline';
     pipeline.setAttribute('aria-label', 'Flujo recomendado de preparación DTF');
     pipeline.innerHTML = `
-      <button type="button" data-studio-pipeline="mejorar-calidad"><b>1</b><span>Calidad</span></button>
+      <button type="button" data-studio-pipeline="mejorar-calidad" aria-label="Paso 1: Calidad y color" title="Calidad y color"><b>1</b><span>Calidad</span></button>
       <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
-      <button type="button" data-studio-pipeline="eliminar-fondo"><b>2</b><span>Fondo</span></button>
+      <button type="button" data-studio-pipeline="eliminar-fondo" aria-label="Paso 2: Rango de color y fondo" title="Rango de color y fondo"><b>2</b><span>Fondo</span></button>
       <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
-      <button type="button" data-studio-pipeline="semitonos"><b>3</b><span>Semitono</span></button>`;
+      <button type="button" data-studio-pipeline="semitonos" aria-label="Paso 3: Semitonos" title="Semitonos"><b>3</b><span>Semitono</span></button>`;
     historyActions.before(pipeline);
     pipeline.querySelectorAll('[data-studio-pipeline]').forEach(button => button.addEventListener('click', () => {
       document.querySelector(`.tool-shortcut[data-tool-target="${button.dataset.studioPipeline}"]`)?.click();

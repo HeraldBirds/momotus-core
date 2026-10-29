@@ -23,12 +23,12 @@
   
   <link rel="stylesheet" href="css/tailwind.css?v=20261006-1">
 
-  <link rel="stylesheet" href="vendor/fontawesome/css/site.min.css?v=20261020-perf-1" 
+  <link rel="stylesheet" href="vendor/fontawesome/css/site.min.css?v=20261028-visual-3" 
         crossorigin="anonymous" referrerpolicy="no-referrer" />
   <link rel="stylesheet" href="css/style.css?v=20261020-perf-1">
   <link rel="stylesheet" href="tienda/css/tienda.css?v=20261007-ui-2">
-  <link rel="stylesheet" href="tienda/css/temporadas.css?v=20261028-seasons-1">
-  <link rel="stylesheet" href="css/store-experience.css?v=20261007-original-6">
+  <link rel="stylesheet" href="tienda/css/temporadas.css?v=20261028-details-1">
+  <link rel="stylesheet" href="css/store-experience.css?v=20261028-shop-fix-1">
   <link rel="stylesheet" href="tienda/css/catalog-categories.css?v=20261007-category-1">
   <link rel="stylesheet" href="css/shop-polish.css?v=20261007-home-1">
 </head>
@@ -124,7 +124,7 @@
           <img src="img/icons/icon-games.webp" alt="Games" class="filter-icon">
           Games
         </button>
-        <button onclick="filterCategory('temporadas')" id="filter-temporadas" class="filter-btn px-8 py-3 rounded-3xl text-sm font-medium transition flex items-center gap-3" aria-controls="seasonal-event"><i class="fa-solid fa-moon" aria-hidden="true"></i> Diseño de temporadas</button>
+        <button onclick="filterCategory('temporadas')" id="filter-temporadas" class="filter-btn px-8 py-3 rounded-3xl text-sm font-medium transition flex items-center gap-3" aria-controls="seasonal-event"><i class="fa-solid fa-calendar-days" aria-hidden="true"></i> Diseño de temporadas</button>
       </div>
 
       <section id="urban-subcategories" class="urban-subcategories" aria-labelledby="urban-subcategories-title" hidden>
@@ -141,7 +141,7 @@
           <div id="seasonal-emblem" class="seasonal-emblem" aria-hidden="true"><i class="fa-solid fa-moon"></i></div>
           <div><span id="seasonal-kicker">EDICIÓN DE TEMPORADA</span><h2 id="seasonal-title">Diseños que salen solo por un tiempo</h2><p id="seasonal-description"></p><div id="seasonal-badges" class="seasonal-badges" aria-label="Prendas disponibles"></div></div>
         </div>
-        <div class="seasonal-countdown"><small id="seasonal-date-label">Tiempo disponible</small><strong id="seasonal-countdown-value">Edición limitada</strong><div class="seasonal-progress" aria-hidden="true"><span id="seasonal-progress-fill"></span></div><em>Disponible durante las fechas indicadas</em></div>
+        <div class="seasonal-countdown"><small id="seasonal-date-label">Colección de temporada</small><strong id="seasonal-countdown-value">Explorá la colección</strong><div class="seasonal-progress" aria-hidden="true"><span id="seasonal-progress-fill"></span></div><em>Elegí una prenda y descubrí sus diseños</em><button id="seasonal-explore" type="button">Ver todas las prendas</button></div>
       </header>
       <div class="seasonal-toolbar">
         <div id="seasonal-filters" class="seasonal-filters" role="group" aria-label="Filtrar colección de temporada"></div>
@@ -149,6 +149,10 @@
       </div>
       <div id="seasonal-products" class="seasonal-products" aria-live="polite"></div>
       <p id="seasonal-empty" class="seasonal-empty" hidden>No hay productos publicados en este filtro.</p>
+      <dialog id="seasonal-detail" class="seasonal-detail" aria-labelledby="seasonal-detail-title">
+        <div class="seasonal-detail-bar"><span>Edición de temporada</span><button type="button" id="seasonal-detail-close" autofocus aria-label="Cerrar detalles">Cerrar <i class="fa-solid fa-xmark" aria-hidden="true"></i></button></div>
+        <div id="seasonal-detail-content"></div>
+      </dialog>
       <footer class="seasonal-footer"><p><i class="fa-solid fa-circle-info"></i> Los diseños, precios y disponibilidad se confirman antes de preparar el pedido.</p><button id="seasonal-catalog-link" type="button">Ver el catálogo permanente <i class="fa-solid fa-arrow-down"></i></button></footer>
     </div>
   </section>
@@ -216,16 +220,16 @@
 
   <div id="cart-modal-placeholder"></div>
 
-  <script src="tienda/js/product-images.js?v=20261028-designs-1"></script>
-  <script src="tienda/js/store-config-core.js?v=20261019-opt-1"></script>
+  <script src="tienda/js/product-images.js?v=20261028-shop-fix-1"></script>
+  <script src="tienda/js/store-config-core.js?v=20261028-visual-3"></script>
   <script src="tienda/js/configuracion.js?v=20261007-shop-1"></script>
-  <script src="tienda/js/catalogo.js?v=20261028-seasons-1"></script>
+  <script src="tienda/js/catalogo.js?v=20261028-visual-3"></script>
   <script src="tienda/js/store-selection.js?v=20261007-category-1"></script>
-  <script src="tienda/js/photo-previews.js?v=20261028-designs-1"></script>
-  <script src="js/script.js?v=20261028-seasons-1"></script>
-  <script src="tienda/js/temporadas.js?v=20261028-seasons-1"></script>
+  <script src="tienda/js/photo-previews.js?v=20261028-shop-fix-1"></script>
+  <script src="js/script.js?v=20261028-shop-fix-1"></script>
+  <script src="tienda/js/temporadas.js?v=20261028-visual-3"></script>
   <script src="tienda/js/tienda.js?v=20261007-category-1"></script>
   <script src="js/performance.js?v=20261006-1" defer></script>
-  <script src="js/store-experience.js?v=20261020-perf-1" defer></script>
+  <script src="js/store-experience.js?v=20261028-shop-fix-1" defer></script>
 </body>
 </html>
