@@ -58,7 +58,8 @@
     if (!String(window.name || '').startsWith(WINDOW_TRANSFER_PREFIX)) return null;
     try {
       const payload = JSON.parse(window.name.slice(WINDOW_TRANSFER_PREFIX.length));
-      if (payload.key !== key || !payload.updatedAt || Date.now() - payload.updatedAt > MAX_AGE_MS || !String(payload.dataUrl || '').startsWith('data:image/')) {
+      if (payload.key !== key) return null;
+      if (!payload.updatedAt || Date.now() - payload.updatedAt > MAX_AGE_MS || !String(payload.dataUrl || '').startsWith('data:image/')) {
         window.name = '';
         return null;
       }
@@ -88,23 +89,25 @@
 
   const get = async key => {
     const directRecord = await readWindowTransfer(key);
-    if (directRecord) return directRecord;
     let record = null;
     try {
       record = await runTransaction('readonly', store => store.get(key));
     } catch (error) {
       console.warn('IndexedDB no está disponible para recuperar la transferencia.', error);
     }
-    if (!record) return null;
+    if (!record) return directRecord;
     if (!record.updatedAt || Date.now() - record.updatedAt > MAX_AGE_MS) {
-      await remove(key);
-      return null;
+      await runTransaction('readwrite', store => store.delete(key)).catch(() => {});
+      return directRecord;
     }
-    return record;
+    return directRecord && directRecord.updatedAt >= record.updatedAt ? directRecord : record;
   };
 
   const remove = async key => {
-    if (String(window.name || '').startsWith(WINDOW_TRANSFER_PREFIX)) window.name = '';
+    if (String(window.name || '').startsWith(WINDOW_TRANSFER_PREFIX)) {
+      try { if (JSON.parse(window.name.slice(WINDOW_TRANSFER_PREFIX.length)).key === key) window.name = ''; }
+      catch { window.name = ''; }
+    }
     const result = await Promise.allSettled([runTransaction('readwrite', store => store.delete(key))]);
     return result[0].status === 'fulfilled';
   };
@@ -117,9 +120,13 @@
       const header = source.slice(5, separator);
       const mimeType = header.split(';')[0] || 'application/octet-stream';
       const payload = source.slice(separator + 1);
-      const binary = /;base64/i.test(header) ? atob(payload) : decodeURIComponent(payload);
-      const bytes = new Uint8Array(binary.length);
-      for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+      let bytes;
+      if (/;base64/i.test(header)) {
+        const binary = atob(payload);
+        bytes = Uint8Array.from(binary, character => character.charCodeAt(0));
+      } else {
+        bytes = new TextEncoder().encode(decodeURIComponent(payload));
+      }
       const blob = new Blob([bytes], { type: mimeType });
       if (!blob.type.startsWith('image/')) throw new Error('El archivo activo no es una imagen válida.');
       return blob;

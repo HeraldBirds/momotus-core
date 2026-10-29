@@ -1,5 +1,5 @@
 {
-  "version": "20261028-shop-fix-1",
+  "version": "20261029-audit-1",
   "files": [
     {
       "url": "css/style.css",
@@ -11,7 +11,7 @@
     },
     {
       "url": "herramientas/",
-      "bytes": 81975
+      "bytes": 81945
     },
     {
       "url": "herramientas/css/editor-interactions.css",
@@ -47,7 +47,7 @@
     },
     {
       "url": "herramientas/css/tools-mockup.css",
-      "bytes": 5641
+      "bytes": 5588
     },
     {
       "url": "herramientas/css/tools-precision.css",
@@ -243,7 +243,7 @@
     },
     {
       "url": "herramientas/js/tools-shell.js",
-      "bytes": 3008
+      "bytes": 4217
     },
     {
       "url": "herramientas/js/tools-studio.js",
@@ -303,7 +303,7 @@
     },
     {
       "url": "herramientas/js/tools-workbench.js",
-      "bytes": 10506
+      "bytes": 10614
     },
     {
       "url": "herramientas/js/tools-worker.js",
@@ -311,7 +311,7 @@
     },
     {
       "url": "herramientas/js/tools.js",
-      "bytes": 176404
+      "bytes": 176909
     },
     {
       "url": "herramientas/manifest.webmanifest",
@@ -319,7 +319,7 @@
     },
     {
       "url": "herramientas/pliegos/",
-      "bytes": 22203
+      "bytes": 22188
     },
     {
       "url": "herramientas/pliegos/app.js",
@@ -351,7 +351,7 @@
     },
     {
       "url": "herramientas/preparacion/",
-      "bytes": 10522
+      "bytes": 10507
     },
     {
       "url": "herramientas/preparacion/app.js",
@@ -371,7 +371,7 @@
     },
     {
       "url": "herramientas/tipografias/",
-      "bytes": 23084
+      "bytes": 23027
     },
     {
       "url": "herramientas/tipografias/advanced-ui.js",
@@ -979,7 +979,7 @@
     },
     {
       "url": "js/workflow-bridge.js",
-      "bytes": 6074
+      "bytes": 6358
     },
     {
       "url": "vendor/fontawesome/css/all.min.css",

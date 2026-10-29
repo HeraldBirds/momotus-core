@@ -110,7 +110,8 @@ const showToast = (message) => {
   }
   document.getElementById('toast-text').textContent = message;
   toast.classList.remove('hidden');
-  setTimeout(() => toast.classList.add('hidden'), 3200);
+  clearTimeout(window.momotusToastTimer);
+  window.momotusToastTimer = setTimeout(() => toast.classList.add('hidden'), 3200);
 };
 
 const garmentPlaceholderData = {
@@ -207,6 +208,7 @@ const validateCartItems = (items) => {
   if (!Array.isArray(items)) return [];
   const groupedItems = new Map();
   items.forEach(item => {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) return;
     const legacyGarment = garmentOrder.includes(item.garment) ? item.garment : 'camiseta';
     const storedId = Number(item.id);
     const migratedId = storedId > 0 && storedId < 1000 ? storedId + garmentIdOffsets[legacyGarment] : storedId;
@@ -217,10 +219,12 @@ const validateCartItems = (items) => {
     if (availableStock < 1) return;
     const key = `${product.id}:${size}`;
     const previousQuantity = groupedItems.get(key)?.quantity || 0;
+    const rawQuantity = Number(item.quantity);
+    const quantity = Number.isFinite(rawQuantity) ? Math.max(1, Math.floor(rawQuantity)) : 1;
     groupedItems.set(key, {
       ...product,
       size,
-      quantity: Math.min(availableStock, previousQuantity + Math.max(1, Number(item.quantity) || 1))
+      quantity: Math.min(availableStock, previousQuantity + quantity)
     });
   });
   return Array.from(groupedItems.values());
@@ -252,14 +256,15 @@ const changeQuantity = (index, delta) => {
   }
   item.quantity = newQty;
   saveCart();
-  toggleCartModal();
+  updateCartCount();
+  toggleCartModal(true);
 };
 
 const removeFromCart = (index) => {
   cart.splice(index, 1);
   saveCart();
   updateCartCount();
-  toggleCartModal();
+  toggleCartModal(true);
 };
 
 const clearCart = () => {
@@ -267,7 +272,7 @@ const clearCart = () => {
     cart = [];
     saveCart();
     updateCartCount();
-    toggleCartModal();
+    toggleCartModal(true);
     showToast("🗑️ Carrito vaciado");
   }
 };
@@ -326,10 +331,11 @@ const renderCartModal = () => {
   if (placeholder) placeholder.innerHTML = modalHTML;
 };
 
-const toggleCartModal = () => {
+const toggleCartModal = (forceOpen = false) => {
   const modal = document.getElementById('cart-modal');
   if (!modal) return;
-  if (!modal.classList.contains('hidden')) {
+  const wasOpen = !modal.classList.contains('hidden');
+  if (wasOpen && !forceOpen) {
     deactivateModal(modal);
     return;
   }
@@ -352,7 +358,7 @@ const toggleCartModal = () => {
       </div>
     `;
     totalContainer.innerHTML = '';
-    activateModal(modal);
+    if (!wasOpen) activateModal(modal);
     return;
   }
 
@@ -399,7 +405,7 @@ const toggleCartModal = () => {
     <span class="text-3xl font-black text-yellow-400">C$ ${total}</span>
   `;
 
-  activateModal(modal);
+  if (!wasOpen) activateModal(modal);
 };
 
 const createOrderCode = () => {
@@ -438,7 +444,7 @@ const checkout = (reviewed = false) => {
   if (previousCart !== validatedCart) {
     saveCart();
     updateCartCount();
-    toggleCartModal();
+    toggleCartModal(true);
     showToast("⚠️ Actualizamos el carrito según el stock disponible; revísalo antes de continuar");
     return;
   }
@@ -470,7 +476,7 @@ const saveWishlist = () => writeStoredJSON(
 const loadWishlist = () => {
   const savedWishlist = readStoredJSON('momotusWishlist', []);
   wishlist = Array.isArray(savedWishlist)
-    ? savedWishlist.map(item => products.find(product => product.id === Number(item.id))).filter(Boolean)
+    ? [...new Set(savedWishlist.filter(item => item && typeof item === 'object').map(item => Number(item.id)))].map(id => products.find(product => product.id === id)).filter(Boolean)
     : [];
   saveWishlist();
   updateWishlistFilterButton();
@@ -567,7 +573,7 @@ const renderCommonNavbar = () => {
             <span id="cart-count" class="absolute -top-1 -right-1 bg-yellow-400 text-black text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center">0</span>
           </button>
           <a href="https://wa.me/50555010044" target="_blank" rel="noopener noreferrer" aria-label="Contactar por WhatsApp" class="text-3xl text-green-400 hover:scale-110 transition"><i class="fa-brands fa-whatsapp"></i></a>
-          <button onclick="toggleMobileMenu()" aria-label="Abrir menú" class="lg:hidden text-3xl"><i class="fa-solid fa-bars"></i></button>
+          <button onclick="toggleMobileMenu()" aria-label="Abrir menú" aria-controls="mobile-menu" aria-expanded="false" class="lg:hidden text-3xl"><i class="fa-solid fa-bars"></i></button>
         </div>
       </div>
       <div id="mobile-menu" class="hidden lg:hidden bg-black border-t border-zinc-800 py-4">
@@ -587,7 +593,12 @@ const renderCommonNavbar = () => {
 
 const toggleMobileMenu = () => {
   const menu = document.getElementById('mobile-menu');
-  if (menu) menu.classList.toggle('hidden');
+  if (menu) {
+    const closed = menu.classList.toggle('hidden');
+    const button = document.querySelector('[aria-controls="mobile-menu"]');
+    button?.setAttribute('aria-expanded', String(!closed));
+    button?.setAttribute('aria-label', closed ? 'Abrir menú' : 'Cerrar menú');
+  }
 };
 
 // ==================== QUICK VIEW ====================
@@ -1009,6 +1020,7 @@ window.onload = () => {
   loadCart();
   loadWishlist();
   renderCommonNavbar();
+  updateCartCount();
   renderCartModal();
   renderTestimonials();
 

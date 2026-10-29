@@ -4,7 +4,7 @@
   const readCartCount = () => {
     try {
       const cart = JSON.parse(localStorage.getItem('momotusCart') || '[]');
-      return Array.isArray(cart) ? cart.reduce((total, item) => total + Math.max(1, Number(item.quantity) || 1), 0) : 0;
+      return Array.isArray(cart) ? cart.reduce((total, item) => total + (item && Number.isFinite(Number(item.quantity)) ? Math.max(1, Math.floor(Number(item.quantity))) : 0), 0) : 0;
     } catch (error) {
       console.warn('No se pudo recuperar el contador del carrito.', error);
       return 0;
@@ -39,9 +39,16 @@
           <div class="flex items-center gap-6">
             <a href="tienda/" aria-label="Ir al carrito en la tienda" class="relative text-2xl hover:text-yellow-400 transition"><i class="fa-solid fa-shopping-cart" aria-hidden="true"></i><span class="absolute -top-1 -right-1 bg-yellow-400 text-black text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center">${readCartCount()}</span></a>
             <a href="https://wa.me/50555010044" target="_blank" rel="noopener noreferrer" aria-label="Contactar por WhatsApp" class="text-3xl text-green-400 hover:scale-110 transition"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i></a>
+            <button type="button" class="lg:hidden text-2xl" id="tools-mobile-menu-toggle" aria-controls="tools-mobile-menu" aria-expanded="false" aria-label="Abrir menú"><i class="fa-solid fa-bars" aria-hidden="true"></i></button>
           </div>
         </div>
+        <div id="tools-mobile-menu" class="hidden lg:hidden border-t border-zinc-800 p-4">
+          <div class="flex flex-wrap justify-center gap-6"><a href="index.html">Inicio</a><a href="tienda/">Tienda</a><a href="disena.html">Diseña la Tuya</a><a href="comunidad.html">Comunidad</a><a href="herramientas/" aria-current="page">Herramientas</a></div>
+        </div>
       </nav>`;
+    const menu=document.getElementById('tools-mobile-menu'),toggle=document.getElementById('tools-mobile-menu-toggle');
+    toggle.addEventListener('click',()=>{const closed=menu.classList.toggle('hidden');toggle.setAttribute('aria-expanded',String(!closed));toggle.setAttribute('aria-label',closed?'Abrir menú':'Cerrar menú');});
+    menu.addEventListener('keydown',event=>{if(event.key==='Escape'){menu.classList.add('hidden');toggle.setAttribute('aria-expanded','false');toggle.setAttribute('aria-label','Abrir menú');toggle.focus();}});
   };
 
   renderNavbar();

@@ -188,7 +188,6 @@ body.mockup-transfer-active { overflow: hidden; }
     overflow: visible;
   }
 
-  .momotus-studio .tool-history-actions button span,
   .momotus-studio .tool-history-actions .production-launch span,
   .momotus-studio .tool-history-actions .mockup-transfer-open span {
     display: inline !important;

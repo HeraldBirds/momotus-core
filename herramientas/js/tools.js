@@ -1876,14 +1876,22 @@
       } else if (type === 'background') {
         const prepared = drawSource(source);
         states.background = { ...source, imageData: prepared.imageData, zoneVersion: 0, nextZoneVersion: 1, zoneVersions: new Map([[0,null]]), zoneRecipes: new Map(), zoneColors: new Map() };
-        histories.background.entries=[];histories.background.index=-1;if(byId('background-scope').value==='zones')byId('background-scope').value='connected';syncBackgroundMode();recordHistory('background');
+        histories.background.entries=[];histories.background.index=-1;
+        const transparentCorner = prepared.imageData.data[3] === 0;
+        if (transparentCorner) { byId('background-mode').value='remove'; byId('background-scope').value='zones'; }
+        else if(byId('background-scope').value==='zones')byId('background-scope').value='connected';
+        syncBackgroundMode();recordHistory('background');
         accepted = true;
         byId('background-download').disabled = false;
         byId('background-corner').disabled = false;byId('background-eyedropper').disabled=false;setBackgroundPicking(false);
         byId('background-reset').disabled = false;
         byId('background-apply-connected').disabled = false;
         byId('background-apply-global').disabled = false;
-        pickBackgroundColor();
+        if (transparentCorner) {
+          await renderBackground(false);
+          if (token !== uploadTokens[type]) return false;
+          setStatus('background-status', 'La esquina ya es transparente. Se conserva el diseño original; elegí un color o editá las zonas para continuar.');
+        } else pickBackgroundColor();
       } else {
         if(!window.MomotusQuality)throw Error('No se pudo cargar el motor de Calidad. Recargá para reintentar.');cancelQualityStudio();states.quality = {...source,qualityStudioVersion:0,nextQualityStudioVersion:1,qualityStudioVersions:new Map([[0,window.MomotusQuality.model()]]),qualityLocalVersion:0,nextQualityLocalVersion:1,qualityLocalVersions:new Map([[0,null]])};
         histories.quality.entries=[];histories.quality.index=-1;recordHistory('quality');

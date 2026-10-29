@@ -17,6 +17,7 @@ let currentTab = 0; // 0 = Frente, 1 = Espalda
 let designSaveTimer = null;
 let designSaveIdleCallback = null;
 let mockupRequestId = 0;
+const designUploadRevision = [0, 0];
 
 const shirtTypes = ['regular', 'sudadera', 'hoodie', 'crop-top'];
 const shirtTypeNames = ['Regular / Unisex', 'Sudaderas', 'Hoodie', 'Crop-top'];
@@ -292,6 +293,7 @@ const applyDesignSource = (src, side, message = '') => {
   const preview = document.getElementById(side === 0 ? 'design-preview' : 'design-preview-back');
   const id = side === 0 ? 'draggable-design-front' : 'draggable-design-back';
   if (!preview) return false;
+  designUploadRevision[side] += 1;
 
   preview.innerHTML = `<img src="${src}" id="${id}" class="max-w-full max-h-full object-contain rounded-3xl" style="${style}">`;
   preview.classList.add('design-loaded');
@@ -316,8 +318,10 @@ const handleDesignUpload = (e, side) => {
   if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) return showToast('Usá una imagen PNG, JPG o WebP');
   if (file.size > 5 * 1024 * 1024) return showToast("❌ Máximo 5 MB");
 
+  const revision = ++designUploadRevision[side];
   const reader = new FileReader();
   reader.onload = event => {
+    if (revision !== designUploadRevision[side]) return;
     switchMockup(side);
     applyDesignSource(
       event.target.result,
@@ -325,8 +329,7 @@ const handleDesignUpload = (e, side) => {
       side === 0 ? '✅ Diseño Frente cargado' : '✅ Diseño Espalda cargado'
     );
   };
-  reader.onerror = () => showToast('❌ No se pudo leer la imagen');
-  reader.onerror = () => showToast('No se pudo leer el archivo. Podés elegirlo otra vez.');
+  reader.onerror = () => { if (revision === designUploadRevision[side]) showToast('No se pudo leer el archivo. Podés elegirlo otra vez.'); };
   reader.readAsDataURL(file);
 };
 
@@ -348,6 +351,7 @@ const updateImageQuality = (image, side) => {
 
 window.removeActiveDesign = () => {
   const side = currentTab;
+  designUploadRevision[side] += 1;
   const preview = document.getElementById(side === 0 ? 'design-preview' : 'design-preview-back');
   if (side === 0) {
     designFront = null;
@@ -371,6 +375,8 @@ window.removeActiveDesign = () => {
 };
 
 const resetDesign = () => {
+  designUploadRevision[0] += 1;
+  designUploadRevision[1] += 1;
   cancelScheduledDesignSave();
   designFront = null;
   designBack = null;
