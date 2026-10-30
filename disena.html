@@ -109,8 +109,9 @@
     }
     .resize-btn:hover { transform: scale(1.1); }
   </style>
-  <link rel="stylesheet" href="css/designer-sleeves.css?v=20261030-sleeves-multi-1">
-  <link rel="stylesheet" href="css/store-experience.css?v=20261030-sleeves-multi-1">
+  <link rel="stylesheet" href="css/designer-sleeves.css?v=20261030-categories-1">
+  <link rel="stylesheet" href="css/store-experience.css?v=20261030-categories-1">
+  <link rel="stylesheet" href="css/site-motion.css?v=20261030-categories-1">
 </head>
 <body class="bg-zinc-950 text-white">
 
@@ -131,9 +132,9 @@
         <div class="mockup-wrapper flex justify-center">
           <div class="w-full max-w-[520px]">
             <div class="mockup-tabs flex border-b border-zinc-700 mb-6">
-              <button onclick="switchMockup(0)" id="tab-frente" class="tab-active flex-1 py-4 text-lg font-medium">Frente</button>
-              <button onclick="switchMockup(1)" id="tab-espalda" class="flex-1 py-4 text-lg font-medium">Espalda</button>
-              <button type="button" onclick="switchMockup(2)" id="tab-mangas" class="flex-1 py-4 text-lg font-medium" hidden>Mangas</button>
+              <button onclick="switchMockup(0)" id="tab-frente" aria-pressed="true" class="tab-active flex-1 py-4 text-lg font-medium">Frente</button>
+              <button onclick="switchMockup(1)" id="tab-espalda" aria-pressed="false" class="flex-1 py-4 text-lg font-medium">Espalda</button>
+              <button type="button" onclick="switchMockup(2)" id="tab-mangas" aria-pressed="false" class="flex-1 py-4 text-lg font-medium" hidden>Mangas</button>
             </div>
 
             <div id="mockup-frente" class="relative">
@@ -370,17 +371,17 @@
 
   <div id="cart-modal-placeholder"></div>
 
-  <script src="tienda/js/product-images.js?v=20261030-sleeves-multi-1"></script>
+  <script src="tienda/js/product-images.js?v=20261030-categories-1"></script>
   <script src="tienda/js/store-config-core.js?v=20261028-visual-3"></script>
   <script src="tienda/js/configuracion.js?v=20261007-shop-1"></script>
   <script src="tienda/js/catalogo.js?v=20261028-visual-3"></script>
-  <script src="js/script.js?v=20261030-sleeves-multi-1"></script>
-  <script src="js/workflow-bridge.js?v=20261030-sleeves-multi-1"></script>
-  <script src="js/designer-storage.js?v=20261030-sleeves-multi-1"></script>
-  <script src="js/designer-auto-tools.js?v=20261030-sleeves-multi-1"></script>
-  <script src="js/designer.js?v=20261030-sleeves-multi-1"></script>
-  <script src="js/designer-sleeves-core.js?v=20261030-sleeves-multi-1"></script>
-  <script src="js/designer-sleeves.js?v=20261030-sleeves-multi-1"></script>
+  <script src="js/script.js?v=20261030-categories-1"></script>
+  <script src="js/workflow-bridge.js?v=20261030-categories-1"></script>
+  <script src="js/designer-storage.js?v=20261030-categories-1"></script>
+  <script src="js/designer-auto-tools.js?v=20261030-categories-1"></script>
+  <script src="js/designer.js?v=20261030-categories-1"></script>
+  <script src="js/designer-sleeves-core.js?v=20261030-categories-1"></script>
+  <script src="js/designer-sleeves.js?v=20261030-categories-1"></script>
   <script src="js/performance.js?v=20261006-1" defer></script>
 
   <script>
@@ -408,6 +409,8 @@
       if (typeof saveCurrentDesign === 'function') saveCurrentDesign();
     }
   </script>
-  <script src="js/store-experience.js?v=20261030-sleeves-multi-1" defer></script>
+  <script src="js/store-experience.js?v=20261030-categories-1" defer></script>
+  <script src="js/motion-core.js?v=20261030-categories-1" defer></script>
+  <script src="js/site-motion.js?v=20261030-categories-1" defer></script>
 </body>
 </html>

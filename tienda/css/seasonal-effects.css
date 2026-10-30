@@ -1,0 +1,44 @@
+/* Decoración dentro de la colección. Nunca bloquea controles ni fotografías. */
+.mc-season-stage{position:relative;isolation:isolate;height:116px;margin:-5px 0 18px;border-bottom:1px solid #a78bfa26;overflow:hidden;pointer-events:none;user-select:none;background:radial-gradient(ellipse at 20% 100%,#a78bfa19,transparent 65%)}
+.mc-season-stage[hidden],.mc-season-weather[hidden]{display:none!important}
+.mc-season-weather{position:absolute;inset:0;z-index:1;overflow:hidden;pointer-events:none;user-select:none;contain:paint}
+.mc-season-stage *,.mc-season-weather *{pointer-events:none!important}
+.mc-season-moon{position:absolute;right:9%;top:9px;width:67px;height:67px;border-radius:50%;background:radial-gradient(circle at 32% 29%,#f5f3ff,#c4b5fd 55%,#8b7ba9);box-shadow:0 0 30px #a78bfa26;opacity:.65}
+.mc-season-moon::after{content:'';position:absolute;inset:8px;border-radius:50%;background:radial-gradient(circle at 35% 65%,#5b527044 0 6px,transparent 7px),radial-gradient(circle at 70% 25%,#5b527033 0 9px,transparent 10px)}
+.mc-cadejo{position:absolute;left:8%;bottom:3px;width:230px;height:112px;opacity:0}
+.mc-cadejo svg{display:block;width:100%;height:100%}
+.mc-season-bat{position:absolute;left:0;top:var(--bat-top);width:64px;height:36px;color:#a99abf;opacity:0}
+.mc-season-bat svg{display:block;width:100%;height:100%;fill:currentColor}
+.mc-bat-wings{transform-box:fill-box;transform-origin:50% 65%}
+.is-flying .mc-bat-wings{animation:mc-bat-flap .26s ease-in-out infinite alternate}
+.mc-season-tree{position:absolute;right:10%;top:0;width:90px;height:106px;opacity:.75}
+.mc-season-stage[data-season=navidad]{border-bottom-color:#86efac26;background:radial-gradient(ellipse at 80% 100%,#86efac12,transparent 65%)}
+.mc-snowflake{position:absolute;top:-12px;left:var(--snow-left);width:var(--snow-size);height:var(--snow-size);border-radius:50%;background:#fff;opacity:.6;animation:mc-season-snow var(--snow-duration) linear var(--snow-delay) infinite;animation-play-state:paused}
+.mc-season-weather[data-motion=running] .mc-snowflake{animation-play-state:running}
+.mc-season-stage[data-motion=paused] .mc-bat-wings{animation-play-state:paused}
+.mc-season-stage[data-motion=still] .mc-cadejo{opacity:.7;transform:none}
+.mc-season-stage[data-motion=still] .mc-season-bat{left:var(--bat-left);opacity:.3;transform:none}
+.mc-season-stage[data-motion=still] .mc-bat-wings{animation:none}
+.mc-season-weather[data-motion=still] .mc-snowflake{top:var(--snow-still-top);animation:none;opacity:.3}
+@keyframes mc-bat-flap{to{transform:scaleY(.35)}}
+@keyframes mc-season-snow{0%{transform:translate3d(0,-10px,0);opacity:0}10%{opacity:.65}90%{opacity:.5}100%{transform:translate3d(var(--snow-drift),100cqh,0);opacity:0}}
+.mc-season-weather{container-type:size}
+@supports not (height:1cqh){@keyframes mc-season-snow{0%{transform:translate3d(0,-10px,0);opacity:0}10%{opacity:.65}90%{opacity:.5}100%{transform:translate3d(var(--snow-drift),1100px,0);opacity:0}}}
+@media(max-width:767px){.mc-season-stage{height:95px;margin-bottom:15px}.mc-cadejo{width:190px;height:93px;left:1%}.mc-season-moon{width:53px;height:53px;right:7%}.mc-season-bat{width:45px;height:27px}.mc-season-tree{height:88px;width:76px}}
+/* Respaldo CSS inmediato mientras JavaScript recibe el cambio de preferencia. */
+html.mc-motion-reduced .mc-season-stage *,html.mc-motion-reduced .mc-season-weather *,html.mc-page-hidden .mc-season-stage *,html.mc-page-hidden .mc-season-weather *{animation:none!important}
+@media(prefers-reduced-motion:reduce){.mc-season-stage *,.mc-season-weather *{animation:none!important}}
+/* Blanco protector y Negro: alternan, con prioridad de aparición para el Blanco. */
+.mc-season-stage[data-season=aguizotes]{height:156px}
+.mc-cadejo{bottom:5px;--dog-fur:#15121f;--dog-line:#c4b5fd;--dog-mane:#30283f;--dog-eye:#f87171}
+.mc-cadejo[data-kind=white]{--dog-fur:#e8e9df;--dog-line:#fafaf9;--dog-mane:#aebdc1;--dog-eye:#22d3ee}
+.mc-dog-body{fill:var(--dog-fur);stroke:var(--dog-line)}
+.mc-dog-mane{fill:var(--dog-mane)}
+.mc-dog-eye{fill:var(--dog-eye)}
+.mc-chico-largo{position:absolute;bottom:5px;right:29%;width:90px;height:146px;opacity:0}
+.mc-chico-largo svg{display:block;width:100%;height:100%}
+.mc-season-stage[data-motion=still] .mc-cadejo[data-kind=white]{left:5%}
+.mc-season-stage[data-motion=still] .mc-cadejo[data-kind=black]{left:34%}
+.mc-season-stage[data-motion=still] .mc-chico-largo{opacity:.6}
+@media(max-width:767px){.mc-season-stage[data-season=aguizotes]{height:140px}.mc-chico-largo{right:3%;width:66px;height:134px}.mc-season-stage[data-motion=still] .mc-cadejo{width:143px;height:80px}.mc-season-stage[data-motion=still] .mc-cadejo[data-kind=white]{left:0;bottom:3px}.mc-season-stage[data-motion=still] .mc-cadejo[data-kind=black]{left:39%;bottom:3px}.mc-season-stage[data-motion=still] .mc-chico-largo{right:3%;height:130px;bottom:8px;width:56px}.mc-season-stage[data-motion=still] .mc-season-bat{top:var(--bat-top);width:36px}}
+@media(max-width:767px){.mc-cadejo{width:60%;max-width:190px}.mc-season-stage[data-motion=still] .mc-cadejo{width:36%;max-width:143px}.mc-season-stage[data-motion=still] .mc-cadejo[data-kind=black]{left:40%}.mc-season-stage[data-motion=still] .mc-chico-largo{width:18%;right:0}}

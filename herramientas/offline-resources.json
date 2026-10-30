@@ -1,6 +1,10 @@
 {
-  "version": "20261030-sleeves-multi-1",
+  "version": "20261030-categories-1",
   "files": [
+    {
+      "url": "css/site-motion.css",
+      "bytes": 11379
+    },
     {
       "url": "css/style.css",
       "bytes": 11369
@@ -11,7 +15,7 @@
     },
     {
       "url": "herramientas/",
-      "bytes": 82025
+      "bytes": 82220
     },
     {
       "url": "herramientas/css/editor-interactions.css",
@@ -319,7 +323,7 @@
     },
     {
       "url": "herramientas/pliegos/",
-      "bytes": 22228
+      "bytes": 22213
     },
     {
       "url": "herramientas/pliegos/app.js",
@@ -351,7 +355,7 @@
     },
     {
       "url": "herramientas/preparacion/",
-      "bytes": 10547
+      "bytes": 10532
     },
     {
       "url": "herramientas/preparacion/app.js",
@@ -371,7 +375,7 @@
     },
     {
       "url": "herramientas/tipografias/",
-      "bytes": 23179
+      "bytes": 23122
     },
     {
       "url": "herramientas/tipografias/advanced-ui.js",
@@ -974,8 +978,16 @@
       "bytes": 208492
     },
     {
+      "url": "js/motion-core.js",
+      "bytes": 977
+    },
+    {
       "url": "js/performance.js",
       "bytes": 1221
+    },
+    {
+      "url": "js/site-motion.js",
+      "bytes": 11217
     },
     {
       "url": "js/workflow-bridge.js",

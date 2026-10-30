@@ -13,9 +13,8 @@ function sizeGuide(product){const {body}=dialog(`Guía de tallas · ${product.ga
 function enhanceProduct(product){
  const image=document.getElementById('quickview-product-image');if(!image)return;
  const gallery=node('div',undefined,'product-gallery');image.before(gallery);gallery.append(image);image.className='product-main-photo';
- const photos=[product.img,...(product.images||[])];let current=product.img;
- const tools=node('div',undefined,'product-photo-actions');tools.append(button('Acercar estampado',()=>{const {body}=dialog(product.name);const zoom=node('div',undefined,'product-zoom');const img=node('img');img.src=image.src;img.alt=product.name;zoom.append(img);body.append(node('p','Desplazá la imagen para revisar los detalles. Esta es una foto de muestra, no el archivo de impresión.'),zoom);}));
- if(photos.length>1)photos.forEach((src,i)=>tools.append(button(`Foto ${i+1}`,()=>{current=src;for(const key of ['fallbackApplied','fullFallbackApplied','variantFallbackApplied','failedSources'])delete image.dataset[key];image.alt=product.name;image.src=src;})));gallery.append(tools);
+ if(window.MomotusGallery)window.MomotusGallery.mount({image,container:gallery,title:product.name,photos:[product.img,...(product.images||[])]});
+ else {const tools=node('div',undefined,'product-photo-actions');tools.append(button('Acercar estampado',()=>{const {body}=dialog(product.name);const zoom=node('div',undefined,'product-zoom');const img=node('img');img.src=image.src;img.alt=product.name;zoom.append(img);body.append(zoom);}));gallery.append(tools);}
  const reference=window.MomotusCatalog.products.find(p=>p.baseDesignId===product.baseDesignId&&p.garment==='camiseta'&&window.MomotusPhotoPreviews?.[p.img]);
  if(product.garment!=='camiseta'&&reference){
   const note=node('p','Si falta la foto de esta prenda, podés consultar el diseño de referencia en camiseta.','store-note');

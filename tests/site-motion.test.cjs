@@ -1,0 +1,20 @@
+const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+const C=require('../js/motion-core.js');
+test('el parallax avanza al 20% del recorrido y limita el desplazamiento fuera de pantalla',()=>{const a=C.parallax(300,400,900),b=C.parallax(200,400,900);assert.equal(b-a,20);assert.equal(C.parallax(-100000,400,900),48);assert.equal(C.parallax(100000,400,900),-48);});
+test('el recorrido de entrada termina en 600 px sin salirse de escala',()=>{assert.equal(C.progress(900,900),0);assert.equal(C.progress(600,900),.5);assert.equal(C.progress(300,900),1);assert.equal(C.progress(-1000,900),1);assert.equal(C.progress(1000,900),0);assert.equal(C.easeOut(.5),.875);assert.equal(C.easeOut(2),1);assert.equal(C.easeOut(-1),0);});
+test('las fotos se deduplican y solo admiten rutas locales de imagen válidas',()=>{assert.deepEqual(C.photoList('img/prenda.webp',['img/prenda.webp','img/espalda.webp','https://other/a.jpg','img/../secreto.png','javascript:alert(1)',null]),['img/prenda.webp','img/espalda.webp']);assert.deepEqual(C.photoList(undefined,{}),[]);});
+test('las entradas no numéricas no producen transformaciones NaN',()=>{for(const value of [NaN,undefined,Infinity]){assert.ok(Number.isFinite(C.easeOut(value)));assert.ok(Number.isFinite(C.parallax(value,500,800)));assert.ok(Number.isFinite(C.progress(value,800)));}});
+function gallery(){
+ class Element{constructor(tag){this.tagName=tag;this.children=[];this.dataset={};this.style={};this.listeners={};this.attrs={};this.isConnected=true;this.naturalWidth=800;this.naturalHeight=1000;this.hidden=false;}
+ append(...nodes){for(const n of nodes){n.parentElement=this;this.children.push(n);}}setAttribute(k,v){this.attrs[k]=v;}removeAttribute(k){delete this.attrs[k];}addEventListener(k,fn){this.listeners[k]=fn;}}
+ const probes=[];class Probe{constructor(){probes.push(this);}decode(){return new Promise((resolve,reject)=>{this.resolve=resolve;this.reject=reject;});}}
+ const ctx={window:{MomotusMotionCore:C},document:{createElement:tag=>new Element(tag)},Image:Probe,console};
+ vm.runInNewContext(fs.readFileSync(require.resolve('../js/product-gallery.js'),'utf8'),ctx);
+ const container=new Element('div'),image=new Element('img');image.src='img/frente.webp';image.dataset.failedSources='old';
+ const args={image,container,title:'Prenda',photos:['img/frente.webp','img/espalda.webp','img/frente.webp']};ctx.window.MomotusGallery.mount(args);
+ return {api:ctx.window.MomotusGallery,container,image,probes,args,thumbs:container.children.find(n=>n.className==='mc-gallery-thumbs'),counter:container.children.find(n=>n.className==='mc-gallery-counter')};
+}
+test('la galería monta una sola vez las miniaturas de vistas distintas',()=>{const g=gallery();assert.equal(g.thumbs.children.length,2);const count=g.container.children.length;g.api.mount(g.args);assert.equal(g.container.children.length,count);assert.equal(g.counter.textContent,'Foto 1 de 2');assert.equal(g.thumbs.children[0].attrs['aria-pressed'],'true');});
+test('la última foto elegida prevalece aunque la anterior termine de cargar más tarde',async()=>{const g=gallery();const slow=g.thumbs.children[1].listeners.click();const fast=g.thumbs.children[0].listeners.click();g.probes[1].resolve();await fast;g.probes[0].resolve();await slow;assert.equal(g.image.src,'img/frente.webp');assert.equal(g.counter.textContent,'Foto 1 de 2');assert.equal(g.image.dataset.failedSources,undefined);});
+test('una foto fallida conserva la vista actual y deja un mensaje legible',async()=>{const g=gallery();const pending=g.thumbs.children[1].listeners.click();g.probes[0].reject(Error('404'));await pending;assert.equal(g.image.src,'img/frente.webp');assert.match(g.counter.textContent,/no está disponible/);assert.ok('disabled'in g.thumbs.children[1].attrs);});
+test('cerrar el producto durante una carga impide actualizar la galería retirada',async()=>{const g=gallery();const pending=g.thumbs.children[1].listeners.click();g.container.isConnected=false;g.probes[0].resolve();await pending;assert.equal(g.image.src,'img/frente.webp');assert.equal(g.api.openZoom({naturalWidth:0},'Sin foto'),false);});

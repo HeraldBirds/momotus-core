@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE_VERSION = 'momotus-runtime-20261030-sleeves-multi-1';
+const CACHE_VERSION = 'momotus-runtime-20261030-categories-1';
 const CACHEABLE_TYPES = new Set(['style', 'script', 'image', 'font', 'worker']);
 const DAY = 86400000;
 const CACHE_POLICY = {
@@ -141,7 +141,7 @@ async function prepareOffline(port) {
     const response=await fetch(urlFor('herramientas/offline-resources.json'),{cache:'no-store',signal:abort.signal});
     if(!response.ok)throw Error('No se encontró la lista de recursos. Actualizá los archivos del sitio.');
     const manifest=await response.json();
-    if(manifest.version!=='20261030-sleeves-multi-1'||!Array.isArray(manifest.files)||manifest.files.length>400)throw Error('Lista de recursos incompatible. Actualizá la página.');
+    if(manifest.version!=='20261030-categories-1'||!Array.isArray(manifest.files)||manifest.files.length>400)throw Error('Lista de recursos incompatible. Actualizá la página.');
     const paths=new Set();let estimate=0;
     for(const entry of manifest.files){
       const url=urlFor(entry.url);

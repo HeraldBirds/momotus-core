@@ -55,7 +55,7 @@
     area.addEventListener('wheel',e=>{if(!C.selectedLayer(sideState(context().garment,side)))return;e.preventDefault();select(side,e.target.closest('[data-layer-id]')?.dataset.layerId);scale(e.deltaY<0?.05:-.05);},{passive:false});
     area.addEventListener('keydown',e=>{select(side);const v=current();if(!v?.src){if(e.key==='Enter')$('sleeves-file').click();return;}const step=e.shiftKey?5:1,delta={ArrowLeft:{x:v.x-step},ArrowRight:{x:v.x+step},ArrowUp:{y:v.y-step},ArrowDown:{y:v.y+step}}[e.key];if(delta){e.preventDefault();patch(delta);}else if(e.key==='Delete'){e.preventDefault();remove();}else if(e.key==='+'||e.key==='='){e.preventDefault();scale(.05);}else if(e.key==='-'){e.preventDefault();scale(-.05);}});
   }
-  function select(side,id){if(!C.sides.includes(side))return;selected=side;const record=sideState();if(record?.layers.some(v=>v.id===id))record.activeId=id;render();}
+  function select(side,id){if(!C.sides.includes(side))return;selected=side;const record=sideState();if(record?.layers.some(v=>v.id===id))record.activeId=id;render();window.dispatchEvent(new CustomEvent('momotus:designer-view',{detail:{label:C.labels[side],element:null}}));}
   function render(){
     const {garment,color}=context(),info=C.asset(garment,color);
     $('sleeves-selected-title').textContent=C.labels[selected];

@@ -1,0 +1,43 @@
+/* Escenografía estacional local, decorativa y sin capturar clics. */
+(()=>{'use strict';
+const section=document.getElementById('seasonal-event'),C=window.MomotusSeasonEffectsCore;if(!section||!C||section.dataset.mcEffectsInstalled)return;section.dataset.mcEffectsInstalled='1';
+const container=section.querySelector('.seasonal-container'),heading=section.querySelector('.seasonal-heading');if(!container||!heading)return;
+const reducedMedia=matchMedia('(prefers-reduced-motion: reduce)'),compactMedia=matchMedia('(max-width: 767px)');
+const stage=document.createElement('div');stage.className='mc-season-stage';stage.setAttribute('aria-hidden','true');stage.setAttribute('inert','');heading.before(stage);
+const weather=document.createElement('div');weather.className='mc-season-weather';weather.setAttribute('aria-hidden','true');weather.setAttribute('inert','');section.prepend(weather);
+const batSVG='<svg viewBox="0 0 120 64" focusable="false" aria-hidden="true"><g class="mc-bat-wings"><path d="M59 31C42 7 26 4 2 3c8 11 8 18 5 26 12-1 19 4 21 14 10-6 17-3 23 8l9-9 9 9c6-11 13-14 23-8 2-10 9-15 21-14-3-8-3-15 5-26-24 1-40 4-57 28z"/></g><path d="m50 20 2-16 9 10L70 4l-1 16c6 10 3 23-8 35-12-12-16-25-11-35z"/><circle cx="56" cy="25" r="1.5" fill="#fde68a"/><circle cx="65" cy="25" r="1.5" fill="#fde68a"/></svg>';
+function dogSVG(kind){return '<svg viewBox="0 0 250 130" focusable="false" aria-hidden="true"><g class="mc-dog-body" stroke-width="2" stroke-linejoin="round"><path d="M58 53 40 37 20 40 8 26c0 18 8 33 31 40l19 4 15 20-4 26h17l3-25 17-10 43 2 19 14 2 20h17l-3-28 10-19 15-12 23-6 8-13-19-7-13-18-6 22-13-19-5 31-18 4-10-8-18 6-23-2-29 5z"/><path d="m94 81 4 32 17 3-6-13 4-22M159 86l-7 27 17 4-1-12 13-16"/><path class="mc-dog-mane" d="m179 58 12 8-4 13 12-9 5 3 1-14"/></g><path class="mc-dog-eye" d="m218 42 13 2-4 5-9-2z"/><path d="m239 40 7 3-6 4z" fill="#09090b"/><path d="m226 56-4 7-2-6" fill="#fff"/><path d="M24 121h197" stroke="#a78bfa" stroke-opacity=".4" stroke-width="2"/><text x="115" y="128" text-anchor="middle" fill="#ddd6fe" font-size="8" font-family="sans-serif" letter-spacing="2">CADEJO '+(kind==='white'?'BLANCO':'NEGRO')+'</text></svg>';}
+const chicoSVG='<svg viewBox="0 0 110 180" focusable="false" aria-hidden="true"><g fill="#181324" stroke="#b4a4c9" stroke-width="1.5" stroke-linejoin="round"><path d="m37 25 5-15 29-1 7 17 18 8H17z"/><path d="M40 35c0 23 6 31 15 31s16-11 16-31z" fill="#292032"/><path d="m39 65-12 8-13 65 12 3 16-51-5 61-2 20h15l5-27 6 27h15l-3-20-5-61 18 48 11-5-17-60-15-8-9 8z"/></g><path d="m44 43 7 1m8 0 7-1" stroke="#e9d5ff" stroke-width="2"/><path d="M11 172h88" stroke="#a78bfa" stroke-opacity=".4"/><text x="55" y="179" text-anchor="middle" fill="#ddd6fe" font-size="7" font-family="sans-serif" letter-spacing="1">CHICO LARGO</text></svg>';
+const treeSVG='<svg viewBox="0 0 100 115" focusable="false" aria-hidden="true"><path d="m50 7 6 12 13 2-10 9 2 13-11-6-12 6 3-13-10-9 13-2z" fill="#fbbf24"/><path d="m50 32-25 28h14L17 86h19l-14 17h56L64 86h19L61 60h14z" fill="#14532d" stroke="#86efac" stroke-width="1.5"/><path d="M46 103h8v12h-8z" fill="#b45309"/><circle cx="44" cy="59" r="3" fill="#fbbf24"/><circle cx="58" cy="78" r="3" fill="#f87171"/><circle cx="39" cy="94" r="3" fill="#fbbf24"/><circle cx="66" cy="96" r="3" fill="#f87171"/></svg>';
+let rendered=null,selected=false,inView=!('IntersectionObserver'in window),running=false,batsEntered=false,animations=new Set(),dogs={},chico=null,bats=[];
+const clock=C.createClock({show:showCadejo});
+function element(cls,html){const n=document.createElement('span');n.className=cls;if(html)n.innerHTML=html;return n;}
+function cancel(){for(const a of animations)a.cancel();animations.clear();for(const bat of bats)bat.classList.remove('is-flying');}
+function play(node,frames,options,finish){if(!node.animate)return;const a=node.animate(frames,options);animations.add(a);a.finished.catch(()=>{}).finally(()=>{animations.delete(a);finish?.();});}
+function showCadejo(appearance){if(!running||rendered!=='aguizotes')return;const dog=dogs[appearance.cadejo],shift=compactMedia.matches?.35:1;if(dog)play(dog,[{opacity:0,transform:`translateX(${-25*shift}px)`},{opacity:.95,transform:`translateX(${-8*shift}px)`,offset:.15},{opacity:.95,transform:`translateX(${22*shift}px)`,offset:.85},{opacity:0,transform:`translateX(${42*shift}px)`}],{duration:C.timing.dogDuration,easing:'ease-in-out',fill:'none'});
+ if(appearance.chicoLargo&&chico)play(chico,[{opacity:0,transform:'translateY(14px)'},{opacity:.65,transform:'translateY(0)',offset:.2},{opacity:.65,transform:'translateY(-2px)',offset:.8},{opacity:0,transform:'translateY(-12px)'}],{duration:C.timing.chicoDuration,easing:'ease-in-out',fill:'none'});
+}
+function enterBats(){if(batsEntered)return;batsEntered=true;const width=stage.clientWidth||600;for(const [i,bat]of bats.entries()){bat.classList.add('is-flying');const size=compactMedia.matches?45:64,start=i%2?width+size:-size,end=i%2?-size:width+size;play(bat,[{opacity:0,transform:`translate(${start}px,30px) rotate(-12deg)`},{opacity:.8,transform:`translate(${width*(.2+i*.09)}px,${8+i%3*12}px) rotate(6deg)`,offset:.35},{opacity:.7,offset:.7},{opacity:0,transform:`translate(${end}px,-35px) rotate(-8deg)`}],{duration:C.timing.batDuration+i*C.timing.batStep,delay:i*200,easing:'ease-in-out',fill:'none'},()=>bat.classList.remove('is-flying'));}}
+function build(season){clock.reset();cancel();running=false;rendered=season;batsEntered=false;stage.replaceChildren();weather.replaceChildren();bats=[];dogs={};chico=null;const config=C.plan(season,compactMedia.matches);stage.dataset.season=season;weather.dataset.season=season;
+ if(!config)return;
+ if(config.cadejo){const moon=element('mc-season-moon');stage.append(moon);for(const kind of ['white','black']){const dog=element('mc-cadejo',dogSVG(kind));dog.dataset.kind=kind;dogs[kind]=dog;stage.append(dog);}chico=element('mc-chico-largo',chicoSVG);stage.append(chico);for(let i=0;i<config.bats;i++){const bat=element('mc-season-bat',batSVG);bat.style.setProperty('--bat-left',(12+i*13)+'%');bat.style.setProperty('--bat-top',(10+i%3*14)+'px');bats.push(bat);stage.append(bat);}}
+ else{stage.append(element('mc-season-tree',treeSVG));for(let i=0;i<config.snow;i++){const snow=element('mc-snowflake');snow.style.setProperty('--snow-left',((i*37+13)%100)+'%');snow.style.setProperty('--snow-size',(2+i%4)+'px');snow.style.setProperty('--snow-duration',(9+i%7)+'s');snow.style.setProperty('--snow-delay',(-i*.83)+'s');snow.style.setProperty('--snow-drift',(-25+i%5*12)+'px');snow.style.setProperty('--snow-still-top',(8+(i*17)%85)+'%');weather.append(snow);}}
+}
+function reduced(){let stored=false;try{stored=localStorage.getItem('momotus-motion')==='off';}catch{}return reducedMedia.matches||stored||!!navigator.connection?.saveData||!!window.MomotusMotion?.isReduced()||!stage.animate;}
+function update(){
+ const season=section.dataset.season,enabled=!section.hidden&&!!C.plan(season,compactMedia.matches);
+ if(!enabled){selected=false;running=false;clock.reset();cancel();stage.hidden=true;weather.hidden=true;stage.dataset.motion='paused';weather.dataset.motion='paused';batsEntered=false;return;}
+ if(rendered!==season)build(season);
+ if(!selected){batsEntered=false;selected=true;}
+ stage.hidden=false;weather.hidden=false;
+ if(reduced()){running=false;batsEntered=false;clock.stop();cancel();stage.dataset.motion='still';weather.dataset.motion='still';return;}
+ if(!inView||document.hidden){running=false;clock.stop();for(const a of animations)a.pause();stage.dataset.motion='paused';weather.dataset.motion='paused';return;}
+ if(running)return;running=true;stage.dataset.motion='running';weather.dataset.motion='running';for(const a of animations)a.play();
+ if(season==='aguizotes'){enterBats();clock.start();}
+}
+new MutationObserver(update).observe(section,{attributes:true,attributeFilter:['hidden','data-season']});
+const intersection='IntersectionObserver'in window?new IntersectionObserver(entries=>{inView=entries[0]?.isIntersecting===true;update();},{threshold:0}):null;intersection?.observe(section);
+window.addEventListener('momotus:motion-change',update);window.addEventListener('storage',e=>{if(e.key==='momotus-motion')update();});document.addEventListener('visibilitychange',update);
+reducedMedia.addEventListener?.('change',update);navigator.connection?.addEventListener?.('change',update);compactMedia.addEventListener?.('change',()=>{if(rendered){build(rendered);selected=false;}update();});
+window.addEventListener('pagehide',()=>{clock.reset();cancel();running=false;selected=false;batsEntered=false;});window.addEventListener('pageshow',update);update();
+})();

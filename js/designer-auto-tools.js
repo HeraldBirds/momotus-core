@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const WORKER_PATH = new URL('herramientas/js/tools-worker.js?v=20261030-sleeves-multi-1', document.baseURI).href;
+  const WORKER_PATH = new URL('herramientas/js/tools-worker.js?v=20261030-categories-1', document.baseURI).href;
   const MAX_OUTPUT_PIXELS = 8_000_000;
   const MAX_OUTPUT_SIDE = 3600;
   const QUALITY_MIN_SIDE = 1600;

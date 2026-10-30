@@ -190,6 +190,7 @@
         </div>
       </article>`).join('');
     hydrateImages(products);
+    if(typeof CustomEvent==='function')globalThis.dispatchEvent?.(new CustomEvent('momotus:catalog-updated'));
     const empty = document.getElementById('seasonal-empty');
     empty.hidden = items.length > 0;
     document.getElementById('seasonal-results').textContent = `${items.length} diseño${items.length === 1 ? '' : 's'}`;
@@ -241,6 +242,7 @@
     renderFilters(event);
     renderCards();
     section.hidden = !seasonCategorySelected;
+    if(typeof CustomEvent==='function')globalThis.dispatchEvent?.(new CustomEvent('momotus:catalog-updated',{detail:{category:'temporadas',season:event.id}}));
   };
 
   const closeDetail = () => { const dialog = document.getElementById('seasonal-detail'); if(dialog?.open)dialog.close(); };
@@ -252,6 +254,11 @@
     content.innerHTML = `<div class="seasonal-detail-layout"><div><div class="seasonal-detail-image" id="seasonal-detail-image"><div class="seasonal-detail-placeholder">${garmentSilhouette(item)}<p>Mockup pendiente · ${escapeHtml(item.type)}</p></div><img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.name)} · ${escapeHtml(item.type)}" decoding="async"></div><button type="button" class="seasonal-detail-zoom" aria-pressed="false">Ampliar imagen</button></div><div class="seasonal-detail-info"><p>${escapeHtml(activeEvent.id==='aguizotes'?'Agüizotes':'Navidad')} · ${escapeHtml(item.type)}</p><h2 id="seasonal-detail-title">${escapeHtml(item.name)}</h2><p>${escapeHtml(item.description)}</p>${item.includes?`<p>Incluye: ${item.includes.map(escapeHtml).join(' + ')}</p>`:''}<strong class="seasonal-detail-price">Desde ${currency.format(item.price)}</strong><p>Consultá tallas, colores y disponibilidad antes de preparar tu pedido.</p><button type="button" class="seasonal-detail-order" data-season-order="${escapeHtml(item.id)}"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i> Consultar este diseño</button></div></div>`;
     const image = content.querySelector('img');
     if(image){const ready=()=>{content.querySelector('.seasonal-detail-placeholder').hidden=true;};const failed=()=>{image.hidden=true;const zoom=content.querySelector('.seasonal-detail-zoom');if(zoom)zoom.hidden=true;};image.addEventListener('load',ready,{once:true});image.addEventListener('error',failed,{once:true});if(image.complete){image.naturalWidth?ready():failed();}}
+    if(globalThis.MomotusGallery&&image){
+      const zoom=content.querySelector('.seasonal-detail-zoom');if(zoom)zoom.remove();
+      const container=content.querySelector('.seasonal-detail-layout>div');
+      globalThis.MomotusGallery.mount({image,container,title:item.name,photos:[item.image,...(item.images||[])]});
+    }
     if(!dialog.open)dialog.showModal();
     return true;
   };

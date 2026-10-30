@@ -108,6 +108,11 @@ const showToast = (message) => {
     toast.innerHTML = `<i class="fa-solid fa-check-circle text-green-400 text-2xl"></i><span id="toast-text" class="font-medium"></span>`;
     document.body.appendChild(toast);
   }
+  toast.setAttribute('role','status');
+  toast.setAttribute('aria-live','polite');
+  toast.setAttribute('aria-atomic','true');
+  toast.dataset.state=/error|no se pudo|no se puede|falló|❌/i.test(message)?'error':'info';
+  toast.querySelector('i')?.setAttribute('aria-hidden','true');
   document.getElementById('toast-text').textContent = message;
   toast.classList.remove('hidden');
   clearTimeout(window.momotusToastTimer);
@@ -845,6 +850,7 @@ const renderProducts = (filteredProducts, target = document.getElementById('prod
     fragment.appendChild(card);
   });
   grid.appendChild(fragment);
+  window.dispatchEvent(new CustomEvent('momotus:catalog-updated'));
 };
 
 const filterGarment = garment => {
@@ -971,6 +977,7 @@ const filterProducts = () => {
   if (countEl) countEl.textContent = showFeatured ? overview.length : filtered.length;
   const countLabel=document.getElementById('results-count-label');if(countLabel)countLabel.textContent=showFeatured?'destacados':'productos';
   if (window.MomotusSeasonal?.syncCategory) window.MomotusSeasonal.syncCategory(currentCategory);
+  window.dispatchEvent(new CustomEvent('momotus:catalog-updated',{detail:{category:currentCategory,subcategory:currentSubcategory}}));
 };
 
 const sortProducts = () => {

@@ -43,7 +43,8 @@
   }
   </script>
 
-  <link rel="stylesheet" href="css/store-experience.css?v=20261030-sleeves-multi-1">
+  <link rel="stylesheet" href="css/store-experience.css?v=20261030-categories-1">
+  <link rel="stylesheet" href="css/site-motion.css?v=20261030-categories-1">
 </head>
 <body class="bg-zinc-950 text-white">
 
@@ -94,33 +95,42 @@
     </div>
   </nav>
 
+
+  <!-- Colecciones: fotografías originales, ambiente y movimiento contenidos. -->
+  <section class="mc-collections" aria-labelledby="mc-collections-title">
+    <div class="mc-section-heading" data-mc-reveal>
+      <div><small>HECHO PARA TU ESTILO</small><h2 id="mc-collections-title">Cada diseño tiene su historia</h2></div>
+      <p>Explorá nuestras leyendas, la naturaleza nica y las colecciones de temporada.</p>
+    </div>
+    <div class="mc-collection-grid">
+      <a class="mc-collection" data-theme="aguizotes" data-mc-reveal href="tienda/?categoria=temporadas&amp;temporada=aguizotes">
+        <div class="mc-collection-visual"><img data-mc-scroll-image src="img/products/aguizotes/aguizotes-2026/cadejo-blanco-camiseta.webp" width="1092" height="1440" loading="lazy" decoding="async" alt="El Cadejo Blanco, camiseta de Tierra de leyendas"></div>
+        <div class="mc-collection-copy"><small>TIERRA DE LEYENDAS</small><h3>El misterio se lleva puesto</h3><p>Agüizotes y relatos de nuestra tierra, con una presencia que se siente.</p><strong>Explorá las leyendas →</strong></div>
+      </a>
+      <a class="mc-collection" data-theme="fauna" data-mc-reveal href="tienda/?categoria=fauna">
+        <div class="mc-collection-visual"><img data-mc-scroll-image sizes="(max-width: 767px) 90vw, 30vw" srcset="img/products/fauna/previews/falco-rufigularis.webp 512w, img/products/fauna/falco-rufigularis.webp 1092w" src="img/products/fauna/previews/falco-rufigularis.webp" width="1092" height="1440" loading="lazy" decoding="async" alt="Camiseta Falco rufigularis de Fauna Nica"></div>
+        <div class="mc-collection-copy"><small>FAUNA NICA</small><h3>Naturaleza con carácter</h3><p>Aves, colores y detalles que celebran la vida de Nicaragua.</p><strong>Conocé la colección →</strong></div>
+      </a>
+      <a class="mc-collection" data-theme="navidad" data-mc-reveal href="tienda/?categoria=temporadas&amp;temporada=navidad">
+        <div class="mc-collection-visual"><img data-mc-scroll-image src="img/mockups/mockup-hoodie-negro-frente.webp" width="520" height="520" loading="lazy" decoding="async" alt="Hoodie negro liso como base para tu diseño de temporada"></div>
+        <div class="mc-collection-copy"><small>DISEÑOS DE TEMPORADA</small><h3>Celebrá a tu manera</h3><p>Descubrí Navidad y prepará una prenda con tu propio estilo.</p><strong>Mirá las temporadas →</strong></div>
+      </a>
+    </div>
+  </section>
+
   <!-- CÓMO FUNCIONA -->
   <section class="py-16 bg-black" aria-labelledby="process-title">
     <div class="max-w-7xl mx-auto px-6">
       <div class="text-center max-w-2xl mx-auto mb-12">
         <span class="text-yellow-400 font-bold tracking-wide">FÁCIL Y AL GRANO</span>
         <h2 id="process-title" class="text-3xl md:text-5xl font-black mt-3">DE TU IDEA A TU PRENDA</h2>
-        <p class="text-zinc-400 text-lg mt-4">Armá tu diseño en tres pasos y mandanos la cotización por WhatsApp.</p>
+        <p class="text-zinc-400 text-lg mt-4">De la primera idea a la prenda terminada: conocé el recorrido de tu diseño.</p>
       </div>
-      <ol class="grid md:grid-cols-3 gap-6 process-grid">
-        <li class="process-card">
-          <span class="process-number">1</span>
-          <i class="fa-solid fa-shirt text-3xl text-yellow-400" aria-hidden="true"></i>
-          <h3 class="text-xl font-bold">Escogé tu prenda</h3>
-          <p class="text-zinc-400">Elegí camiseta, hoodie, sudadera o crop-top, además del color y la talla.</p>
-        </li>
-        <li class="process-card">
-          <span class="process-number">2</span>
-          <i class="fa-solid fa-cloud-arrow-up text-3xl text-yellow-400" aria-hidden="true"></i>
-          <h3 class="text-xl font-bold">Subí tu diseño</h3>
-          <p class="text-zinc-400">Acomodalo al frente o la espalda y mirá cómo queda en tiempo real.</p>
-        </li>
-        <li class="process-card">
-          <span class="process-number">3</span>
-          <i class="fa-brands fa-whatsapp text-3xl text-yellow-400" aria-hidden="true"></i>
-          <h3 class="text-xl font-bold">Pedí tu cotización</h3>
-          <p class="text-zinc-400">Descargá la vista previa y envianos todos los datos del pedido.</p>
-        </li>
+      <ol class="grid gap-6 process-grid mc-story-grid">
+        <li class="process-card mc-story-card"><span class="process-number">1</span><svg viewBox="0 0 140 125" aria-hidden="true"><path d="M35 22h70l22 20-17 20-14-12v62H44V50L30 62 13 42z" fill="none" stroke="currentColor" stroke-width="3"/><path d="m59 26 11 10 11-10M56 70h28" fill="none" stroke="currentColor" stroke-width="3"/></svg><h3 class="font-bold">Elegí tu prenda</h3><p class="text-zinc-400">Camiseta, hoodie, sudadera o crop-top. Escogé talla y color.</p></li>
+        <li class="process-card mc-story-card"><span class="process-number">2</span><svg viewBox="0 0 140 125" aria-hidden="true"><rect x="20" y="18" width="100" height="78" rx="8" fill="none" stroke="currentColor" stroke-width="3"/><path d="m34 78 22-27 18 18 14-17 18 26M47 108h46M70 97v11" fill="none" stroke="currentColor" stroke-width="3"/><circle cx="94" cy="37" r="6" fill="currentColor"/></svg><h3 class="font-bold">Dale forma a tu idea</h3><p class="text-zinc-400">Subí el diseño y ajustá tamaño, posición y detalles en el editor.</p></li>
+        <li class="process-card mc-story-card"><span class="process-number">3</span><svg viewBox="0 0 140 125" aria-hidden="true"><path d="M25 30h90v43H25zM36 73h68v24H36zM48 18h44v12M17 100h106" fill="none" stroke="currentColor" stroke-width="3"/><path d="m58 43 12 6 12-6v20H58z" fill="currentColor"/></svg><h3 class="font-bold">Revisamos y estampamos</h3><p class="text-zinc-400">Confirmamos tu pedido y preparamos la impresión DTF.</p></li>
+        <li class="process-card mc-story-card"><span class="process-number">4</span><svg viewBox="0 0 140 125" aria-hidden="true"><path d="M35 22h70l22 20-17 20-14-12v62H44V50L30 62 13 42z" fill="none" stroke="currentColor" stroke-width="3"/><path d="m55 70 10 10 21-25" fill="none" stroke="currentColor" stroke-width="5"/><path d="M119 18v12m-6-6h12" stroke="currentColor" stroke-width="3"/></svg><h3 class="font-bold">Llevá tu diseño puesto</h3><p class="text-zinc-400">Coordinamos la entrega de tu prenda personalizada.</p></li>
       </ol>
       <div class="text-center mt-10">
         <a href="disena.html" class="inline-flex items-center gap-3 bg-yellow-400 hover:bg-yellow-300 text-black font-bold px-9 py-5 rounded-3xl transition">
@@ -406,7 +416,7 @@
     }
 
     function startCarousel(force = false) {
-      if (carouselTimer !== null || carouselPausedByUser || document.hidden || (reduceMotion.matches && !force)) {
+      if (carouselTimer !== null || carouselPausedByUser || document.hidden || ((reduceMotion.matches || document.documentElement.classList.contains('mc-motion-reduced')) && !force)) {
         updateCarouselControl(false);
         return;
       }
@@ -490,19 +500,26 @@
     if (mobileHeroMedia.addEventListener) mobileHeroMedia.addEventListener('change', updateHero);
     else mobileHeroMedia.addListener(updateHero);
 
+    window.addEventListener('momotus:motion-change', event => {
+      if(event.detail.reduced) stopCarousel(); else startCarousel();
+    });
+
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) stopCarousel();
       else startCarousel();
     });
   </script>
 
-  <script src="tienda/js/product-images.js?v=20261030-sleeves-multi-1"></script>
+  <script src="tienda/js/product-images.js?v=20261030-categories-1"></script>
   <script src="tienda/js/store-config-core.js?v=20261028-visual-3"></script>
   <script src="tienda/js/configuracion.js?v=20261007-shop-1"></script>
   <script src="tienda/js/catalogo.js?v=20261028-visual-3"></script>
-  <script src="tienda/js/photo-previews.js?v=20261030-sleeves-multi-1"></script>
-  <script src="js/script.js?v=20261030-sleeves-multi-1"></script>
+  <script src="tienda/js/photo-previews.js?v=20261030-categories-1"></script>
+  <script src="js/script.js?v=20261030-categories-1"></script>
   <script src="js/performance.js?v=20261006-1" defer></script>
-  <script src="js/store-experience.js?v=20261030-sleeves-multi-1" defer></script>
+  <script src="js/store-experience.js?v=20261030-categories-1" defer></script>
+  <script src="js/motion-core.js?v=20261030-categories-1" defer></script>
+  <script src="js/product-gallery.js?v=20261030-categories-1" defer></script>
+  <script src="js/site-motion.js?v=20261030-categories-1" defer></script>
 </body>
 </html>

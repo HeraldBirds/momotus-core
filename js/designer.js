@@ -169,6 +169,7 @@ const updateMockups = async () => {
   if (!loadedFront || !loadedBack) console.warn('No se encontró uno de los mockups seleccionados.', { frontPath, backPath });
 
   requestAnimationFrame(updateDesignSize);
+  window.dispatchEvent(new CustomEvent('momotus:designer-view',{detail:{label:['Frente','Espalda','Mangas'][currentTab],element:currentTab===1?backImg:frontImg}}));
   preloadMockupsForColor(selectedColor);
 };
 
@@ -571,6 +572,8 @@ const switchMockup = (tab) => {
   document.getElementById('mockup-espalda').classList.toggle('hidden', tab !== 1);
   document.getElementById('tab-mangas')?.classList.toggle('tab-active', tab === 2);
   window.MomotusSleeves?.setVisible(tab === 2);
+  for(const [id,index] of [['tab-frente',0],['tab-espalda',1],['tab-mangas',2]])document.getElementById(id)?.setAttribute('aria-pressed',String(index===tab));
+  window.dispatchEvent(new CustomEvent('momotus:designer-view',{detail:{label:['Frente','Espalda','Mangas'][tab],element:document.getElementById(['mockup-frente','mockup-espalda','mockup-mangas'][tab])}}));
 };
 
 const renderSizeButtonsDesigner = () => {
