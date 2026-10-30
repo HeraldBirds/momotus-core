@@ -17,6 +17,8 @@ let currentTab = 0; // 0 = Frente, 1 = Espalda
 let designSaveTimer = null;
 let designSaveIdleCallback = null;
 let mockupRequestId = 0;
+let designerPreviewUrl = null;
+let designerDocumentRevision = 0;
 const designUploadRevision = [0, 0];
 
 const shirtTypes = ['regular', 'sudadera', 'hoodie', 'crop-top'];
@@ -145,6 +147,7 @@ const preloadMockupsForColor = colorKey => {
 };
 
 const updateMockups = async () => {
+  window.MomotusSleeves?.sync();
   const frontImg = document.getElementById('shirt-mockup');
   const backImg = document.getElementById('shirt-mockup-back');
   if (!frontImg && !backImg) return;
@@ -199,9 +202,10 @@ window.scaleDesign = (side, delta) => {
   updateBoundaryWarning(side);
 };
 
-window.scaleActiveDesign = (delta) => window.scaleDesign(currentTab, delta);
+window.scaleActiveDesign = (delta) => currentTab === 2 ? window.MomotusSleeves?.scale(delta) : window.scaleDesign(currentTab, delta);
 
 window.rotateActiveDesign = (degrees) => {
+  if (currentTab === 2) return window.MomotusSleeves?.rotate(degrees);
   if (currentTab === 0) currentRotationFront = (currentRotationFront + degrees) % 360;
   else currentRotationBack = (currentRotationBack + degrees) % 360;
   updateDesignSize();
@@ -350,6 +354,7 @@ const updateImageQuality = (image, side) => {
 };
 
 window.removeActiveDesign = () => {
+  if (currentTab === 2) return window.MomotusSleeves?.remove();
   const side = currentTab;
   designUploadRevision[side] += 1;
   const preview = document.getElementById(side === 0 ? 'design-preview' : 'design-preview-back');
@@ -375,6 +380,8 @@ window.removeActiveDesign = () => {
 };
 
 const resetDesign = () => {
+  invalidatePreparedPreview();
+  window.MomotusSleeves?.reset();
   designUploadRevision[0] += 1;
   designUploadRevision[1] += 1;
   cancelScheduledDesignSave();
@@ -420,7 +427,8 @@ const getCurrentDesignData = () => ({
     positionFront: currentPositionFront,
     positionBack: currentPositionBack,
     rotationFront: currentRotationFront,
-    rotationBack: currentRotationBack
+    rotationBack: currentRotationBack,
+    sleeves: window.MomotusSleeves?.serialize()
 });
 
 const saveCurrentDesignNow = async () => {
@@ -461,7 +469,14 @@ const cancelScheduledDesignSave = () => {
   }
 };
 
+const invalidatePreparedPreview = () => {
+  designerDocumentRevision += 1;
+  const link = document.getElementById('designer-preview-download');
+  if (link) { link.hidden = true; link.removeAttribute('href'); }
+};
+
 const saveCurrentDesign = () => {
+  invalidatePreparedPreview();
   cancelScheduledDesignSave();
   designSaveTimer = setTimeout(() => {
     designSaveTimer = null;
@@ -514,6 +529,7 @@ const loadSavedDesign = async () => {
   currentPositionBack = normalizePosition(data.positionBack);
   currentRotationFront = clampNumber(data.rotationFront, -360, 360, 0);
   currentRotationBack = clampNumber(data.rotationBack, -360, 360, 0);
+  window.MomotusSleeves?.restore(data.sleeves);
 
   document.querySelectorAll('.shirt-type-btn').forEach((btn, i) => btn.classList.toggle('active', i === currentShirtType));
 
@@ -546,11 +562,15 @@ const loadSavedDesign = async () => {
 };
 
 const switchMockup = (tab) => {
+  if (![0, 1, 2].includes(tab)) return;
+  if (tab === 2 && ![1, 2].includes(currentShirtType)) tab = 0;
   currentTab = tab;
   document.getElementById('tab-frente').classList.toggle('tab-active', tab === 0);
   document.getElementById('tab-espalda').classList.toggle('tab-active', tab === 1);
-  document.getElementById('mockup-frente').classList.toggle('hidden', tab === 1);
-  document.getElementById('mockup-espalda').classList.toggle('hidden', tab === 0);
+  document.getElementById('mockup-frente').classList.toggle('hidden', tab !== 0);
+  document.getElementById('mockup-espalda').classList.toggle('hidden', tab !== 1);
+  document.getElementById('tab-mangas')?.classList.toggle('tab-active', tab === 2);
+  window.MomotusSleeves?.setVisible(tab === 2);
 };
 
 const renderSizeButtonsDesigner = () => {
@@ -619,6 +639,7 @@ const setDesignerAutoToolState = (tool, busy, progress = 0) => {
 };
 
 const procesarDisenoAutomatico = async tool => {
+  if (currentTab === 2) return window.MomotusSleeves?.process(tool);
   if (designerAutoToolBusy) return;
   cerrarModalEliminarFondo();
   const side = currentTab === 1 ? 1 : 0;
@@ -675,9 +696,10 @@ const abrirHerramientaInterna = async (tool = 'background', sendCurrentDesign = 
     return;
   }
 
-  let transferSide = currentTab;
-  let source = transferSide === 0 ? designFront : designBack;
-  if (!source) {
+  const sleeveTransfer = currentTab === 2;
+  let transferSide = sleeveTransfer ? (window.MomotusSleeves?.selectedSide() === 'right' ? 3 : 2) : currentTab;
+  let source = sleeveTransfer ? window.MomotusSleeves?.source() : transferSide === 0 ? designFront : designBack;
+  if (!source && !sleeveTransfer) {
     const alternativeSide = transferSide === 0 ? 1 : 0;
     const alternativeSource = alternativeSide === 0 ? designFront : designBack;
     if (alternativeSource) {
@@ -687,7 +709,7 @@ const abrirHerramientaInterna = async (tool = 'background', sendCurrentDesign = 
     }
   }
   if (!source) {
-    showToast('Subí un diseño en Frente o Espalda antes de enviarlo a Herramientas');
+    showToast(sleeveTransfer ? 'Subí un diseño a la manga seleccionada antes de enviarlo a Herramientas' : 'Subí un diseño en Frente o Espalda antes de enviarlo a Herramientas');
     return;
   }
   if (!window.MomotusWorkflowBridge) {
@@ -704,7 +726,7 @@ const abrirHerramientaInterna = async (tool = 'background', sendCurrentDesign = 
         side: transferSide,
         garment: shirtTypes[currentShirtType],
         requestedTool: selectedTool,
-        filename: `momotus-${transferSide === 0 ? 'frente' : 'espalda'}.${blob.type.split('/')[1] || 'png'}`
+        filename: `momotus-${['frente','espalda','manga-izquierda','manga-derecha'][transferSide]}.${blob.type.split('/')[1] || 'png'}`
       }
     );
     if (!(await flushScheduledDesignSave())) throw new Error('No se pudo guardar el proyecto antes de abrir Herramientas. El diseño sigue en esta página.');
@@ -741,9 +763,12 @@ const importDesignFromTools = async () => {
     }
     const garmentIndex = shirtTypes.indexOf(String(record.metadata?.garment || '').toLowerCase());
     if (garmentIndex >= 0) currentShirtType = garmentIndex;
-    const side = Number(record.metadata?.side) === 1 ? 1 : 0;
+    const requestedSide = Number(record.metadata?.side);
+    const side = [1, 2, 3].includes(requestedSide) ? requestedSide : 0;
     const src = await window.MomotusWorkflowBridge.blobToDataURL(record.blob);
-    if (side === 0) {
+    if (side >= 2) {
+      if (!await window.MomotusSleeves?.applyImported(src, side - 2)) throw new Error('No se pudo colocar el diseño en la manga.');
+    } else if (side === 0) {
       currentScaleFront = 1;
       currentPositionFront = { x: 50, y: 50 };
       currentRotationFront = 0;
@@ -753,8 +778,9 @@ const importDesignFromTools = async () => {
       currentRotationBack = 0;
     }
     updateMockups();
-    switchMockup(side);
-    applyDesignSource(src, side, `✅ Diseño colocado en ${side === 0 ? 'Frente' : 'Espalda'}`);
+    switchMockup(side >= 2 ? 2 : side);
+    if (side < 2) applyDesignSource(src, side, `✅ Diseño colocado en ${side === 0 ? 'Frente' : 'Espalda'}`);
+    else showToast('Diseño colocado en '+(side === 2 ? 'manga izquierda' : 'manga derecha'));
     document.querySelectorAll('.shirt-type-btn').forEach((button, index) => button.classList.toggle('active', index === currentShirtType));
     if (!(await flushScheduledDesignSave())) return false;
     await window.MomotusWorkflowBridge.remove(key);
@@ -803,7 +829,7 @@ const validateQuoteRequest = () => {
     cityInput?.focus();
     return false;
   }
-  if (!designFront && !designBack) {
+  if (!designFront && !designBack && !window.MomotusSleeves?.hasDesign()) {
     showToast('Subí por lo menos un diseño antes de cotizar');
     document.getElementById('design-upload-front')?.nextElementSibling?.focus();
     return false;
@@ -870,6 +896,7 @@ const captureMockupSide = async (side) => {
       backgroundColor: '#111827',
       scale: 2,
       useCORS: true,
+      ignoreElements: element => element.tagName === 'IMG' && !target.contains(element),
       logging: false
     });
   } finally {
@@ -881,7 +908,8 @@ const captureMockupSide = async (side) => {
 };
 
 window.createDesignPreview = async (shouldDownload = true, fileLabel = '') => {
-  if (shouldDownload && !designFront && !designBack) {
+  const revision = designerDocumentRevision;
+  if (shouldDownload && !designFront && !designBack && !window.MomotusSleeves?.hasDesign()) {
     showToast('Subí por lo menos un diseño para generar la vista previa');
     return null;
   }
@@ -904,15 +932,28 @@ window.createDesignPreview = async (shouldDownload = true, fileLabel = '') => {
   context.drawImage(frontCanvas, gap, labelHeight);
   context.drawImage(backCanvas, gap * 2 + frontCanvas.width, labelHeight);
   switchMockup(originalTab);
+  const sleeves = window.MomotusSleeves?.hasDesign() ? await window.MomotusSleeves.capture(result.width) : null;
+  let output = result;
+  if (sleeves) {
+    output = document.createElement('canvas');output.width = result.width;output.height = result.height + sleeves.height;
+    const full = output.getContext('2d');full.drawImage(result, 0, 0);full.drawImage(sleeves, 0, result.height);
+  }
+  if (revision !== designerDocumentRevision) throw new Error('El diseño cambió mientras se preparaba la vista. Volvé a descargarla para incluir los cambios.');
   if (shouldDownload) {
-    const link = document.createElement('a');
+    const link = document.getElementById('designer-preview-download') || document.createElement('a');
     const safeLabel = String(fileLabel).replace(/[^a-z0-9-]/gi, '');
     link.download = safeLabel ? `momotus-${safeLabel}.png` : `momotus-diseno-${Date.now()}.png`;
-    link.href = result.toDataURL('image/png', 1);
+    const blob = await new Promise(resolve => output.toBlob(resolve, 'image/png'));
+    if (!blob) throw new Error('No se pudo preparar la vista previa.');
+    if (revision !== designerDocumentRevision) throw new Error('El diseño cambió. Volvé a preparar la vista previa.');
+    if (designerPreviewUrl) { const previousUrl = designerPreviewUrl; setTimeout(() => URL.revokeObjectURL(previousUrl), 30000); }
+    designerPreviewUrl = URL.createObjectURL(blob);
+    link.href = designerPreviewUrl;
+    link.hidden = false;
     link.click();
-    showToast('✅ Vista previa descargada; adjúntala en tu mensaje');
+    showToast('✅ Vista previa lista. Si no empieza la descarga, usá «Guardar PNG preparado».');
   }
-  return result;
+  return output;
 };
 
 window.sendToWhatsApp = async () => {
@@ -921,7 +962,7 @@ window.sendToWhatsApp = async () => {
   const colorName = colorMap[currentColor] || currentColor;
   const quote = getQuoteDetails();
   const quoteCode = createQuoteCode();
-  const text = `¡Hola Momotus Core! 👋\n\nQuiero cotizar esta prenda personalizada:\n• Código: ${quoteCode}\n• Nombre: ${quote.name}\n• Ciudad: ${quote.city}\n• Cantidad: ${quote.quantity}\n• Prenda: ${typeName}\n• Talla: ${currentSize}\n• Color: ${colorName.charAt(0).toUpperCase() + colorName.slice(1)}\n• Frente: ${formatDesignDetails(0)}\n• Espalda: ${formatDesignDetails(1)}\n• Observaciones: ${quote.notes}\n\nAdjuntaré la vista previa descargada para que la revisen.\n¡Gracias! 🇳🇮`;
+  const text = `¡Hola Momotus Core! 👋\n\nQuiero cotizar esta prenda personalizada:\n• Código: ${quoteCode}\n• Nombre: ${quote.name}\n• Ciudad: ${quote.city}\n• Cantidad: ${quote.quantity}\n• Prenda: ${typeName}\n• Talla: ${currentSize}\n• Color: ${colorName.charAt(0).toUpperCase() + colorName.slice(1)}\n• Frente: ${formatDesignDetails(0)}\n• Espalda: ${formatDesignDetails(1)}\n${window.MomotusSleeves?.summary() || ''}\n• Observaciones: ${quote.notes}\n\nAdjuntaré la vista previa descargada para que la revisen.\n¡Gracias! 🇳🇮`;
   const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(text)}`;
   const whatsappWindow = window.open(whatsappUrl, '_blank');
   if (whatsappWindow) whatsappWindow.opener = null;
@@ -944,7 +985,7 @@ window.sendToEmail = () => {
   const quote = getQuoteDetails();
   const quoteCode = createQuoteCode();
   const subject = `Cotización ${quoteCode} - Prenda personalizada Momotus Core`;
-  const body = `Hola,\n\nQuiero cotizar esta prenda personalizada:\n- Código: ${quoteCode}\n- Nombre: ${quote.name}\n- Ciudad: ${quote.city}\n- Cantidad: ${quote.quantity}\n- Prenda: ${typeName}\n- Talla: ${currentSize}\n- Color: ${colorName}\n- Frente: ${formatDesignDetails(0)}\n- Espalda: ${formatDesignDetails(1)}\n- Observaciones: ${quote.notes}\n\nAdjuntaré la vista previa para que la revisen.\n\n¡Gracias!`;
+  const body = `Hola,\n\nQuiero cotizar esta prenda personalizada:\n- Código: ${quoteCode}\n- Nombre: ${quote.name}\n- Ciudad: ${quote.city}\n- Cantidad: ${quote.quantity}\n- Prenda: ${typeName}\n- Talla: ${currentSize}\n- Color: ${colorName}\n- Frente: ${formatDesignDetails(0)}\n- Espalda: ${formatDesignDetails(1)}\n${window.MomotusSleeves?.summary() || ''}\n- Observaciones: ${quote.notes}\n\nAdjuntaré la vista previa para que la revisen.\n\n¡Gracias!`;
   window.location.href = `mailto:${contactEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   showToast("✉️ Email abierto");
 };

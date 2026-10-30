@@ -109,7 +109,8 @@
     }
     .resize-btn:hover { transform: scale(1.1); }
   </style>
-  <link rel="stylesheet" href="css/store-experience.css?v=20261029-audit-1">
+  <link rel="stylesheet" href="css/designer-sleeves.css?v=20261030-sleeves-1">
+  <link rel="stylesheet" href="css/store-experience.css?v=20261030-sleeves-1">
 </head>
 <body class="bg-zinc-950 text-white">
 
@@ -122,7 +123,7 @@
           <i class="fa-solid fa-eye"></i> VISTA EN TIEMPO REAL
         </span>
         <h2 class="text-6xl font-black mb-4 tracking-tighter">Diseñá tu prenda</h2>
-        <p class="text-2xl text-zinc-400">Subí tu diseño y mirá cómo queda al frente y la espalda</p>
+        <p class="text-2xl text-zinc-400">Subí tu diseño y mirá cómo queda en tu prenda</p>
       </div>
 
       <div class="designer-layout grid lg:grid-cols-2 gap-16 items-start">
@@ -132,6 +133,7 @@
             <div class="mockup-tabs flex border-b border-zinc-700 mb-6">
               <button onclick="switchMockup(0)" id="tab-frente" class="tab-active flex-1 py-4 text-lg font-medium">Frente</button>
               <button onclick="switchMockup(1)" id="tab-espalda" class="flex-1 py-4 text-lg font-medium">Espalda</button>
+              <button type="button" onclick="switchMockup(2)" id="tab-mangas" class="flex-1 py-4 text-lg font-medium" hidden>Mangas</button>
             </div>
 
             <div id="mockup-frente" class="relative">
@@ -142,6 +144,8 @@
               <img id="shirt-mockup-back" src="img/mockups/mockup-regular-negro-espalda.webp" class="shirt-mockup w-full" alt="Mockup Espalda" decoding="async">
               <div id="design-preview-back" class="absolute flex items-center justify-center"></div>
             </div>
+
+            <section id="mockup-mangas" class="sleeves-view" aria-label="Personalizar mangas" hidden></section>
 
             <!-- Botones de tamaño -->
             <div class="mockup-size-controls flex items-center justify-center gap-6 mt-8 mb-8">
@@ -158,7 +162,7 @@
             <div class="designer-order-message bg-gradient-to-r from-yellow-400/10 to-transparent border border-yellow-400/30 rounded-3xl p-8 text-center">
               <p class="order-title text-yellow-300 font-semibold text-xl mb-3">¿Ya quedó como querías?</p>
               <p class="text-zinc-300 leading-relaxed text-base">
-                Descargá la vista previa del <strong>frente</strong> y la <strong>espalda</strong><br>
+                Descargá la vista previa de tu prenda y las mangas que personalizaste<br>
                 y adjuntala cuando se abra WhatsApp.
               </p>
               <p class="order-time text-sm text-zinc-400 mt-6">
@@ -186,7 +190,7 @@
           <div class="designer-types">
             <p class="font-medium mb-4">Tipo de prenda</p>
             <div class="flex gap-3 flex-wrap">
-              <button onclick="selectShirtType(0)" id="type-0" class="shirt-type-btn active px-8 py-4 rounded-3xl font-medium bg-yellow-400 text-black">Regular / Unisex</button>
+              <button onclick="selectShirtType(0)" id="type-0" class="shirt-type-btn active px-8 py-4 rounded-3xl font-medium border border-zinc-600 hover:border-yellow-400">Regular / Unisex</button>
               <button onclick="selectShirtType(1)" id="type-1" class="shirt-type-btn px-8 py-4 rounded-3xl font-medium border border-zinc-600 hover:border-yellow-400">Sudaderas</button>
               <button onclick="selectShirtType(2)" id="type-2" class="shirt-type-btn px-8 py-4 rounded-3xl font-medium border border-zinc-600 hover:border-yellow-400">Hoodie</button>
               <button onclick="selectShirtType(3)" id="type-3" class="shirt-type-btn px-8 py-4 rounded-3xl font-medium border border-zinc-600 hover:border-yellow-400">Crop-top</button>
@@ -267,9 +271,10 @@
               <input id="quote-notes" maxlength="240" placeholder="Observaciones (opcional)" class="bg-zinc-800 border border-zinc-700 focus:border-yellow-400 rounded-2xl px-5 py-4 outline-none">
             </div>
             <p id="design-boundary-warning" class="hidden mb-6 text-center text-sm text-yellow-300" role="status"></p>
-            <button onclick="createDesignPreview(true)" class="mb-4 w-full border border-yellow-400 text-yellow-400 hover:bg-yellow-400 hover:text-black py-4 rounded-3xl font-bold transition">
-              <i class="fa-solid fa-download"></i> Descargar vista previa frente y espalda
+            <button onclick="createDesignPreview(true).catch(error => showToast(error.message || 'No se pudo preparar la vista previa'))" class="mb-4 w-full border border-yellow-400 text-yellow-400 hover:bg-yellow-400 hover:text-black py-4 rounded-3xl font-bold transition">
+              <i class="fa-solid fa-download"></i> Descargar vista previa de la prenda
             </button>
+            <a id="designer-preview-download" hidden class="block mb-4 text-center text-yellow-300 underline" download>Guardar PNG preparado</a>
             <div class="grid grid-cols-2 gap-4">
               <button onclick="sendToWhatsApp()" class="flex items-center justify-center gap-3 bg-green-600 hover:bg-green-500 py-6 rounded-3xl font-bold text-lg transition">
                 <i class="fa-brands fa-whatsapp text-2xl"></i> WhatsApp
@@ -365,15 +370,17 @@
 
   <div id="cart-modal-placeholder"></div>
 
-  <script src="tienda/js/product-images.js?v=20261029-audit-1"></script>
+  <script src="tienda/js/product-images.js?v=20261030-sleeves-1"></script>
   <script src="tienda/js/store-config-core.js?v=20261028-visual-3"></script>
   <script src="tienda/js/configuracion.js?v=20261007-shop-1"></script>
   <script src="tienda/js/catalogo.js?v=20261028-visual-3"></script>
-  <script src="js/script.js?v=20261029-audit-1"></script>
-  <script src="js/workflow-bridge.js?v=20261029-audit-1"></script>
-  <script src="js/designer-storage.js?v=20261029-audit-1"></script>
-  <script src="js/designer-auto-tools.js?v=20261029-audit-1"></script>
-  <script src="js/designer.js?v=20261029-audit-1"></script>
+  <script src="js/script.js?v=20261030-sleeves-1"></script>
+  <script src="js/workflow-bridge.js?v=20261030-sleeves-1"></script>
+  <script src="js/designer-storage.js?v=20261030-sleeves-1"></script>
+  <script src="js/designer-auto-tools.js?v=20261030-sleeves-1"></script>
+  <script src="js/designer.js?v=20261030-sleeves-1"></script>
+  <script src="js/designer-sleeves-core.js?v=20261030-sleeves-1"></script>
+  <script src="js/designer-sleeves.js?v=20261030-sleeves-1"></script>
   <script src="js/performance.js?v=20261006-1" defer></script>
 
   <script>
@@ -401,6 +408,6 @@
       if (typeof saveCurrentDesign === 'function') saveCurrentDesign();
     }
   </script>
-  <script src="js/store-experience.js?v=20261029-audit-1" defer></script>
+  <script src="js/store-experience.js?v=20261030-sleeves-1" defer></script>
 </body>
 </html>

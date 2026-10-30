@@ -223,3 +223,6 @@ body.mockup-transfer-active { overflow: hidden; }
 @media (max-width: 760px) {
   .mockup-garment-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* Sleeve destinations are offered only for garments with long sleeves. */
+.mockup-side-grid [hidden] { display: none !important; }

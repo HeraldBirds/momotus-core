@@ -1,5 +1,5 @@
 {
-  "version": "20261029-audit-1",
+  "version": "20261030-sleeves-1",
   "files": [
     {
       "url": "css/style.css",
@@ -11,7 +11,7 @@
     },
     {
       "url": "herramientas/",
-      "bytes": 81945
+      "bytes": 81965
     },
     {
       "url": "herramientas/css/editor-interactions.css",
@@ -47,7 +47,7 @@
     },
     {
       "url": "herramientas/css/tools-mockup.css",
-      "bytes": 5588
+      "bytes": 5721
     },
     {
       "url": "herramientas/css/tools-precision.css",
@@ -199,7 +199,7 @@
     },
     {
       "url": "herramientas/js/tools-mockup.js",
-      "bytes": 11064
+      "bytes": 11786
     },
     {
       "url": "herramientas/js/tools-precision-core.js",
@@ -319,7 +319,7 @@
     },
     {
       "url": "herramientas/pliegos/",
-      "bytes": 22188
+      "bytes": 22198
     },
     {
       "url": "herramientas/pliegos/app.js",
@@ -351,7 +351,7 @@
     },
     {
       "url": "herramientas/preparacion/",
-      "bytes": 10507
+      "bytes": 10517
     },
     {
       "url": "herramientas/preparacion/app.js",
@@ -371,7 +371,7 @@
     },
     {
       "url": "herramientas/tipografias/",
-      "bytes": 23027
+      "bytes": 23065
     },
     {
       "url": "herramientas/tipografias/advanced-ui.js",

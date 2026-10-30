@@ -36,6 +36,8 @@
           <fieldset><legend>2. Escogé el lado</legend><div class="mockup-side-grid">
             <button type="button" data-mockup-side="0" class="active"><i class="fa-solid fa-person"></i> Frente</button>
             <button type="button" data-mockup-side="1"><i class="fa-solid fa-person-rays"></i> Espalda</button>
+            <button type="button" data-mockup-side="2" hidden>Manga izquierda</button>
+            <button type="button" data-mockup-side="3" hidden>Manga derecha</button>
           </div></fieldset>
           <div class="mockup-transfer-summary"><i class="fa-solid fa-lock"></i><span><strong>Transferencia local</strong><small id="mockup-transfer-document">El diseño no sale de esta computadora.</small></span></div>
         </div>
@@ -69,6 +71,7 @@
     });
     window.addEventListener('momotus:workspace-update', updateButtonState);
     window.addEventListener('momotus:result-ready', updateButtonState);
+    selectGarment(selectedGarment); selectSide(selectedSide);
     updateButtonState();
   };
 
@@ -82,12 +85,15 @@
   const selectGarment = garment => {
     if (!garments.some(item => item.key === garment)) return;
     selectedGarment = garment;
-    document.querySelectorAll('[data-mockup-garment]').forEach(button => button.classList.toggle('active', button.dataset.mockupGarment === garment));
+    const sleeves = ['hoodie','sudadera'].includes(garment);
+    document.querySelectorAll('[data-mockup-side="2"], [data-mockup-side="3"]').forEach(button => { button.hidden = !sleeves; });
+    if (!sleeves && selectedSide > 1) selectSide(0);
+    document.querySelectorAll('[data-mockup-garment]').forEach(button => { const active = button.dataset.mockupGarment === garment; button.classList.toggle('active', active); button.setAttribute('aria-pressed', String(active)); });
   };
 
   const selectSide = side => {
-    selectedSide = side === 1 ? 1 : 0;
-    document.querySelectorAll('[data-mockup-side]').forEach(button => button.classList.toggle('active', Number(button.dataset.mockupSide) === selectedSide));
+    selectedSide = [0,1,2,3].includes(side) && (side < 2 || ['hoodie','sudadera'].includes(selectedGarment)) ? side : 0;
+    document.querySelectorAll('[data-mockup-side]').forEach(button => { const active = Number(button.dataset.mockupSide) === selectedSide; button.classList.toggle('active', active); button.setAttribute('aria-pressed', String(active)); });
   };
 
   const openModal = () => {

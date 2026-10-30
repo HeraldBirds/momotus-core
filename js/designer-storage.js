@@ -63,7 +63,7 @@
         return true;
       }
       try {
-        const metadata = { ...record, frontDesign: null, backDesign: null, metadataOnly: true };
+        const metadata = { ...record, frontDesign: null, backDesign: null, sleeves: null, metadataOnly: true };
         localStorage.setItem(LOCAL_KEY, JSON.stringify(metadata));
       } catch { /* IndexedDB sigue siendo la fuente principal */ }
       return true;
