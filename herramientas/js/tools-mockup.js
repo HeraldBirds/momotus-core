@@ -14,6 +14,7 @@
   let selectedGarment = 'regular';
   let selectedSide = 0;
   let transferBusy = false;
+  let sleeveOrigin = null;
   const designerImportTools = Object.freeze({
     background: Object.freeze({ panel: 'eliminar-fondo', label: 'eliminador de fondo' }),
     quality: Object.freeze({ panel: 'mejorar-calidad', label: 'mejora de calidad' })
@@ -156,6 +157,7 @@
       await bridge.put(bridge.keys.toolsToDesigner, blob, {
         garment: selectedGarment,
         side: selectedSide,
+        ...(sleeveOrigin && sleeveOrigin.garment === selectedGarment && sleeveOrigin.side === selectedSide ? { sleeveLayerId: sleeveOrigin.id, sleeveRevision: sleeveOrigin.revision } : {}),
         sourceTool: type,
         filename: `${info?.filename || 'momotus'}-mockup.png`
       });
@@ -197,6 +199,7 @@
       if (!loaded) throw new Error(`No se pudo cargar el diseño en ${toolConfig.label}.`);
       if (garments.some(item => item.key === record.metadata?.garment)) selectGarment(record.metadata.garment);
       selectSide(Number(record.metadata?.side));
+      sleeveOrigin = selectedSide >= 2 && record.metadata?.sleeveLayerId ? { garment: selectedGarment, side: selectedSide, id: record.metadata.sleeveLayerId, revision: record.metadata.sleeveRevision } : null;
       await bridge.remove(key);
       params.delete('importar');
       params.delete('herramienta');

@@ -697,6 +697,8 @@ const abrirHerramientaInterna = async (tool = 'background', sendCurrentDesign = 
   }
 
   const sleeveTransfer = currentTab === 2;
+  const sleeveTarget = sleeveTransfer ? { sleeveLayerId: window.MomotusSleeves.selectedId(), sleeveRevision: window.MomotusSleeves.selectedRevision() } : null;
+  const transferGarment = shirtTypes[currentShirtType];
   let transferSide = sleeveTransfer ? (window.MomotusSleeves?.selectedSide() === 'right' ? 3 : 2) : currentTab;
   let source = sleeveTransfer ? window.MomotusSleeves?.source() : transferSide === 0 ? designFront : designBack;
   if (!source && !sleeveTransfer) {
@@ -724,7 +726,8 @@ const abrirHerramientaInterna = async (tool = 'background', sendCurrentDesign = 
       blob,
       {
         side: transferSide,
-        garment: shirtTypes[currentShirtType],
+        ...(sleeveTarget || {}),
+        garment: transferGarment,
         requestedTool: selectedTool,
         filename: `momotus-${['frente','espalda','manga-izquierda','manga-derecha'][transferSide]}.${blob.type.split('/')[1] || 'png'}`
       }
@@ -767,7 +770,7 @@ const importDesignFromTools = async () => {
     const side = [1, 2, 3].includes(requestedSide) ? requestedSide : 0;
     const src = await window.MomotusWorkflowBridge.blobToDataURL(record.blob);
     if (side >= 2) {
-      if (!await window.MomotusSleeves?.applyImported(src, side - 2)) throw new Error('No se pudo colocar el diseño en la manga.');
+      if (!await window.MomotusSleeves?.applyImported(src, side - 2, record.metadata?.sleeveLayerId, record.metadata?.sleeveRevision)) throw new Error('No se pudo colocar el diseño en la manga.');
     } else if (side === 0) {
       currentScaleFront = 1;
       currentPositionFront = { x: 50, y: 50 };

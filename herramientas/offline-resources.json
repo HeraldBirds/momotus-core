@@ -1,5 +1,5 @@
 {
-  "version": "20261030-sleeves-1",
+  "version": "20261030-sleeves-multi-1",
   "files": [
     {
       "url": "css/style.css",
@@ -11,7 +11,7 @@
     },
     {
       "url": "herramientas/",
-      "bytes": 81965
+      "bytes": 82025
     },
     {
       "url": "herramientas/css/editor-interactions.css",
@@ -199,7 +199,7 @@
     },
     {
       "url": "herramientas/js/tools-mockup.js",
-      "bytes": 11786
+      "bytes": 12212
     },
     {
       "url": "herramientas/js/tools-precision-core.js",
@@ -319,7 +319,7 @@
     },
     {
       "url": "herramientas/pliegos/",
-      "bytes": 22198
+      "bytes": 22228
     },
     {
       "url": "herramientas/pliegos/app.js",
@@ -351,7 +351,7 @@
     },
     {
       "url": "herramientas/preparacion/",
-      "bytes": 10517
+      "bytes": 10547
     },
     {
       "url": "herramientas/preparacion/app.js",
@@ -371,7 +371,7 @@
     },
     {
       "url": "herramientas/tipografias/",
-      "bytes": 23065
+      "bytes": 23179
     },
     {
       "url": "herramientas/tipografias/advanced-ui.js",

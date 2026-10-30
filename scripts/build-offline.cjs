@@ -1,5 +1,5 @@
 /* Rebuild after changing tool assets: npm run build:offline */
-const fs=require('node:fs'),path=require('node:path'),root=path.join(__dirname,'..'),version='20261030-sleeves-1';
+const fs=require('node:fs'),path=require('node:path'),root=path.join(__dirname,'..'),version='20261030-sleeves-multi-1';
 const paths=new Set(['herramientas/','herramientas/tipografias/','herramientas/preparacion/','herramientas/pliegos/','css/tailwind.css','css/style.css','js/performance.js','js/workflow-bridge.js','herramientas/manifest.webmanifest','herramientas/icons/app-192.png','herramientas/icons/app-512.png']);
 function walk(folder,exts){for(const e of fs.readdirSync(path.join(root,folder),{withFileTypes:true})){const p=folder+'/'+e.name;if(e.isDirectory())walk(p,exts);else if(exts.includes(path.extname(e.name)))paths.add(p);}}
 for(const folder of ['herramientas/js','herramientas/css','herramientas/preparacion','herramientas/pliegos','herramientas/tipografias'])walk(folder,['.js','.css','.ttf','.otf','.woff','.woff2']);
