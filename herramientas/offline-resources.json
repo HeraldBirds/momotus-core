@@ -1,5 +1,5 @@
 {
-  "version": "20261030-categories-1",
+  "version": "20261030-category-motion-2",
   "files": [
     {
       "url": "css/site-motion.css",
@@ -15,7 +15,7 @@
     },
     {
       "url": "herramientas/",
-      "bytes": 82220
+      "bytes": 82285
     },
     {
       "url": "herramientas/css/editor-interactions.css",
@@ -323,7 +323,7 @@
     },
     {
       "url": "herramientas/pliegos/",
-      "bytes": 22213
+      "bytes": 22238
     },
     {
       "url": "herramientas/pliegos/app.js",
@@ -355,7 +355,7 @@
     },
     {
       "url": "herramientas/preparacion/",
-      "bytes": 10532
+      "bytes": 10557
     },
     {
       "url": "herramientas/preparacion/app.js",
@@ -375,7 +375,7 @@
     },
     {
       "url": "herramientas/tipografias/",
-      "bytes": 23122
+      "bytes": 23217
     },
     {
       "url": "herramientas/tipografias/advanced-ui.js",

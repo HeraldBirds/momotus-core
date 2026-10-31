@@ -37,3 +37,51 @@
 @media(max-width:340px){.mc-category-scene{grid-template-columns:1fr}.mc-category-art{height:115px}.mc-category-copy h2{font-size:23px}}
 html.mc-motion-reduced .mc-category-art *,html.mc-page-hidden .mc-category-art *{animation:none!important}
 @media(prefers-reduced-motion:reduce){.mc-category-art *{animation:none!important}}
+/* Secuencias temáticas: entrada, acción y descanso. Solo se anima la ilustración. */
+.mc-category-art{--cat-cross:480px;container-type:size}
+@supports(width:1cqw){.mc-category-art{--cat-cross:calc(100cqw + 120px)}}
+.mc-cat-animated{transform-box:fill-box;transform-origin:center;animation-play-state:paused}
+.mc-cat-perched-bird{animation:mc-cat-bird-land 22s ease-in-out infinite;animation-play-state:paused}
+.mc-particle-bird{left:-56px;animation:mc-cat-bird-cross calc(13s + var(--i)*1.2s) linear calc(var(--i)*-4s) infinite;animation-play-state:paused}
+.mc-cat-bird-wing{transform-origin:50% 70%;animation:mc-cat-wingbeat .65s ease-in-out infinite alternate;animation-play-state:paused}
+.mc-cat-ink-brush{stroke-dasharray:100;stroke-dashoffset:0;animation:mc-cat-ink-draw 18s ease-in-out infinite;animation-play-state:paused}
+.mc-cat-energy{animation:mc-cat-energy-rise 18s ease-in-out infinite;animation-play-state:paused}
+.mc-cat-portal{animation:mc-cat-portal-open 20s ease-in-out infinite;animation-play-state:paused}
+.mc-cat-controller-body{animation:mc-cat-controller-arrive 20s ease-in-out infinite;animation-play-state:paused}
+.mc-particle-pixel{animation:mc-cat-pixel-burst calc(14s + var(--i)*.3s) ease-out calc(var(--i)*-.7s) infinite;animation-play-state:paused}
+.mc-cat-record{animation:mc-cat-record-spin 10s linear infinite;animation-play-state:paused}
+.mc-particle-note{animation:mc-cat-note-rise calc(12s + var(--i)*.7s) ease-in-out calc(var(--i)*-2s) infinite;animation-play-state:paused}
+.mc-cat-rolling-wheel{animation:mc-cat-motor-run 20s ease-in-out infinite;animation-play-state:paused}
+.mc-category-scene .mc-cat-wheel-spokes{animation:none}
+.mc-particle-speed{animation:mc-cat-speed-pass calc(14s + var(--i)*.3s) ease-in-out calc(var(--i)*-.6s) infinite;animation-play-state:paused}
+.mc-cat-ghost{animation:mc-cat-ghost-appear 18s ease-in-out infinite;animation-play-state:paused}
+.mc-particle-mist{animation:mc-cat-mist-pass calc(18s + var(--i)*.6s) ease-in-out calc(var(--i)*-2s) infinite alternate;animation-play-state:paused}
+.mc-cat-paint-stroke{stroke-dasharray:100;stroke-dashoffset:0;animation:mc-cat-paint-reveal 20s ease-in-out infinite;animation-play-state:paused}
+.mc-cat-spray-body{animation:mc-cat-paint-spray 20s ease-in-out infinite;animation-play-state:paused}
+.mc-cat-letter-a{animation:mc-cat-letter-drop 18s ease-in-out infinite;animation-play-state:paused}
+.mc-cat-letter-b{animation:mc-cat-letter-slide 18s ease-in-out infinite;animation-play-state:paused}
+.mc-cat-sport-ball{animation:mc-cat-ball-bounce 20s ease-in-out infinite;animation-play-state:paused}
+.mc-category-scene[data-motion=running] .mc-cat-animated{animation-play-state:running}
+.mc-category-scene[data-motion=paused] .mc-cat-animated{animation-play-state:paused}
+@keyframes mc-cat-bird-land{0%{opacity:0;transform:translate(-70px,-45px) rotate(-12deg)}12%,58%{opacity:1;transform:translate(0,0)}68%{opacity:1;transform:translate(10px,-5px) rotate(-5deg)}82%,100%{opacity:0;transform:translate(130px,-65px) rotate(-12deg)}}
+@keyframes mc-cat-bird-cross{0%{opacity:0;transform:translate3d(0,6px,0)}8%{opacity:.7}45%{transform:translate3d(calc(var(--cat-cross)*.45),-12px,0);opacity:.7}85%{opacity:.6}100%{opacity:0;transform:translate3d(var(--cat-cross),8px,0)}}
+@keyframes mc-cat-wingbeat{to{transform:scaleY(.4)}}
+@keyframes mc-cat-ink-draw{0%,100%{stroke-dashoffset:100;opacity:0}8%{opacity:1}25%,78%{stroke-dashoffset:0;opacity:1}94%{stroke-dashoffset:0;opacity:0}}
+@keyframes mc-cat-energy-rise{0%,8%,100%{opacity:0;transform:translateY(18px) scale(.6)}22%{opacity:1;transform:translateY(0) scale(1)}38%{transform:translateY(-6px) scale(1.08) rotate(-5deg)}55%,78%{opacity:1;transform:translateY(0) scale(1)}94%{opacity:0;transform:translateY(-18px) scale(.8)}}
+@keyframes mc-cat-portal-open{0%,100%{opacity:0;transform:scale(.15) rotate(-35deg)}14%{opacity:1;transform:scale(1) rotate(0)}70%{opacity:.85;transform:scale(1.03) rotate(18deg)}92%{opacity:0;transform:scale(.2) rotate(45deg)}}
+@keyframes mc-cat-controller-arrive{0%,5%,100%{opacity:0;transform:translateY(24px) scale(.5)}18%,72%{opacity:1;transform:translateY(0) scale(1)}88%{opacity:0;transform:translateY(-15px) scale(.75)}}
+@keyframes mc-cat-pixel-burst{0%,100%{opacity:0;transform:translate(0,0) scale(.3)}15%{opacity:.7;transform:translate(0,0) scale(1)}55%{opacity:.6;transform:translate(calc(var(--dx)*2),calc(var(--dy)*2)) scale(1) rotate(45deg)}80%{opacity:0;transform:translate(calc(var(--dx)*3),calc(var(--dy)*3)) scale(.5) rotate(90deg)}}
+@keyframes mc-cat-record-spin{to{transform:rotate(360deg)}}
+@keyframes mc-cat-note-rise{0%,100%{opacity:0;transform:translateY(35px) rotate(-12deg) scale(.8)}18%{opacity:.8;transform:translateY(10px) rotate(5deg)}65%{opacity:.65;transform:translateY(-65px) rotate(-8deg)}86%{opacity:0;transform:translateY(-105px) rotate(10deg)}}
+@keyframes mc-cat-motor-run{0%,100%{opacity:0;transform:translateX(-90px) rotate(-160deg)}15%{opacity:1;transform:translateX(0) rotate(0)}62%{opacity:1;transform:translateX(0) rotate(540deg)}84%,96%{opacity:0;transform:translateX(100px) rotate(900deg)}}
+@keyframes mc-cat-speed-pass{0%,100%{opacity:0;transform:translateX(60px) scaleX(.2)}18%{opacity:.65;transform:translateX(20px) scaleX(1)}55%{opacity:.6;transform:translateX(-40px) scaleX(1.3)}80%{opacity:0;transform:translateX(-100px) scaleX(.3)}}
+@keyframes mc-cat-ghost-appear{0%,100%{opacity:0;transform:translateY(18px) scale(.85)}22%{opacity:1;transform:translateY(0) scale(1)}65%{opacity:1;transform:translateY(-6px) scale(1)}86%{opacity:0;transform:translateY(-18px) scale(.9)}}
+@keyframes mc-cat-mist-pass{from{transform:translateX(-22px) scale(.85);opacity:.1}to{transform:translateX(35px) scale(1.2);opacity:.24}}
+@keyframes mc-cat-paint-reveal{0%,100%{stroke-dashoffset:100;opacity:0}9%{opacity:.55}34%,78%{stroke-dashoffset:0;opacity:.55}93%{stroke-dashoffset:0;opacity:0}}
+@keyframes mc-cat-paint-spray{0%,100%{opacity:0;transform:translateX(35px) rotate(12deg)}12%{opacity:1;transform:translateX(0) rotate(0)}23%{transform:translateX(9px) rotate(-9deg)}35%{transform:translateX(-9px) rotate(9deg)}46%,78%{opacity:1;transform:translateX(0) rotate(0)}94%{opacity:0;transform:translateX(30px) rotate(10deg)}}
+@keyframes mc-cat-letter-drop{0%,100%{opacity:0;transform:translateY(-45px) rotate(-15deg)}18%,78%{opacity:1;transform:translateY(0) rotate(0)}94%{opacity:0;transform:translateY(18px) rotate(6deg)}}
+@keyframes mc-cat-letter-slide{0%,7%,100%{opacity:0;transform:translateX(40px) rotate(15deg)}25%,78%{opacity:1;transform:translateX(0) rotate(0)}94%{opacity:0;transform:translateX(-15px) rotate(-5deg)}}
+@keyframes mc-cat-ball-bounce{0%,100%{opacity:0;transform:translateY(-90px) rotate(-90deg)}10%{opacity:1;transform:translateY(-18px) rotate(-20deg)}18%{transform:translateY(0) scale(1.06,.92) rotate(0)}25%{transform:translateY(-40px) scale(1) rotate(60deg)}32%{transform:translateY(0) scale(1.04,.95) rotate(90deg)}38%{transform:translateY(-18px) scale(1) rotate(115deg)}45%,72%{opacity:1;transform:translateY(0) scale(1) rotate(140deg)}89%{opacity:0;transform:translate(85px,-15px) rotate(260deg)}}
+.mc-category-scene[data-motion=still] .mc-particle-bird{left:var(--x)}
+html.mc-motion-reduced .mc-category-art .mc-particle-bird{left:var(--x)}
+@media(prefers-reduced-motion:reduce){.mc-category-art .mc-particle-bird{left:var(--x)}}
